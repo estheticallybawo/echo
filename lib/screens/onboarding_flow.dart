@@ -135,9 +135,9 @@ class _OnboardingPage1_HinyStory extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             'Iniubong "Hiny" Umoren',
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(
-              color: GuardianColors.primary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.displayMedium?.copyWith(color: GuardianColors.primary),
           ),
           const SizedBox(height: 16),
           Container(
@@ -165,9 +165,9 @@ class _OnboardingPage1_HinyStory extends StatelessWidget {
           const SizedBox(height: 32),
           Text(
             'Guardian exists so this never happens again.',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: GuardianColors.primary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: GuardianColors.primary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -249,9 +249,9 @@ class _OnboardingPage2_PermissionsState
           const SizedBox(height: 24),
           Text(
             'You can change these in Settings anytime.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: GuardianColors.textTertiary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: GuardianColors.textTertiary),
           ),
         ],
       ),
@@ -454,12 +454,16 @@ class _OnboardingPage4_InnerCircleState
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(name,
-                            style: Theme.of(context).textTheme.bodyMedium),
+                        child: Text(
+                          name,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ),
                       if (isSelected)
-                        const Icon(Icons.check_circle,
-                            color: GuardianColors.primary),
+                        const Icon(
+                          Icons.check_circle,
+                          color: GuardianColors.primary,
+                        ),
                     ],
                   ),
                 ),
@@ -483,6 +487,80 @@ class _OnboardingPage5_AutoPost extends StatefulWidget {
 
 class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
   bool _autoPostConsent = false;
+  bool _twitterConnected = false;
+  bool _isConnectingTwitter = false;
+
+  // Post template customization state
+  late TextEditingController _postTemplateController;
+  String _selectedThreatLevel = 'HIGH';
+  bool _includeLocation = true;
+  bool _includeContactInfo = false;
+
+  // Sample Gemma 4 generated post
+  final String _sampleGemmaPost =
+      '🚨 EMERGENCY ALERT 🚨\nI need immediate help at 42nd & Broadway, NYC\nThreat Level: HIGH\nPanic Level: 9/10\nPolice contacted ✓\nPlease respond if you can help or see anything\n#SafetyAlert #EmergencyHelp';
+
+  @override
+  void initState() {
+    super.initState();
+    _postTemplateController = TextEditingController(
+      text:
+          '🚨 EMERGENCY\n[THREAT_LEVEL] danger at [LOCATION]\nPanic: [PANIC_LEVEL]/10\nPolice contacted ✓\n[CONTACT_INFO]Help needed!',
+    );
+  }
+
+  @override
+  void dispose() {
+    _postTemplateController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _connectTwitter() async {
+    setState(() {
+      _isConnectingTwitter = true;
+    });
+
+    // PLACEHOLDER: Implement Twitter OAuth 2.0 flow here
+    // Expected behavior:
+    // 1. Launch Twitter identity provider (e.g., flutter_appauth)
+    // 2. User authorizes Guardian app permissions
+    // 3. Store access token in secure storage
+    // 4. Verify token with Twitter API
+    // 5. Display success/failure
+
+    // For now, simulate OAuth flow with 2-second delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _twitterConnected = true;
+        _isConnectingTwitter = false;
+      });
+    }
+  }
+
+  String _buildPreviewPost() {
+    String preview = _postTemplateController.text;
+
+    // Replace placeholders with sample values
+    preview = preview.replaceAll('[THREAT_LEVEL]', _selectedThreatLevel);
+    preview = preview.replaceAll(
+      '[LOCATION]',
+      _includeLocation ? 'Downtown, City' : '[Your Location]',
+    );
+    preview = preview.replaceAll('[PANIC_LEVEL]', '8');
+
+    if (_includeContactInfo) {
+      preview = preview.replaceAll(
+        '[CONTACT_INFO]',
+        '+1 (555) 123-4567 Emergency\n',
+      );
+    } else {
+      preview = preview.replaceAll('[CONTACT_INFO]', '');
+    }
+
+    return preview;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -493,52 +571,388 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
         children: [
           const SizedBox(height: 24),
           Text(
-            'Public Alert',
+            'Public Alert Network',
             style: Theme.of(context).textTheme.displayMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Auto-post to public networks?',
+            'Set up auto-posting with Gemma 4',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: GuardianColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
+
+          // SECTION 1: Gemma 4 Sample Post
+          Text(
+            'Step 1: Review Gemma 4 Generated Post',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: GuardianColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: GuardianColors.surfaceSecondary,
+              color: Colors.blue.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'When activated, Guardian can:',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
-                ...[
-                  'Tweet your location & status',
-                  'Post to emergency networks',
-                  'Share your live situation',
-                ].map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.language,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.check,
-                            color: GuardianColors.primary, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(item)),
+                        Text(
+                          'Gemma 4 (AI Generated)',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          '2 mins ago',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: GuardianColors.textSecondary),
+                        ),
                       ],
                     ),
-                  );
-                }),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _sampleGemmaPost,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    height: 1.5,
+                    fontFamily: 'Courier',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.info, size: 16, color: GuardianColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This is auto-generated by AI analysis of your voice & location during emergency',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: GuardianColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // SECTION 2: Template Customization
+          Text(
+            'Step 2: Customize Your Post Template',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: GuardianColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Threat level selector
+          Text(
+            'Default Threat Level',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+                .map(
+                  (level) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ChoiceChip(
+                        label: Text(level),
+                        selected: _selectedThreatLevel == level,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedThreatLevel = level;
+                          });
+                        },
+                        selectedColor: GuardianColors.primary,
+                        labelStyle: TextStyle(
+                          color: _selectedThreatLevel == level
+                              ? Colors.white
+                              : GuardianColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // Post template editor
+          Text(
+            'Post Template (use [PLACEHOLDERS])',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: GuardianColors.textSecondary.withOpacity(0.2),
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              controller: _postTemplateController,
+              maxLines: 6,
+              onChanged: (value) {
+                setState(() {});
+              },
+              decoration: InputDecoration(
+                hintText:
+                    'Enter your post template with placeholders like [LOCATION], [THREAT_LEVEL], [PANIC_LEVEL]',
+                hintStyle: TextStyle(
+                  color: GuardianColors.textSecondary.withOpacity(0.5),
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Template options
+          CheckboxListTile(
+            value: _includeLocation,
+            onChanged: (value) {
+              setState(() {
+                _includeLocation = value ?? false;
+              });
+            },
+            title: Text(
+              'Include location in post',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          CheckboxListTile(
+            value: _includeContactInfo,
+            onChanged: (value) {
+              setState(() {
+                _includeContactInfo = value ?? false;
+              });
+            },
+            title: Text(
+              'Include emergency contact info',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            subtitle: Text(
+              '(Phone number will be visible to public)',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: GuardianColors.warning),
+            ),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          const SizedBox(height: 24),
+
+          // SECTION 3: Live Preview
+          Text(
+            'Step 3: Preview Live Example',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: GuardianColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: GuardianColors.success.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: GuardianColors.success.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: GuardianColors.success,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your Post (when posted)',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'During emergency',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: GuardianColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _buildPreviewPost(),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    height: 1.5,
+                    fontFamily: 'Courier',
+                    color: GuardianColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: GuardianColors.success,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This preview updates as you customize your template',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: GuardianColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Twitter OAuth Button
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: _twitterConnected
+                  ? GuardianColors.success.withOpacity(0.1)
+                  : Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _twitterConnected
+                    ? GuardianColors.success
+                    : Colors.blue.shade400,
+                width: 2,
+              ),
+            ),
+            child: Column(
+              children: [
+                if (!_twitterConnected)
+                  ElevatedButton.icon(
+                    onPressed: _isConnectingTwitter ? null : _connectTwitter,
+                    icon: const Icon(Icons.link),
+                    label: _isConnectingTwitter
+                        ? const Text('CONNECTING...')
+                        : const Text('CONNECT TWITTER'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: GuardianColors.success,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Twitter Connected',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: GuardianColors.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _twitterConnected = false;
+                          });
+                        },
+                        child: Text(
+                          'Disconnect',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: GuardianColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
           const SizedBox(height: 24),
+
+          // Final consent checkbox
           Row(
             children: [
               Checkbox(
@@ -551,13 +965,58 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                 activeColor: GuardianColors.primary,
               ),
               Expanded(
-                child: Text(
-                  'I consent to public alerts',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'I approve this template for auto-posting',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Gemma 4 will generate posts using this template during emergencies',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: GuardianColors.textTertiary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // Security note
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: GuardianColors.textSecondary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '🔐 Your Privacy',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: GuardianColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Twitter OAuth uses secure authentication. Your template is stored locally and only shared when you approve during emergency. You can edit or reject any post before it\'s sent.',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: GuardianColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -575,7 +1034,36 @@ class _OnboardingPage6_ConfirmationSounds extends StatefulWidget {
 
 class _OnboardingPage6_ConfirmationSoundsState
     extends State<_OnboardingPage6_ConfirmationSounds> {
-  String _selectedSound = 'default';
+  String _selectedSound = 'Serene Chime';
+  bool _vibrationEnabled = true;
+  bool _isPreviewPlaying = false;
+
+  Future<void> _playAudioPreview(String soundName) async {
+    // PLACEHOLDER: Developers will wire AudioService here
+    // Expected behavior:
+    // 1. Load pre-recorded confirmation sound from assets
+    // 2. Play sound for 1-2 seconds
+    // 3. Trigger haptic feedback simultaneously
+
+    setState(() {
+      _isPreviewPlaying = true;
+    });
+
+    // Simulate audio playback with haptic feedback
+    if (_vibrationEnabled) {
+      // Would call: HapticFeedback.mediumImpact()
+      // This is a placeholder showing where haptic would be triggered
+    }
+
+    // Simulate 2-second audio playback
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (mounted) {
+      setState(() {
+        _isPreviewPlaying = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -597,10 +1085,13 @@ class _OnboardingPage6_ConfirmationSoundsState
             ),
           ),
           const SizedBox(height: 32),
-          ...['Serene Chime', 'Digital Bell', 'Subtle Pulsing']
-              .map((sound) {
+
+          // Audio selection cards
+          ...['Serene Chime', 'Digital Bell', 'Subtle Pulsing'].map((sound) {
+            bool isSelected = _selectedSound == sound;
+
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 16),
               child: GestureDetector(
                 onTap: () {
                   setState(() {
@@ -608,36 +1099,203 @@ class _OnboardingPage6_ConfirmationSoundsState
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: _selectedSound == sound
+                    color: isSelected
                         ? GuardianColors.primary.withOpacity(0.1)
                         : GuardianColors.surfaceSecondary,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _selectedSound == sound
+                      color: isSelected
                           ? GuardianColors.primary
                           : GuardianColors.textPrimary.withOpacity(0.08),
+                      width: isSelected ? 2 : 1,
                     ),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Icon(Icons.volume_up),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(sound)),
-                      IconButton(
-                        icon: const Icon(Icons.play_arrow),
-                        onPressed: () {},
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? GuardianColors.primary
+                                  : GuardianColors.textSecondary.withOpacity(
+                                      0.2,
+                                    ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.volume_up,
+                              color: isSelected
+                                  ? Colors.white
+                                  : GuardianColors.textPrimary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  sound,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? GuardianColors.primary
+                                            : GuardianColors.textPrimary,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getSoundDescription(sound),
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color: GuardianColors.textSecondary,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              _isPreviewPlaying && isSelected
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
+                              color: isSelected
+                                  ? GuardianColors.primary
+                                  : GuardianColors.textSecondary,
+                            ),
+                            onPressed: () => _playAudioPreview(sound),
+                          ),
+                        ],
                       ),
+
+                      // Audio visualization bars
+                      if (isSelected)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(
+                              10,
+                              (index) => Container(
+                                width: 3,
+                                height: _isPreviewPlaying
+                                    ? (8 + (index * 2)).toDouble()
+                                    : 8,
+                                decoration: BoxDecoration(
+                                  color: GuardianColors.primary,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
             );
           }),
+
+          const SizedBox(height: 32),
+
+          // Haptic feedback toggle
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: GuardianColors.surfaceSecondary,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: GuardianColors.textPrimary.withOpacity(0.08),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: GuardianColors.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.vibration,
+                    color: GuardianColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Haptic Feedback',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Vibration along with sounds',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: GuardianColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _vibrationEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _vibrationEnabled = value;
+                    });
+                  },
+                  activeColor: GuardianColors.primary,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Implementation note
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: GuardianColors.textSecondary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '🔊 Audio files play via ConfirmationSoundSystem. Haptic patterns trigger via native channels (Android Vibrator, iOS CoreHaptics).',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: GuardianColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  String _getSoundDescription(String sound) {
+    switch (sound) {
+      case 'Serene Chime':
+        return 'Calm, melodic alert (best for focus)';
+      case 'Digital Bell':
+        return 'Sharp, modern tone (high clarity)';
+      case 'Subtle Pulsing':
+        return 'Soft, rhythmic pattern (discreet)';
+      default:
+        return 'Customizable confirmation sound';
+    }
   }
 }
 
@@ -661,19 +1319,12 @@ class _OnboardingPage7_SystemTestState
       child: Column(
         children: [
           const SizedBox(height: 24),
-          Text(
-            'System Test',
-            style: Theme.of(context).textTheme.displayMedium,
-          ),
+          Text('System Test', style: Theme.of(context).textTheme.displayMedium),
           const SizedBox(height: 32),
           if (!_testComplete)
             Column(
               children: [
-                Icon(
-                  Icons.flash_on,
-                  size: 60,
-                  color: GuardianColors.primary,
-                ),
+                Icon(Icons.flash_on, size: 60, color: GuardianColors.primary),
                 const SizedBox(height: 24),
                 Text(
                   'Run a test to verify everything works',
@@ -693,7 +1344,9 @@ class _OnboardingPage7_SystemTestState
                   label: const Text('START TEST DRILL'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
                   ),
                 ),
               ],

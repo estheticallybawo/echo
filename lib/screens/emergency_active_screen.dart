@@ -77,14 +77,26 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             children: [
               // Recording Timer with Pulsing Ring
               _buildRecordingTimer(),
+              const SizedBox(height: 24),
+
+              // WOW FACTOR #1: Emotion Detection Gauge (Track A)
+              _buildEmotionGauge(),
               const SizedBox(height: 32),
 
               // Live Status Column
               _buildLiveStatusColumn(),
+              const SizedBox(height: 24),
+
+              // WOW FACTOR #2: Escalation Timer (Track B)
+              _buildEscalationTimerCard(),
               const SizedBox(height: 32),
 
               // Gemma 4 AI Analysis Card
               _buildAIAnalysisCard(),
+              const SizedBox(height: 24),
+
+              // Social Media Post Status (Track C)
+              _buildSocialPostStatus(),
               const SizedBox(height: 32),
 
               // Cancel Button
@@ -101,7 +113,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
   Widget _buildRecordingTimer() {
     final minutes = _elapsedSeconds ~/ 60;
     final seconds = _elapsedSeconds % 60;
-    final timerText = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final timerText =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
     return ScaleTransition(
       scale: Tween<double>(begin: 1.0, end: 1.15).animate(
@@ -110,7 +123,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
       child: Container(
         width: 200,
         height: 200,
-            
+
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           boxShadow: [
@@ -128,10 +141,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: GuardianColors.warning,
-                  width: 3,
-                ),
+                border: Border.all(color: GuardianColors.warning, width: 3),
               ),
             ),
 
@@ -280,7 +290,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // StreamBuilder for progressive text
           StreamBuilder<String>(
             stream: _aiAnalysisStream,
@@ -348,6 +358,381 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           foregroundColor: GuardianColors.warning,
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
+      ),
+    );
+  }
+
+  // ========================================
+  // NEW WIDGETS FOR DEVELOPER IMPLEMENTATION
+  // ========================================
+
+  /// WOW FACTOR #1: Emotion Detection Gauge (Track A - Dev 1)
+  /// Shows real-time fear/panic level from voice analysis
+  /// Developer: Wire EmotionDetectionService stream here
+  Widget _buildEmotionGauge() {
+    // PLACEHOLDER: Developers will replace with EmotionDetectionService stream
+    double emotionLevel = 45; // 0-100, where 100 = panic
+    bool isPanic = emotionLevel > 70;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isPanic
+            ? GuardianColors.warning.withOpacity(0.1)
+            : GuardianColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isPanic
+              ? GuardianColors.warning.withOpacity(0.5)
+              : GuardianColors.primary.withOpacity(0.2),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.monitor_heart,
+                color: isPanic
+                    ? GuardianColors.warning
+                    : GuardianColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Emotion Level',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: GuardianColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${emotionLevel.toStringAsFixed(0)}%',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: isPanic
+                      ? GuardianColors.warning
+                      : GuardianColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Gauge bar showing emotion level
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: emotionLevel / 100,
+              minHeight: 24,
+              backgroundColor: GuardianColors.textSecondary.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                emotionLevel < 30
+                    ? GuardianColors.success
+                    : emotionLevel < 70
+                    ? GuardianColors.primary
+                    : GuardianColors.warning,
+              ),
+              semanticsLabel: 'Fear Level',
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Status text
+          Text(
+            isPanic
+                ? '🚨 PANIC DETECTED - Auto-contacting police...'
+                : emotionLevel > 50
+                ? '⚠️ High stress detected'
+                : '✅ Monitoring stress levels',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: isPanic
+                  ? GuardianColors.warning
+                  : GuardianColors.textSecondary,
+              fontWeight: isPanic ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Escalation Timer (Track B - Dev 2)
+  /// Shows 2-tier escalation: Tier 1 (0-30s) → Tier 2
+  /// Developer: Wire EscalationManager FSM stream here
+  Widget _buildEscalationTimerCard() {
+    // PLACEHOLDER: Developers will replace with EscalationManager stream
+    int secondsUntilTier2 = 18; // Countdown from 30s
+    bool isTier1Active = secondsUntilTier2 > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GuardianColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isTier1Active
+              ? GuardianColors.primary.withOpacity(0.3)
+              : GuardianColors.success.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.people_outline,
+                color: GuardianColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Escalation Status',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: GuardianColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Tier 1 Status
+          _buildTierRow(
+            tier: 'TIER 1',
+            status: isTier1Active ? 'ACTIVE' : 'COMPLETED',
+            contacts: '3 contacts notified',
+            isActive: isTier1Active,
+            context: context,
+          ),
+          const SizedBox(height: 12),
+
+          // Countdown timer for Tier 2
+          if (isTier1Active) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: (30 - secondsUntilTier2) / 30,
+                        minHeight: 8,
+                        backgroundColor: GuardianColors.textSecondary
+                            .withOpacity(0.1),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          GuardianColors.warning,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${secondsUntilTier2}s',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: GuardianColors.warning,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Tier 2 Status
+          _buildTierRow(
+            tier: 'TIER 2',
+            status: isTier1Active ? 'STANDBY' : 'ACTIVATED',
+            contacts: '5-10 extended contacts',
+            isActive: !isTier1Active,
+            context: context,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper: Tier status row
+  Widget _buildTierRow({
+    required String tier,
+    required String status,
+    required String contacts,
+    required bool isActive,
+    required BuildContext context,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isActive
+            ? GuardianColors.primary.withOpacity(0.1)
+            : GuardianColors.textSecondary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isActive
+              ? GuardianColors.primary.withOpacity(0.3)
+              : GuardianColors.textSecondary.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isActive ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: isActive
+                ? GuardianColors.primary
+                : GuardianColors.textSecondary,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tier,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: GuardianColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  contacts,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: GuardianColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            status,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: isActive
+                  ? GuardianColors.primary
+                  : GuardianColors.textTertiary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Social Media Post Status (Track C - Dev 3)
+  /// Shows auto-post confirmation to Twitter/social media
+  /// Developer: Wire SocialMediaPostingService stream here
+  Widget _buildSocialPostStatus() {
+    // PLACEHOLDER: Developers will replace with StreamBuilder wrapping SocialMediaPostingService
+    // Example implementation:
+    // StreamBuilder<SocialPostStatus>(
+    //   stream: socialMediaService.postStatusStream(),
+    //   builder: (context, snapshot) { ... }
+    // )
+
+    final postTime = DateTime.now();
+
+    // Default: Show success state
+    // Developers: Replace with state from SocialMediaPostingService stream
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GuardianColors.success.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: GuardianColors.success.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: GuardianColors.success, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Emergency Alert Posted',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: GuardianColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Post preview box
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: GuardianColors.textSecondary.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '🚨 EMERGENCY ALERT',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: GuardianColors.warning,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Posted to Twitter • Emergency services notified • Help needed',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: GuardianColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Post metadata
+          Row(
+            children: [
+              Icon(
+                Icons.schedule,
+                color: GuardianColors.textTertiary,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Posted ${postTime.toString().substring(11, 16)}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: GuardianColors.textTertiary,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  // Open post in browser or copy URL
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Opening post...')),
+                  );
+                },
+                child: Text(
+                  'View Post',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: GuardianColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

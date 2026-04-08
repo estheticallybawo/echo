@@ -164,14 +164,9 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Feature Cards Grid - 2x2 layout
+  /// Feature Cards Grid - 2x2 layout (May 17 MVP only - no deferred features)
   Widget _buildFeatureCardGrid() {
     final features = [
-      {
-        'icon': Icons.phone_in_talk_outlined,
-        'label': 'Fake Call',
-        'route': '/fake-call',
-      },
       {
         'icon': Icons.person_add_outlined,
         'label': 'Contacts',
@@ -181,11 +176,6 @@ class _HomeScreenState extends State<HomeScreen>
         'icon': Icons.smart_toy_outlined,
         'label': 'AI Intel',
         'route': '/ai-intel',
-      },
-      {
-        'icon': Icons.history_outlined,
-        'label': 'Incident Log',
-        'route': '/incident-log',
       },
     ];
 

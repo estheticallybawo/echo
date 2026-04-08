@@ -5,8 +5,6 @@ import 'screens/emergency_active_screen.dart';
 import 'screens/onboarding_flow.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
-import 'screens/fake_call_screen.dart';
-import 'screens/incident_log_screen.dart';
 import 'theme.dart';
 
 void main() async {
@@ -34,8 +32,6 @@ class GuardianApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingFlow(),
         '/contacts': (context) => const ContactsScreen(),
         '/ai-intel': (context) => const AIIntelScreen(),
-        '/fake-call': (context) => const FakeCallScreen(),
-        '/incident-log': (context) => const IncidentLogScreen(),
       },
       navigatorObservers: [
         // Add analytics or logging observer here
