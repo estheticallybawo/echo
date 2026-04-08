@@ -16,7 +16,7 @@
 
 ### 1. Clone & Setup
 ```bash
-git clone <repo-url> hi_gemma
+git clone <[repo-url](https://github.com/estheticallybawo/the-gemma-4-good-project.git)> hi_gemma
 cd hi_gemma
 flutter pub get
 ```
