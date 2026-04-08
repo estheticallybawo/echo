@@ -2,7 +2,7 @@
 
 **Mission:** Guardian uses Gemma 4 AI to provide instant emergency alerts, location sharing, and automated contact notification. Built to honor Iniubong "Hiny" Umoren and prevent tragedies.
 
-**Status:** May 17 MVP (Feature-complete, design refinement phase)
+**Status:** May 15 MVP (Feature-complete, design refinement phase)
 
 ---
 
@@ -37,7 +37,7 @@ flutter run -d android
 
 **For Developers:**
 -  [ARCHITECTURE.md](ARCHITECTURE.md) - Service layer, state management, workflow docs
--  [lib/screens/](lib/screens/) - All UI screens
+-  [lib/screens/](lib/screens/) - All UI Template screens
 -  [lib/theme.dart](lib/theme.dart) - Color palette & typography
 
 **For Designers:**
@@ -45,8 +45,8 @@ flutter run -d android
 -  [DESIGN_CHECKLIST.md](DESIGN_CHECKLIST.md) - Screen specifications & wireframes
 
 **For Project Manager:**
--  FEATURES.md - Feature list & MVP scope (if exists)
--  TASK_TRACKING.md - Sprint tracking & task assignments (if exists)
+-  FEATURES.md - Feature list & MVP scope 
+-  TASK_TRACKING.md - Sprint tracking & task assignments
 
 ---
 
