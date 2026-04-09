@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Guardian Brand Colors - Light Mode, Soft Blue & Cyan
-class GuardianColors {
+/// Echo Brand Colors - Light Mode, Soft Blue & Cyan
+class EchoColors {
   // Light mode backgrounds - soft, calm
   static const Color surface = Color(0xFFF8FBFF); // Very soft blue-white
   static const Color surfaceSecondary = Color(0xFFF0F7FF); // Light blue tint
@@ -31,8 +31,8 @@ class GuardianColors {
   static const Color glassLight = Color(0x0FFFFFFF);
 }
 
-/// Guardian Typography Scale - Funnel Sans across the board
-class GuardianTypography {
+/// Echo Typography Scale - Funnel Sans across the board
+class EchoTypography {
   // Display - Brand identity with Poppins
   static TextStyle displayLarge = GoogleFonts.poppins(
     fontSize: 32,
@@ -101,30 +101,30 @@ class GuardianTypography {
   );
 }
 
-/// Guardian Theme Data - Light Mode
-ThemeData buildGuardianTheme() {
+/// Echo Theme Data - Light Mode
+ThemeData buildEchoTheme() {
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    scaffoldBackgroundColor: GuardianColors.surface,
+    scaffoldBackgroundColor: EchoColors.surface,
     
     // Primary brand color
-    primaryColor: GuardianColors.primary,
+    primaryColor: EchoColors.primary,
     
     // App Bar - Minimal, clean light
     appBarTheme: AppBarTheme(
-      backgroundColor: GuardianColors.surface,
+      backgroundColor: EchoColors.surface,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: GuardianTypography.headingLarge.copyWith(
-        color: GuardianColors.textPrimary,
+      titleTextStyle: EchoTypography.headingLarge.copyWith(
+        color: EchoColors.textPrimary,
       ),
-      iconTheme: const IconThemeData(color: GuardianColors.primary),
+      iconTheme: const IconThemeData(color: EchoColors.primary),
     ),
     
     // Cards - Rounded with soft glass effect
     cardTheme: CardThemeData(
-      color: GuardianColors.surfaceSecondary,
+      color: EchoColors.surfaceSecondary,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -134,109 +134,109 @@ ThemeData buildGuardianTheme() {
     // Input Decoration - Clean, minimal, light
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: GuardianColors.surfaceSecondary,
+      fillColor: EchoColors.surfaceSecondary,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: GuardianColors.surfaceTertiary),
+        borderSide: const BorderSide(color: EchoColors.surfaceTertiary),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: GuardianColors.surfaceTertiary),
+        borderSide: const BorderSide(color: EchoColors.surfaceTertiary),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(
-          color: GuardianColors.primary,
+          color: EchoColors.primary,
           width: 2,
         ),
       ),
-      hintStyle: GuardianTypography.bodyMedium.copyWith(
-        color: GuardianColors.textTertiary,
+      hintStyle: EchoTypography.bodyMedium.copyWith(
+        color: EchoColors.textTertiary,
       ),
-      labelStyle: GuardianTypography.bodyMedium.copyWith(
-        color: GuardianColors.textSecondary,
+      labelStyle: EchoTypography.bodyMedium.copyWith(
+        color: EchoColors.textSecondary,
       ),
     ),
     
     // Button Styles - Cyan primary
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: GuardianColors.primary,
-        foregroundColor: GuardianColors.surface,
+        backgroundColor: EchoColors.primary,
+        foregroundColor: EchoColors.surface,
         elevation: 0,
         shadowColor: Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        textStyle: GuardianTypography.labelLarge.copyWith(
-          color: GuardianColors.surface,
+        textStyle: EchoTypography.labelLarge.copyWith(
+          color: EchoColors.surface,
         ),
       ),
     ),
     
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: GuardianColors.primary,
+        foregroundColor: EchoColors.primary,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        textStyle: GuardianTypography.labelLarge,
+        textStyle: EchoTypography.labelLarge,
       ),
     ),
     
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: GuardianColors.primary,
-        side: const BorderSide(color: GuardianColors.primary, width: 1.5),
+        foregroundColor: EchoColors.primary,
+        side: const BorderSide(color: EchoColors.primary, width: 1.5),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        textStyle: GuardianTypography.labelLarge,
+        textStyle: EchoTypography.labelLarge,
       ),
     ),
     
     // Text Theme - Light mode text colors
     textTheme: TextTheme(
-      displayLarge: GuardianTypography.displayLarge.copyWith(
-        color: GuardianColors.textPrimary,
+      displayLarge: EchoTypography.displayLarge.copyWith(
+        color: EchoColors.textPrimary,
       ),
-      displayMedium: GuardianTypography.displayMedium.copyWith(
-        color: GuardianColors.textPrimary,
+      displayMedium: EchoTypography.displayMedium.copyWith(
+        color: EchoColors.textPrimary,
       ),
-      headlineSmall: GuardianTypography.headingLarge.copyWith(
-        color: GuardianColors.textPrimary,
+      headlineSmall: EchoTypography.headingLarge.copyWith(
+        color: EchoColors.textPrimary,
       ),
-      titleLarge: GuardianTypography.headingMedium.copyWith(
-        color: GuardianColors.textPrimary,
+      titleLarge: EchoTypography.headingMedium.copyWith(
+        color: EchoColors.textPrimary,
       ),
-      bodyLarge: GuardianTypography.bodyLarge.copyWith(
-        color: GuardianColors.textPrimary,
+      bodyLarge: EchoTypography.bodyLarge.copyWith(
+        color: EchoColors.textPrimary,
       ),
-      bodyMedium: GuardianTypography.bodyMedium.copyWith(
-        color: GuardianColors.textSecondary,
+      bodyMedium: EchoTypography.bodyMedium.copyWith(
+        color: EchoColors.textSecondary,
       ),
-      bodySmall: GuardianTypography.bodySmall.copyWith(
-        color: GuardianColors.textTertiary,
+      bodySmall: EchoTypography.bodySmall.copyWith(
+        color: EchoColors.textTertiary,
       ),
-      labelLarge: GuardianTypography.labelLarge.copyWith(
-        color: GuardianColors.surface,
+      labelLarge: EchoTypography.labelLarge.copyWith(
+        color: EchoColors.surface,
       ),
     ),
     
     // Bottom Navigation - Minimal icons
     bottomNavigationBarTheme: BottomNavigationBarThemeData(
-      backgroundColor: GuardianColors.surfaceSecondary,
-      selectedItemColor: GuardianColors.primary,
-      unselectedItemColor: GuardianColors.textTertiary,
+      backgroundColor: EchoColors.surfaceSecondary,
+      selectedItemColor: EchoColors.primary,
+      unselectedItemColor: EchoColors.textTertiary,
       elevation: 0,
       type: BottomNavigationBarType.fixed,
     ),
     
     // Floating Action Button
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: GuardianColors.primary,
-      foregroundColor: GuardianColors.surface,
+      backgroundColor: EchoColors.primary,
+      foregroundColor: EchoColors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -263,7 +263,7 @@ LinearGradient buildHolographicGradient({
 
 /// Glassmorphism Container
 BoxDecoration buildGlassmorphism({
-  Color baseColor = GuardianColors.surfaceSecondary,
+  Color baseColor = EchoColors.surfaceSecondary,
   double blur = 10,
   double opacity = 0.1,
 }) {
@@ -271,7 +271,7 @@ BoxDecoration buildGlassmorphism({
     color: baseColor.withOpacity(0.5),
     borderRadius: BorderRadius.circular(16),
     border: Border.all(
-      color: GuardianColors.textPrimary.withOpacity(0.08),
+      color: EchoColors.textPrimary.withOpacity(0.08),
       width: 1,
     ),
     // Note: BackdropFilter needs to be applied separately in parent widget

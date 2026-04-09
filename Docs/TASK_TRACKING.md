@@ -1,4 +1,4 @@
-# Guardian App - Branch & Task Tracking
+# Echo App - Branch & Task Tracking
 
 ## Quick Reference: Feature Branches by Phase
 

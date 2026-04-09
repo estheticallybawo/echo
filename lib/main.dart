@@ -10,11 +10,11 @@ import 'theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize any services here (audio, location, etc.)
-  runApp(const GuardianApp());
+  runApp(const EchoApp());
 }
 
-class GuardianApp extends StatelessWidget {
-  const GuardianApp({super.key});
+class EchoApp extends StatelessWidget {
+  const EchoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,9 +22,9 @@ class GuardianApp extends StatelessWidget {
     GoogleFonts.config.allowRuntimeFetching = true;
 
     return MaterialApp(
-      title: 'Guardian',
+      title: 'Echo',
       debugShowCheckedModeBanner: false,
-      theme: buildGuardianTheme(),
+      theme: buildEchoTheme(),
       home: const OnboardingFlow(), // Start with onboarding to see all UI
       routes: {
         '/home': (context) => const HomeScreen(),

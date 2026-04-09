@@ -29,7 +29,7 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
             Text(
               'Real-time threat detection and safety insights',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: GuardianColors.textTertiary,
+                color: EchoColors.textTertiary,
               ),
             ),
             const SizedBox(height: 32),
@@ -38,10 +38,10 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: GuardianColors.surfaceSecondary,
+                color: EchoColors.surfaceSecondary,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: GuardianColors.success.withOpacity(0.3),
+                  color: EchoColors.success.withOpacity(0.3),
                   width: 2,
                 ),
               ),
@@ -55,7 +55,7 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: GuardianColors.success.withOpacity(0.1),
+                          color: EchoColors.success.withOpacity(0.1),
                         ),
                         child: Center(
                           child: Text(
@@ -64,7 +64,7 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                                 .textTheme
                                 .displaySmall
                                 ?.copyWith(
-                                  color: GuardianColors.success,
+                                  color: EchoColors.success,
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
@@ -86,7 +86,7 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                                   .textTheme
                                   .bodySmall
                                   ?.copyWith(
-                                    color: GuardianColors.textTertiary,
+                                    color: EchoColors.textTertiary,
                                   ),
                             ),
                           ],
@@ -99,9 +99,9 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                     value: 0.92,
                     minHeight: 6,
                     backgroundColor:
-                        GuardianColors.success.withOpacity(0.1),
+                        EchoColors.success.withOpacity(0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                        GuardianColors.success),
+                        EchoColors.success),
                   ),
                 ],
               ),
@@ -118,22 +118,22 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
               {
                 'title': 'Audio Pattern Recognition',
                 'desc': 'No threat indicators detected in background',
-                'status': GuardianColors.success,
+                'status': EchoColors.success,
               },
               {
                 'title': 'Location Stability',
                 'desc': 'Stationary. Same location for 2 hours',
-                'status': GuardianColors.success,
+                'status': EchoColors.success,
               },
               {
                 'title': 'Contact Proximity',
                 'desc': '3 inner circle contacts within 5km',
-                'status': GuardianColors.success,
+                'status': EchoColors.success,
               },
               {
                 'title': 'Time Assessment',
                 'desc': 'Daytime: Lower risk context',
-                'status': GuardianColors.primary,
+                'status': EchoColors.primary,
               },
             ].map((insight) {
               return Padding(
@@ -141,10 +141,10 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: GuardianColors.surfaceSecondary,
+                    color: EchoColors.surfaceSecondary,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: GuardianColors.textPrimary.withOpacity(0.08),
+                      color: EchoColors.textPrimary.withOpacity(0.08),
                       width: 1,
                     ),
                   ),
@@ -178,7 +178,7 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                                   .textTheme
                                   .bodyMedium
                                   ?.copyWith(
-                                    color: GuardianColors.textPrimary,
+                                    color: EchoColors.textPrimary,
                                   ),
                             ),
                             const SizedBox(height: 2),
@@ -188,7 +188,7 @@ class _AIIntelScreenState extends State<AIIntelScreen> {
                                   .textTheme
                                   .bodySmall
                                   ?.copyWith(
-                                    color: GuardianColors.textTertiary,
+                                    color: EchoColors.textTertiary,
                                   ),
                             ),
                           ],

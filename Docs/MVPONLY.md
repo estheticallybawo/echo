@@ -1,8 +1,8 @@
-# Guardian App - MVP ONLY (May 17 Kaggle Deadline)
+# Echo App - MVP ONLY (May 17 Kaggle Deadline)
 
 **Timeline**: April 8 - May 17, 2026 (Exactly 6 weeks calendar / 30 working days)
 **Hard Deadline**: May 17 (Kaggle submission cutoff — CANNOT EXTEND)
-**Team**: 6 people (4 developers + 1 designer + 1 DevOps)
+**Team**: 5 people (4 developers + 1 designer )
 **Sprint Structure**:
 - **Week 1-2 (Apr 8-21, 10 working days)**: Build ALL core features + 2 WOW factors (aggressive)
 - **Week 3 (Apr 22-28, 5 working days)**: QA + UI polish + bug fixes
@@ -172,13 +172,13 @@
 ---
 
 ## TRACK C: Social Media Auto-Posting (1 Developer)
-**Owner**: [Assign here]
+**Owner**: Esther Bawo Tsotso
 **Timeline**: Week 1-2 (10 days)
 **Status**: ⬜ Not started
 
 ### Feature: Emergency Alert Auto-Posted to Social Media
 
-**Why This Matters**: When someone triggers Guardian, emergency alert auto-posts to their Twitter/Nextdoor account IMMEDIATELY. This broadcasts to their followers + local community without requiring mass adoption. Contacts see post in-feed, friends can respond, neighborhood gets visibility.
+**Why This Matters**: When someone triggers Echo, emergency alert auto-posts to their Twitter/Nextdoor account IMMEDIATELY. This broadcasts to their followers + local community without requiring mass adoption. Contacts see post in-feed, friends can respond, neighborhood gets visibility.
 
 **Implementation Tasks**:
 
@@ -196,7 +196,7 @@
    ```
 
 2. **Emergency Post Generation** (Days 4-6)
-   - [ ] Generate post content via Gemma: "🚨 EMERGENCY: I triggered Guardian emergency alert at [street address] [time]. Keyword: [threat type]. Immediate help needed. If you're nearby, call police or reply. #EmergencyAlert"
+   - [ ] Generate post content via Gemma: "🚨 EMERGENCY: I triggered Echo emergency alert at [street address] [time]. Keyword: [threat type]. Immediate help needed. If you're nearby, call police or reply. #EmergencyAlert"
    - [ ] Max 280 characters (include simplified summary)
    - [ ] Include hashtag: #EmergencyAlert for searchability
    - [ ] Geotag location if available (Twitter location feature)

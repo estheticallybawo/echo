@@ -13,10 +13,10 @@ enum ConfirmationActionType {
 }
 
 /// Confirmation Sound System Service
-/// Manages audio feedback and haptic feedback for critical Guardian actions
+/// Manages audio feedback and haptic feedback for critical Echo actions
 class ConfirmationSoundSystem {
-  static const platform = MethodChannel('com.guardian/audio');
-  static const hapticChannel = MethodChannel('com.guardian/haptics');
+  static const platform = MethodChannel('com.Echo/audio');
+  static const hapticChannel = MethodChannel('com.Echo/haptics');
 
   /// Play confirmation sound and haptic for an action
   static Future<void> playConfirmation(ConfirmationActionType action) async {

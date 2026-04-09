@@ -35,7 +35,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   hintText: 'Search contacts...',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
-                  fillColor: GuardianColors.surfaceSecondary,
+                  fillColor: EchoColors.surfaceSecondary,
                 ),
               ),
               const SizedBox(height: 32),
@@ -50,7 +50,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   {'name': 'Sister', 'phone': '+234 XXX XXX XXX', 'tier': 1},
                   {'name': 'Best Friend', 'phone': '+234 XXX XXX XXX', 'tier': 1},
                 ],
-                color: GuardianColors.primary,
+                color: EchoColors.primary,
               ),
               const SizedBox(height: 28),
 
@@ -64,7 +64,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   {'name': 'Neighbor', 'phone': '+234 XXX XXX XXX', 'tier': 2},
                   {'name': 'Support Group', 'phone': '+234 XXX XXX XXX', 'tier': 2},
                 ],
-                color: GuardianColors.warning,
+                color: EchoColors.warning,
               ),
               const SizedBox(height: 28),
 
@@ -123,14 +123,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 Text(
                   tier,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: GuardianColors.textPrimary,
+                    color: EchoColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textTertiary,
+                    color: EchoColors.textTertiary,
                   ),
                 ),
               ],
@@ -153,10 +153,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: GuardianColors.surfaceSecondary,
+        color: EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: GuardianColors.textPrimary.withOpacity(0.08),
+          color: EchoColors.textPrimary.withOpacity(0.08),
           width: 1,
         ),
       ),
@@ -167,7 +167,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: GuardianColors.surfaceTertiary,
+              color: EchoColors.surfaceTertiary,
             ),
             child: const Center(
               child: Icon(Icons.person, size: 20),
@@ -181,14 +181,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 Text(
                   contact['name'] as String,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: GuardianColors.textPrimary,
+                    color: EchoColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   contact['phone'] as String,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textTertiary,
+                    color: EchoColors.textTertiary,
                   ),
                 ),
               ],
@@ -199,7 +199,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             onPressed: () {
               _showContactOptions(context, contact);
             },
-            color: GuardianColors.textTertiary,
+            color: EchoColors.textTertiary,
           ),
         ],
       ),
@@ -217,7 +217,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               width: 4,
               height: 24,
               decoration: BoxDecoration(
-                color: GuardianColors.success,
+                color: EchoColors.success,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -228,14 +228,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 Text(
                   'Nearby Contacts',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: GuardianColors.textPrimary,
+                    color: EchoColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'People near your location',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textTertiary,
+                    color: EchoColors.textTertiary,
                   ),
                 ),
               ],
@@ -246,10 +246,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: GuardianColors.surfaceSecondary,
+            color: EchoColors.surfaceSecondary,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: GuardianColors.textPrimary.withOpacity(0.08),
+              color: EchoColors.textPrimary.withOpacity(0.08),
               width: 1,
             ),
           ),
@@ -260,7 +260,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: GuardianColors.surfaceTertiary,
+                  color: EchoColors.surfaceTertiary,
                 ),
                 child: const Center(
                   child: Icon(Icons.location_on, size: 20),
@@ -274,14 +274,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     Text(
                       'Campus Security',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: GuardianColors.textPrimary,
+                        color: EchoColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '200m away • Emergency Services',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: GuardianColors.textTertiary,
+                        color: EchoColors.textTertiary,
                       ),
                     ),
                   ],
@@ -290,7 +290,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               IconButton(
                 icon: const Icon(Icons.add_circle_outline),
                 onPressed: () {},
-                color: GuardianColors.primary,
+                color: EchoColors.primary,
               ),
             ],
           ),
@@ -303,7 +303,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   void _showContactOptions(BuildContext context, Map<String, dynamic> contact) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: GuardianColors.surfaceSecondary,
+      backgroundColor: EchoColors.surfaceSecondary,
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -320,8 +320,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ListTile(
                 leading: const Icon(Icons.delete),
                 title: const Text('Remove'),
-                textColor: GuardianColors.warning,
-                iconColor: GuardianColors.warning,
+                textColor: EchoColors.warning,
+                iconColor: EchoColors.warning,
                 onTap: () {
                   Navigator.pop(context);
                 },
@@ -342,7 +342,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: GuardianColors.surfaceSecondary,
+          backgroundColor: EchoColors.surfaceSecondary,
           title: Text(
             'Add Contact',
             style: Theme.of(context).textTheme.titleLarge,
@@ -355,7 +355,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 decoration: InputDecoration(
                   hintText: 'Name',
                   hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textTertiary,
+                    color: EchoColors.textTertiary,
                   ),
                 ),
               ),
@@ -365,7 +365,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 decoration: InputDecoration(
                   hintText: 'Phone number',
                   hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textTertiary,
+                    color: EchoColors.textTertiary,
                   ),
                 ),
               ),

@@ -1,4 +1,4 @@
-# Guardian App - Developer Quick Start Guide
+# Echo App - Developer Quick Start Guide
 
 ## Getting Started in 5 Steps
 
@@ -31,7 +31,7 @@ flutter emulator --launch <emulator_name>
 flutter run -d emulator-5554
 ```
 
-You should see the Guardian app with:
+You should see the Echo app with:
 - ✓ Light theme (soft blue-white background)
 - ✓ Teal primary color (#0891B2)
 - ✓ Poppins typography
@@ -62,7 +62,7 @@ git branch  # Should show * feature/voice-activation
 ```
 lib/
 ├── main.dart                          # App entry point, routes
-├── theme.dart                         # Guardian design system
+├── theme.dart                         # Echo design system
 ├── screens/                           # UI screens (already built)
 │   ├── home_screen.dart
 │   ├── emergency_active_screen.dart
@@ -375,7 +375,7 @@ Future<void> startListening() async {
 // In main.dart
 void main() {
   // Enable debug printing
-  debugPrint('Guardian App Starting');
+  debugPrint('Echo App Starting');
   
   // ... rest of initialization
 }
@@ -685,4 +685,4 @@ Once your PR is merged:
 **Good luck! You've got this.** 🚀
 
 If anything's unclear, ask your teammates or refer back to this guide.
-The Guardian community is counting on you! ❤️
+The Echo community is counting on you! ❤️

@@ -1,6 +1,6 @@
-# Guardian - AI-Powered Emergency Response System
+# Echo - AI-Powered Emergency Response System
 
-**Mission:** Guardian uses Gemma 4 AI to provide instant emergency alerts, location sharing, and automated contact notification. Built to honor Iniubong "Hiny" Umoren and prevent tragedies.
+**Mission:** Echo uses Gemma 4 AI to provide instant emergency alerts, location sharing, and automated contact notification. Built to honor Iniubong "Hiny" Umoren and prevent tragedies.
 
 **Status:** May 15 MVP (Feature-complete, design refinement phase)
 
@@ -147,7 +147,7 @@ lib/
 - `flutter clean` → `flutter pub get` → `flutter run -d chrome`
 
 **Colors look wrong?**
-- Check [lib/theme.dart](lib/theme.dart) — use GuardianColors constants, not hardcoded values
+- Check [lib/theme.dart](lib/theme.dart) — use EchoColors constants, not hardcoded values
 
 **Design questions?**
 - Reference [DESIGN_BRIEF.md](DESIGN_BRIEF.md) sections

@@ -128,7 +128,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: GuardianColors.warning.withOpacity(0.4),
+              color: EchoColors.warning.withOpacity(0.4),
               blurRadius: 40,
               spreadRadius: 20,
             ),
@@ -141,7 +141,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: GuardianColors.warning, width: 3),
+                border: Border.all(color: EchoColors.warning, width: 3),
               ),
             ),
 
@@ -151,9 +151,9 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: GuardianColors.warning.withOpacity(0.1),
+                color: EchoColors.warning.withOpacity(0.1),
                 border: Border.all(
-                  color: GuardianColors.warning.withOpacity(0.3),
+                  color: EchoColors.warning.withOpacity(0.3),
                   width: 2,
                 ),
               ),
@@ -163,7 +163,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                   Text(
                     'RECORDING',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: GuardianColors.warning,
+                      color: EchoColors.warning,
                       letterSpacing: 1,
                     ),
                   ),
@@ -171,7 +171,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                   Text(
                     timerText,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: GuardianColors.warning,
+                      color: EchoColors.warning,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -191,25 +191,25 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
         'icon': Icons.mic,
         'label': 'Audio Recording',
         'status': 'ACTIVE',
-        'color': GuardianColors.success,
+        'color': EchoColors.success,
       },
       {
         'icon': Icons.location_on_outlined,
         'label': 'Location',
         'status': 'LOCKED',
-        'color': GuardianColors.primary,
+        'color': EchoColors.primary,
       },
       {
         'icon': Icons.notifications_active_outlined,
         'label': 'Alerts Sent',
         'status': '3 CONTACTS',
-        'color': GuardianColors.primary,
+        'color': EchoColors.primary,
       },
       {
         'icon': Icons.phone_in_talk_outlined,
         'label': 'Police Dispatch',
         'status': 'PENDING',
-        'color': GuardianColors.warning,
+        'color': EchoColors.warning,
       },
     ];
 
@@ -220,10 +220,10 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: GuardianColors.surfaceSecondary,
+              color: EchoColors.surfaceSecondary,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: GuardianColors.textPrimary.withOpacity(0.08),
+                color: EchoColors.textPrimary.withOpacity(0.08),
                 width: 1,
               ),
             ),
@@ -239,7 +239,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                   child: Text(
                     item['label'] as String,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: GuardianColors.textSecondary,
+                      color: EchoColors.textSecondary,
                     ),
                   ),
                 ),
@@ -263,10 +263,10 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: GuardianColors.surfaceSecondary,
+        color: EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: GuardianColors.primary.withOpacity(0.2),
+          color: EchoColors.primary.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -277,14 +277,14 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             children: [
               Icon(
                 Icons.smart_toy_outlined,
-                color: GuardianColors.primary,
+                color: EchoColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 'Gemma 4 Analysis',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: GuardianColors.textPrimary,
+                  color: EchoColors.textPrimary,
                 ),
               ),
             ],
@@ -299,7 +299,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
               return Text(
                 snapshot.data ?? '',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: GuardianColors.textSecondary,
+                  color: EchoColors.textSecondary,
                   height: 1.6,
                 ),
               );
@@ -319,17 +319,17 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              backgroundColor: GuardianColors.surfaceSecondary,
+              backgroundColor: EchoColors.surfaceSecondary,
               title: Text(
                 'Cancel Emergency?',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: GuardianColors.textPrimary,
+                  color: EchoColors.textPrimary,
                 ),
               ),
               content: Text(
                 'Are you sure? Recording and alerts will stop.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: GuardianColors.textSecondary,
+                  color: EchoColors.textSecondary,
                 ),
               ),
               actions: [
@@ -344,7 +344,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                   },
                   child: Text(
                     'Cancel Emergency',
-                    style: TextStyle(color: GuardianColors.warning),
+                    style: TextStyle(color: EchoColors.warning),
                   ),
                 ),
               ],
@@ -354,8 +354,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
         icon: const Icon(Icons.close),
         label: const Text('STOP EMERGENCY'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: GuardianColors.warning.withOpacity(0.15),
-          foregroundColor: GuardianColors.warning,
+          backgroundColor: EchoColors.warning.withOpacity(0.15),
+          foregroundColor: EchoColors.warning,
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
@@ -378,13 +378,13 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isPanic
-            ? GuardianColors.warning.withOpacity(0.1)
-            : GuardianColors.surfaceSecondary,
+            ? EchoColors.warning.withOpacity(0.1)
+            : EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isPanic
-              ? GuardianColors.warning.withOpacity(0.5)
-              : GuardianColors.primary.withOpacity(0.2),
+              ? EchoColors.warning.withOpacity(0.5)
+              : EchoColors.primary.withOpacity(0.2),
           width: 2,
         ),
       ),
@@ -396,15 +396,15 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
               Icon(
                 Icons.monitor_heart,
                 color: isPanic
-                    ? GuardianColors.warning
-                    : GuardianColors.primary,
+                    ? EchoColors.warning
+                    : EchoColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 'Emotion Level',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: GuardianColors.textPrimary,
+                  color: EchoColors.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -412,8 +412,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 '${emotionLevel.toStringAsFixed(0)}%',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: isPanic
-                      ? GuardianColors.warning
-                      : GuardianColors.primary,
+                      ? EchoColors.warning
+                      : EchoColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -427,13 +427,13 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             child: LinearProgressIndicator(
               value: emotionLevel / 100,
               minHeight: 24,
-              backgroundColor: GuardianColors.textSecondary.withOpacity(0.1),
+              backgroundColor: EchoColors.textSecondary.withOpacity(0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
                 emotionLevel < 30
-                    ? GuardianColors.success
+                    ? EchoColors.success
                     : emotionLevel < 70
-                    ? GuardianColors.primary
-                    : GuardianColors.warning,
+                    ? EchoColors.primary
+                    : EchoColors.warning,
               ),
               semanticsLabel: 'Fear Level',
             ),
@@ -449,8 +449,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 : '✅ Monitoring stress levels',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: isPanic
-                  ? GuardianColors.warning
-                  : GuardianColors.textSecondary,
+                  ? EchoColors.warning
+                  : EchoColors.textSecondary,
               fontWeight: isPanic ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
@@ -470,12 +470,12 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: GuardianColors.surfaceSecondary,
+        color: EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isTier1Active
-              ? GuardianColors.primary.withOpacity(0.3)
-              : GuardianColors.success.withOpacity(0.3),
+              ? EchoColors.primary.withOpacity(0.3)
+              : EchoColors.success.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -486,14 +486,14 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             children: [
               Icon(
                 Icons.people_outline,
-                color: GuardianColors.primary,
+                color: EchoColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 'Escalation Status',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: GuardianColors.textPrimary,
+                  color: EchoColors.textPrimary,
                 ),
               ),
             ],
@@ -522,10 +522,10 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                       child: LinearProgressIndicator(
                         value: (30 - secondsUntilTier2) / 30,
                         minHeight: 8,
-                        backgroundColor: GuardianColors.textSecondary
+                        backgroundColor: EchoColors.textSecondary
                             .withOpacity(0.1),
                         valueColor: const AlwaysStoppedAnimation<Color>(
-                          GuardianColors.warning,
+                          EchoColors.warning,
                         ),
                       ),
                     ),
@@ -534,7 +534,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                   Text(
                     '${secondsUntilTier2}s',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: GuardianColors.warning,
+                      color: EchoColors.warning,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -568,13 +568,13 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isActive
-            ? GuardianColors.primary.withOpacity(0.1)
-            : GuardianColors.textSecondary.withOpacity(0.05),
+            ? EchoColors.primary.withOpacity(0.1)
+            : EchoColors.textSecondary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isActive
-              ? GuardianColors.primary.withOpacity(0.3)
-              : GuardianColors.textSecondary.withOpacity(0.1),
+              ? EchoColors.primary.withOpacity(0.3)
+              : EchoColors.textSecondary.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -583,8 +583,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           Icon(
             isActive ? Icons.check_circle : Icons.radio_button_unchecked,
             color: isActive
-                ? GuardianColors.primary
-                : GuardianColors.textSecondary,
+                ? EchoColors.primary
+                : EchoColors.textSecondary,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -595,14 +595,14 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 Text(
                   tier,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: GuardianColors.textPrimary,
+                    color: EchoColors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   contacts,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textSecondary,
+                    color: EchoColors.textSecondary,
                   ),
                 ),
               ],
@@ -612,8 +612,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             status,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: isActive
-                  ? GuardianColors.primary
-                  : GuardianColors.textTertiary,
+                  ? EchoColors.primary
+                  : EchoColors.textTertiary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -640,10 +640,10 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: GuardianColors.success.withOpacity(0.1),
+        color: EchoColors.success.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: GuardianColors.success.withOpacity(0.3),
+          color: EchoColors.success.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -652,12 +652,12 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle, color: GuardianColors.success, size: 20),
+              Icon(Icons.check_circle, color: EchoColors.success, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Emergency Alert Posted',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: GuardianColors.textPrimary,
+                  color: EchoColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -672,7 +672,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
               color: Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: GuardianColors.textSecondary.withOpacity(0.1),
+                color: EchoColors.textSecondary.withOpacity(0.1),
                 width: 1,
               ),
             ),
@@ -682,7 +682,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 Text(
                   '🚨 EMERGENCY ALERT',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: GuardianColors.warning,
+                    color: EchoColors.warning,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -690,7 +690,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 Text(
                   'Posted to Twitter • Emergency services notified • Help needed',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textSecondary,
+                    color: EchoColors.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -704,14 +704,14 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             children: [
               Icon(
                 Icons.schedule,
-                color: GuardianColors.textTertiary,
+                color: EchoColors.textTertiary,
                 size: 16,
               ),
               const SizedBox(width: 6),
               Text(
                 'Posted ${postTime.toString().substring(11, 16)}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: GuardianColors.textTertiary,
+                  color: EchoColors.textTertiary,
                 ),
               ),
               const Spacer(),
@@ -725,7 +725,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 child: Text(
                   'View Post',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: GuardianColors.primary,
+                    color: EchoColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

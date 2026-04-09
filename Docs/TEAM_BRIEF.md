@@ -1,4 +1,4 @@
-# Guardian App: Team Brief — May 17 Kaggle Deadline
+# Echo App: Team Brief — May 17 Kaggle Deadline
 
 **Meeting**: Tomorrow (April 9, 9 AM)
 **Duration**: 30 minutes
@@ -8,7 +8,7 @@
 
 ## Your Mission (30 Seconds)
 
-Build Guardian: An AI-powered emergency safety app that detects danger in real-time and alerts your community. **Ship by May 17 to Kaggle.**
+Build Echo: An AI-powered emergency safety app that detects danger in real-time and alerts your community. **Ship by May 17 to Kaggle.**
 
 ---
 
@@ -50,7 +50,9 @@ Build Guardian: An AI-powered emergency safety app that detects danger in real-t
    - **T=30s**: If NO Tier 1 response, escalate to Tier 2
      - Send same alert to 5-10 secondary contacts
      - Same format, more urgency
-   - **T=60s**: If NO response, Twitter auto-post (if set up)
+   - **T=5s**: Auto-post to Twitter/Nextdoor (if enabled during onboarding)
+     - Post: "🚨 EMERGENCY: I triggered Echo at [street address]. [Threat type]. If nearby, call police. #EmergencyAlert"
+     - Broadcast to user's followers + local community feed
 
 5. **Active Tracking** (if contact responds)
    - Contact location shared periodically
@@ -60,11 +62,13 @@ Build Guardian: An AI-powered emergency safety app that detects danger in real-t
 6. **Close Emergency**
    - User marks safe OR contact confirms rescue
    - Emergency ends, all contacts notified
+   - Follow-up post to social media (optional: "Emergency resolved, thank you for help")
 
-7. **Community Layer** (runs in background)
-   - Nearby app users (<500m) get silent notification
-   - "Esther triggered emergency near you. Can you help?"
-   - Users can respond or dismiss
+7. **Community Awareness** (via social media)
+   - Emergency alert visible in user's Twitter followers feed
+   - Local community members see post via Nextdoor
+   - Friends can share/retweet for amplification
+   - Followers can reply with local help offers
 
 ---
 
@@ -110,23 +114,23 @@ Build Guardian: An AI-powered emergency safety app that detects danger in real-t
 
 ---
 
-### Developer Track C: Gemma + Community Alerts (Dev 3)
-**Your role**: Analyze emergency with Gemma, alert nearby community
+### Developer Track C: Gemma + Social Media Auto-Posting (Dev 3)
+**Your role**: Analyze emergency with Gemma, auto-post to social media
 
 **What you build**:
 - `GemmaThreatAssessmentService`: Stream audio to Gemma 4 API, get threat type + confidence
-- `GeolocationAlertService`: Firebase/geohash queries for nearby users
-- `CommunityAlertService`: FCM broadcast to nearby users within 500m
+- `TwitterOAuthService`: OAuth 2.0 authentication + token storage (encrypted)
+- `SocialMediaPostingService`: Auto-generate + post emergency alert to Twitter/Nextdoor
 
 **Success metric**:
 - Gemma responds with threat assessment <3 seconds
-- WhatsApp alert includes Gemma summary ("92% kidnapping confidence")
-- Community notifications sent within 10 seconds
-- No false positives (0.1% error rate max)
+- Post generated with location + threat type + confidence
+- Post published to Twitter/Nextdoor <5 seconds after activation
+- Post includes user's followers context (amplification potential)
 
 **Timeline**:
-- Week 1 (Apr 8-12): Firebase setup + community alerts working
-- Week 2 (Apr 17-19): Gemma threat assessment integrated + WhatsApp includes summary
+- Week 1 (Apr 8-12): Twitter OAuth setup + post generation working
+- Week 2 (Apr 17-19): Gemma integration + auto-post on activation
 - Week 3: QA + optimization
 
 ---

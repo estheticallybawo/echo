@@ -1,4 +1,4 @@
-# Guardian App - Designer Checklist & Screen Specs
+# Echo App - Designer Checklist & Screen Specs
 
 **Quick Reference Guide for Design Deliverables**
 
@@ -25,7 +25,7 @@ Layout:
 │     phone call. No one could        │
 │     reach her in time."             │
 │                                     │
-│    Guardian exists so this never    │ (32px Poppins, Blue, bold)
+│    Echo exists so this never    │ (32px Poppins, Blue, bold)
 │    happens again.                   │
 │                                     │
 │         [NEXT Button]               │ (Primary blue, 300ms animation)
@@ -51,7 +51,7 @@ Typography: Poppins/Inter hierarchy established
 Layout:
 ┌─────────────────────────────────────┐
 │ APP PERMISSIONS                      │ (48px Poppins)
-│ Guardian needs access to keep safe  │ (Subtitle, gray)
+│ Echo needs access to keep safe  │ (Subtitle, gray)
 │                                     │
 │ ┌─────────────────────────────────┐ │
 │ │ 📍 Location           [Toggle] ⊙│ │ (Card: light gray bg, border)
@@ -373,7 +373,7 @@ Layout - AFTER Test Complete:
 │       [✓ 60px icon]                 │ (Checkmark in circle, green)
 │       (with celebratory animation?)  │
 │                                     │
-│    Guardian is ready                │ (Green text, 18px)
+│    Echo is ready                │ (Green text, 18px)
 │                                     │
 │                                     │
 │  All systems tested and verified.   │ (Gray subtitle text)
@@ -541,7 +541,7 @@ Bottom Tab Navigation:
 
 Home Tab Design (Priority):
 ┌─────────────────────────────────────────────┐
-│ Guardian - Safety Dashboard                 │ (Header)
+│ Echo - Safety Dashboard                 │ (Header)
 │                                             │
 │ ┌─────────────────────────────────────┐    │
 │ │  STATUS: READY ✓                    │    │ (Status card)
@@ -569,7 +569,7 @@ SOS Button Details:
 - Color: Primary blue with shadow depth 8
 - Animation: Pulse effect (scale 1.0 → 1.1 → 1.0) every 1.5s
 - Text: "S O S" in large white font (36px)
-  or "ACTIVATE" below "GUARDIAN"
+  or "ACTIVATE" below "Echo"
 - On press: Haptic feedback (strong vibration) + scale animation feedback (98%)
 ```
 
@@ -599,7 +599,7 @@ For ALL screens:
 ## 🎨 Figma File Structure (Recommended)
 
 ```
-Guardian Design System
+Echo Design System
 ├── Design Tokens
 │   ├── Colors
 │   ├── Typography

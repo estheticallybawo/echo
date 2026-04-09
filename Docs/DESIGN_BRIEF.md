@@ -1,6 +1,6 @@
-# Guardian App - Designer's Brief & Style Guide
+# Echo App - Designer's Brief & Style Guide
 
-**Project:** Guardian - AI-Powered Emergency Response System  
+**Project:** Echo - AI-Powered Emergency Response System  
 **Version:** May 17 MVP  
 **Status:** Design Phase (Foundation Complete, Components Need Polish)  
 **Design Lead:** [Your Name]  
@@ -10,9 +10,9 @@
 
 ## 1. Design Philosophy & Mission
 
-Guardian is built around **Hiny's Story** - a young woman (Iniubong Umoren) whose life could have been saved with real-time emergency alerts. Every design decision must reflect:
+Echo is built around **Hiny's Story** - a young woman (Iniubong Umoren) whose life could have been saved with real-time emergency alerts. Every design decision must reflect:
 
-- **Trust**: Users give Guardian their location, voice, emergency contacts - design must feel secure
+- **Trust**: Users give Echo their location, voice, emergency contacts - design must feel secure
 - **Speed**: In emergencies, every millisecond matters - UI must guide users intuitively
 - **Empathy**: This app is used in life-or-death moments - design should feel supportive, not clinical
 - **Accessibility**: Not all emergency victims are able-bodied or sighted - alt text, high contrast, voice-first
@@ -23,21 +23,21 @@ Guardian is built around **Hiny's Story** - a young woman (Iniubong Umoren) whos
 
 ### Color Palette
 ```dart
-// Guardian Brand Colors (lib/theme.dart)
+// Echo Brand Colors (lib/theme.dart)
 
-GuardianColors.primary        = Color(0xFF2563EB)  // Primary Blue (Trust, Action)
-GuardianColors.primary90      = Color(0xFF1E40AF)  // Darker Blue (Pressed)
-GuardianColors.primary80      = Color(0xFF3B82F6)  // Light Blue (Hover)
+EchoColors.primary        = Color(0xFF2563EB)  // Primary Blue (Trust, Action)
+EchoColors.primary90      = Color(0xFF1E40AF)  // Darker Blue (Pressed)
+EchoColors.primary80      = Color(0xFF3B82F6)  // Light Blue (Hover)
 
-GuardianColors.warning        = Color(0xFFF97316)  // Orange (Urgency, Alerts)
-GuardianColors.success        = Color(0xFF10B981)  // Green (Confirmation, Safe)
-GuardianColors.textPrimary    = Color(0xFF1F2937)  // Dark Gray (Readable)
-GuardianColors.textSecondary  = Color(0xFF6B7280)  // Medium Gray (Sub-text)
-GuardianColors.textTertiary   = Color(0xFFD1D5DB)  // Light Gray (Disabled)
+EchoColors.warning        = Color(0xFFF97316)  // Orange (Urgency, Alerts)
+EchoColors.success        = Color(0xFF10B981)  // Green (Confirmation, Safe)
+EchoColors.textPrimary    = Color(0xFF1F2937)  // Dark Gray (Readable)
+EchoColors.textSecondary  = Color(0xFF6B7280)  // Medium Gray (Sub-text)
+EchoColors.textTertiary   = Color(0xFFD1D5DB)  // Light Gray (Disabled)
 
-GuardianColors.surfacePrimary    = Color(0xFFFFFFFF)  // White (Main BG)
-GuardianColors.surfaceSecondary  = Color(0xFFF3F4F6)  // Light Gray (Card BG)
-GuardianColors.surfaceTertiary   = Color(0xFFE5E7EB)  // Lighter Gray (Borders)
+EchoColors.surfacePrimary    = Color(0xFFFFFFFF)  // White (Main BG)
+EchoColors.surfaceSecondary  = Color(0xFFF3F4F6)  // Light Gray (Card BG)
+EchoColors.surfaceTertiary   = Color(0xFFE5E7EB)  // Lighter Gray (Borders)
 ```
 
 **Color Usage Rules:**
@@ -86,7 +86,7 @@ labelSmall       = 12px, w500, text-tertiary    // Captions, timestamps
 // Primary CTA
 ElevatedButton(
   style: ElevatedButton.styleFrom(
-    backgroundColor: GuardianColors.primary,
+    backgroundColor: EchoColors.primary,
     foregroundColor: Colors.white,
     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
   ),
@@ -96,15 +96,15 @@ ElevatedButton(
 // Outline/Secondary
 OutlinedButton(
   style: OutlinedButton.styleFrom(
-    side: BorderSide(color: GuardianColors.primary),
+    side: BorderSide(color: EchoColors.primary),
   ),
   child: Text('BACK'),
 )
 
 // Danger/Warning (Orange background)
 ElevatedButton.styleFrom(
-  backgroundColor: GuardianColors.warning.withOpacity(0.15),
-  foregroundColor: GuardianColors.warning,
+  backgroundColor: EchoColors.warning.withOpacity(0.15),
+  foregroundColor: EchoColors.warning,
 )
 ```
 
@@ -113,10 +113,10 @@ ElevatedButton.styleFrom(
 Container(
   padding: const EdgeInsets.all(16),
   decoration: BoxDecoration(
-    color: GuardianColors.surfaceSecondary,
+    color: EchoColors.surfaceSecondary,
     borderRadius: BorderRadius.circular(12),
     border: Border.all(
-      color: GuardianColors.textPrimary.withOpacity(0.08),
+      color: EchoColors.textPrimary.withOpacity(0.08),
       width: 1,
     ),
   ),
@@ -141,12 +141,12 @@ TextField(
 ```dart
 Checkbox(
   value: true,
-  activeColor: GuardianColors.primary,
+  activeColor: EchoColors.primary,
 )
 
 Switch(
   value: true,
-  activeColor: GuardianColors.primary,
+  activeColor: EchoColors.primary,
 )
 ```
 
@@ -284,7 +284,7 @@ shadowColor: Colors.black.withOpacity(0.08),
 
 // Alert shadow (urgent)
 elevation: 8,
-shadowColor: GuardianColors.warning.withOpacity(0.3),
+shadowColor: EchoColors.warning.withOpacity(0.3),
 ```
 
 ### Border Radius
@@ -403,7 +403,7 @@ Priority 2 (Post-Launch):
 ### When to Use Each Tone
 
 **Calm & Reassuring** (most of the time)
-*"Guardian is here. You're safe."*
+*"Echo is here. You're safe."*
 - Used in: Confirmation screens, help text, success states
 - Avoid panic language
 
@@ -481,7 +481,7 @@ Current problems to address:
 - Customizable emergency guide (injury first aid, safety tips)
 
 **Q3 2026:**
-- Guardian API landing page + integration guide
+- Echo API landing page + integration guide
 - Partner dashboard (for ride-sharing, dating apps)
 - Emergency response analytics (heat map of reported incidents)
 
@@ -547,7 +547,7 @@ This isn't a fintech app or social network. **Lives depend on your design decisi
 1. Should the app have a dark mode? (Pro: battery saving; Con: less visibility of critical alerts)
 2. How animated should the SOS button be? (More animation = more visible, but might distract)
 3. Should we show real incident data in mock-ups? (Privacy consideration)
-4. What should the "Guardian" logo look like? (Shield? Location pin? Heart rate monitor?)
+4. What should the "Echo" logo look like? (Shield? Location pin? Heart rate monitor?)
 
 ---
 

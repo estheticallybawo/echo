@@ -1,4 +1,4 @@
-# Guardian App - Complete Feature & Implementation Roadmap
+# Echo App - Complete Feature & Implementation Roadmap
 
  **TIMELINE UPDATE (April 8, 2026) — MAY 17 HARD DEADLINE**
 - **Submission Deadline**: May 17, 2026 (Kaggle Hackathon — NO EXTENSION)
@@ -23,7 +23,7 @@
 ---
 
 ## Overview
-Guardian is a discreet, AI-powered community safety app designed for real-time emergency response and incident analysis.
+Echo is a discreet, AI-powered community safety app designed for real-time emergency response and incident analysis.
 
 **For May 17 MVP Execution Plan**, see [MVPONLY.md](MVPONLY.md) — that is the single source of truth for shipping features, timeline, and team assignments.
 
@@ -100,7 +100,7 @@ Emergency auto-posts to user's Twitter: "🚨 EMERGENCY at [address]. [Threat ty
 - [ ] Capture audio stream (5 seconds before + 30 seconds after detection)
 - [ ] Record timestamp and geolocation immediately
 - [ ] Trigger emergency active screen (already UI)
-- [ ] Lock device to prevent accidental cancellation (UX safeguard)
+- [ ] Lock device to prevent accidental cancellation (UX safeEcho)
 
 **Tech Stack**:
 - Package: `record` for audio capture
@@ -993,7 +993,7 @@ POLISH/OPTIONAL (Can follow core):
 3. `feature/background-services` - Foreground service management
 4. `feature/speech-transcription` - Voice-to-text conversion
 
-**Rationale**: Focus on the voice pipeline (the unique differentiator of Guardian)
+**Rationale**: Focus on the voice pipeline (the unique differentiator of Echo)
 
 ---
 

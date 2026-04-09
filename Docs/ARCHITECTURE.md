@@ -1,4 +1,4 @@
-# Guardian App - Architecture & Implementation Guide
+# Echo App - Architecture & Implementation Guide
 
 ## System Architecture Overview
 
@@ -488,7 +488,7 @@ void main() async {
         Provider<LocationTrackerService>(create: (_) => locationTracker),
         // ... other services
       ],
-      child: const GuardianApp(),
+      child: const EchoApp(),
     ),
   );
 }
@@ -629,7 +629,7 @@ class FallbackStrategy {
 │ ✓ Transcripts (what user said)                            │
 │ ✓ Incident location coordinates (privacy)                 │
 │ ✓ Voice phrase (user's safety words)                      │
-│ ✓ Encryption keys (stored in Secure Enclave/Keyguard)     │
+│ ✓ Encryption keys (stored in Secure Enclave/KeyEcho)     │
 │                                                             │
 │ ✗ Incident status (who cares if it's "resolved")          │
 │ ✗ Contact names (not sensitive by themselves)             │

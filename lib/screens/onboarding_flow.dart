@@ -64,8 +64,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(2),
                       color: index <= _currentPage
-                          ? GuardianColors.primary
-                          : GuardianColors.surfaceSecondary,
+                          ? EchoColors.primary
+                          : EchoColors.surfaceSecondary,
                     ),
                   ),
                 );
@@ -137,7 +137,7 @@ class _OnboardingPage1_HinyStory extends StatelessWidget {
             'Iniubong "Hiny" Umoren',
             style: Theme.of(
               context,
-            ).textTheme.displayMedium?.copyWith(color: GuardianColors.primary),
+            ).textTheme.displayMedium?.copyWith(color: EchoColors.primary),
           ),
           const SizedBox(height: 16),
           Container(
@@ -145,29 +145,29 @@ class _OnboardingPage1_HinyStory extends StatelessWidget {
             height: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: GuardianColors.surfaceSecondary,
+              color: EchoColors.surfaceSecondary,
             ),
             child: const Icon(
               Icons.person,
               size: 50,
-              color: GuardianColors.primary,
+              color: EchoColors.primary,
             ),
           ),
           const SizedBox(height: 24),
           Text(
             '26 years old. 2021. A fake job offer in Uyo. One last phone call. No one could reach her in time.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: GuardianColors.textSecondary,
+              color: EchoColors.textSecondary,
               height: 1.8,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
           Text(
-            'Guardian exists so this never happens again.',
+            'Echo exists so this never happens again.',
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(color: GuardianColors.primary),
+            ).textTheme.titleLarge?.copyWith(color: EchoColors.primary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -209,9 +209,9 @@ class _OnboardingPage2_PermissionsState
           ),
           const SizedBox(height: 8),
           Text(
-            'Guardian needs access to keep you safe',
+            'Echo needs access to keep you safe',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: GuardianColors.textTertiary,
+              color: EchoColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
@@ -221,7 +221,7 @@ class _OnboardingPage2_PermissionsState
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: GuardianColors.surfaceSecondary,
+                  color: EchoColors.surfaceSecondary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -239,7 +239,7 @@ class _OnboardingPage2_PermissionsState
                           permissions[entry.key] = value;
                         });
                       },
-                      activeThumbColor: GuardianColors.primary,
+                      activeThumbColor: EchoColors.primary,
                     ),
                   ],
                 ),
@@ -251,7 +251,7 @@ class _OnboardingPage2_PermissionsState
             'You can change these in Settings anytime.',
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: GuardianColors.textTertiary),
+            ).textTheme.bodySmall?.copyWith(color: EchoColors.textTertiary),
           ),
         ],
       ),
@@ -287,9 +287,9 @@ class _OnboardingPage3_VoicePhraseState
           ),
           const SizedBox(height: 8),
           Text(
-            'Create a unique phrase you\'ll say to activate Guardian',
+            'Create a unique phrase you\'ll say to activate Echo',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: GuardianColors.textTertiary,
+              color: EchoColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
@@ -298,7 +298,7 @@ class _OnboardingPage3_VoicePhraseState
             decoration: InputDecoration(
               hintText: 'e.g., "I need help now"',
               hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: GuardianColors.textTertiary,
+                color: EchoColors.textTertiary,
               ),
             ),
           ),
@@ -319,12 +319,12 @@ class _OnboardingPage3_VoicePhraseState
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _isRecording
-                      ? GuardianColors.warning.withOpacity(0.2)
-                      : GuardianColors.surfaceSecondary,
+                      ? EchoColors.warning.withOpacity(0.2)
+                      : EchoColors.surfaceSecondary,
                   border: Border.all(
                     color: _isRecording
-                        ? GuardianColors.warning
-                        : GuardianColors.primary,
+                        ? EchoColors.warning
+                        : EchoColors.primary,
                     width: 2,
                   ),
                 ),
@@ -334,8 +334,8 @@ class _OnboardingPage3_VoicePhraseState
                     Icon(
                       _isRecording ? Icons.stop : Icons.mic,
                       color: _isRecording
-                          ? GuardianColors.warning
-                          : GuardianColors.primary,
+                          ? EchoColors.warning
+                          : EchoColors.primary,
                       size: 40,
                     ),
                     const SizedBox(height: 8),
@@ -343,8 +343,8 @@ class _OnboardingPage3_VoicePhraseState
                       _isRecording ? 'RECORDING' : 'TAP TO START',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: _isRecording
-                            ? GuardianColors.warning
-                            : GuardianColors.primary,
+                            ? EchoColors.warning
+                            : EchoColors.primary,
                         fontSize: 10,
                       ),
                     ),
@@ -358,18 +358,18 @@ class _OnboardingPage3_VoicePhraseState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: GuardianColors.success.withOpacity(0.1),
+                color: EchoColors.success.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: GuardianColors.success),
+                border: Border.all(color: EchoColors.success),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: GuardianColors.success),
+                  const Icon(Icons.check_circle, color: EchoColors.success),
                   const SizedBox(width: 12),
                   Text(
                     'Phrase recorded successfully',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: GuardianColors.success,
+                      color: EchoColors.success,
                     ),
                   ),
                 ],
@@ -410,7 +410,7 @@ class _OnboardingPage4_InnerCircleState
           Text(
             'Who\'ll be notified immediately?',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: GuardianColors.textTertiary,
+              color: EchoColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
@@ -432,13 +432,13 @@ class _OnboardingPage4_InnerCircleState
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? GuardianColors.primary.withOpacity(0.1)
-                        : GuardianColors.surfaceSecondary,
+                        ? EchoColors.primary.withOpacity(0.1)
+                        : EchoColors.surfaceSecondary,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? GuardianColors.primary
-                          : GuardianColors.textPrimary.withOpacity(0.08),
+                          ? EchoColors.primary
+                          : EchoColors.textPrimary.withOpacity(0.08),
                     ),
                   ),
                   child: Row(
@@ -448,7 +448,7 @@ class _OnboardingPage4_InnerCircleState
                         height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: GuardianColors.surfaceTertiary,
+                          color: EchoColors.surfaceTertiary,
                         ),
                         child: const Center(child: Icon(Icons.person)),
                       ),
@@ -462,7 +462,7 @@ class _OnboardingPage4_InnerCircleState
                       if (isSelected)
                         const Icon(
                           Icons.check_circle,
-                          color: GuardianColors.primary,
+                          color: EchoColors.primary,
                         ),
                     ],
                   ),
@@ -523,7 +523,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
     // PLACEHOLDER: Implement Twitter OAuth 2.0 flow here
     // Expected behavior:
     // 1. Launch Twitter identity provider (e.g., flutter_appauth)
-    // 2. User authorizes Guardian app permissions
+    // 2. User authorizes Echo app permissions
     // 3. Store access token in secure storage
     // 4. Verify token with Twitter API
     // 5. Display success/failure
@@ -578,7 +578,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
           Text(
             'Set up auto-posting with Gemma 4',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: GuardianColors.textTertiary,
+              color: EchoColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
@@ -588,7 +588,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
             'Step 1: Review Gemma 4 Generated Post',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: GuardianColors.primary,
+              color: EchoColors.primary,
             ),
           ),
           const SizedBox(height: 12),
@@ -631,7 +631,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                         Text(
                           '2 mins ago',
                           style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: GuardianColors.textSecondary),
+                              ?.copyWith(color: EchoColors.textSecondary),
                         ),
                       ],
                     ),
@@ -648,13 +648,13 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.info, size: 16, color: GuardianColors.primary),
+                    Icon(Icons.info, size: 16, color: EchoColors.primary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'This is auto-generated by AI analysis of your voice & location during emergency',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: GuardianColors.textSecondary,
+                          color: EchoColors.textSecondary,
                         ),
                       ),
                     ),
@@ -670,7 +670,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
             'Step 2: Customize Your Post Template',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: GuardianColors.primary,
+              color: EchoColors.primary,
             ),
           ),
           const SizedBox(height: 12),
@@ -697,11 +697,11 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                             _selectedThreatLevel = level;
                           });
                         },
-                        selectedColor: GuardianColors.primary,
+                        selectedColor: EchoColors.primary,
                         labelStyle: TextStyle(
                           color: _selectedThreatLevel == level
                               ? Colors.white
-                              : GuardianColors.textPrimary,
+                              : EchoColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -723,7 +723,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
           Container(
             decoration: BoxDecoration(
               border: Border.all(
-                color: GuardianColors.textSecondary.withOpacity(0.2),
+                color: EchoColors.textSecondary.withOpacity(0.2),
               ),
               borderRadius: BorderRadius.circular(8),
             ),
@@ -737,7 +737,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                 hintText:
                     'Enter your post template with placeholders like [LOCATION], [THREAT_LEVEL], [PANIC_LEVEL]',
                 hintStyle: TextStyle(
-                  color: GuardianColors.textSecondary.withOpacity(0.5),
+                  color: EchoColors.textSecondary.withOpacity(0.5),
                 ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(12),
@@ -777,7 +777,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
               '(Phone number will be visible to public)',
               style: Theme.of(
                 context,
-              ).textTheme.labelSmall?.copyWith(color: GuardianColors.warning),
+              ).textTheme.labelSmall?.copyWith(color: EchoColors.warning),
             ),
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.leading,
@@ -789,17 +789,17 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
             'Step 3: Preview Live Example',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: GuardianColors.primary,
+              color: EchoColors.primary,
             ),
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: GuardianColors.success.withOpacity(0.05),
+              color: EchoColors.success.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: GuardianColors.success.withOpacity(0.2),
+                color: EchoColors.success.withOpacity(0.2),
               ),
             ),
             child: Column(
@@ -811,7 +811,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: GuardianColors.success,
+                        color: EchoColors.success,
                         borderRadius: BorderRadius.circular(50),
                       ),
                       child: const Center(
@@ -834,7 +834,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                         Text(
                           'During emergency',
                           style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: GuardianColors.textSecondary),
+                              ?.copyWith(color: EchoColors.textSecondary),
                         ),
                       ],
                     ),
@@ -846,7 +846,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.5,
                     fontFamily: 'Courier',
-                    color: GuardianColors.textPrimary,
+                    color: EchoColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -855,14 +855,14 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                     Icon(
                       Icons.check_circle,
                       size: 16,
-                      color: GuardianColors.success,
+                      color: EchoColors.success,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'This preview updates as you customize your template',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: GuardianColors.textSecondary,
+                          color: EchoColors.textSecondary,
                         ),
                       ),
                     ),
@@ -879,12 +879,12 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
               color: _twitterConnected
-                  ? GuardianColors.success.withOpacity(0.1)
+                  ? EchoColors.success.withOpacity(0.1)
                   : Colors.blue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: _twitterConnected
-                    ? GuardianColors.success
+                    ? EchoColors.success
                     : Colors.blue.shade400,
                 width: 2,
               ),
@@ -915,7 +915,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                         children: [
                           const Icon(
                             Icons.check_circle,
-                            color: GuardianColors.success,
+                            color: EchoColors.success,
                             size: 24,
                           ),
                           const SizedBox(width: 12),
@@ -923,7 +923,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                             'Twitter Connected',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
-                                  color: GuardianColors.success,
+                                  color: EchoColors.success,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
@@ -940,7 +940,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                           'Disconnect',
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                                color: GuardianColors.primary,
+                                color: EchoColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -962,7 +962,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                     _autoPostConsent = value ?? false;
                   });
                 },
-                activeColor: GuardianColors.primary,
+                activeColor: EchoColors.primary,
               ),
               Expanded(
                 child: Column(
@@ -978,7 +978,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                     Text(
                       'Gemma 4 will generate posts using this template during emergencies',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: GuardianColors.textTertiary,
+                        color: EchoColors.textTertiary,
                       ),
                     ),
                   ],
@@ -992,7 +992,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: GuardianColors.textSecondary.withOpacity(0.05),
+              color: EchoColors.textSecondary.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -1002,14 +1002,14 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                   '🔐 Your Privacy',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: GuardianColors.textSecondary,
+                    color: EchoColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Twitter OAuth uses secure authentication. Your template is stored locally and only shared when you approve during emergency. You can edit or reject any post before it\'s sent.',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: GuardianColors.textSecondary,
+                    color: EchoColors.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -1081,7 +1081,7 @@ class _OnboardingPage6_ConfirmationSoundsState
           Text(
             'Hear alerts when important events happen',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: GuardianColors.textTertiary,
+              color: EchoColors.textTertiary,
             ),
           ),
           const SizedBox(height: 32),
@@ -1102,13 +1102,13 @@ class _OnboardingPage6_ConfirmationSoundsState
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? GuardianColors.primary.withOpacity(0.1)
-                        : GuardianColors.surfaceSecondary,
+                        ? EchoColors.primary.withOpacity(0.1)
+                        : EchoColors.surfaceSecondary,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? GuardianColors.primary
-                          : GuardianColors.textPrimary.withOpacity(0.08),
+                          ? EchoColors.primary
+                          : EchoColors.textPrimary.withOpacity(0.08),
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -1121,8 +1121,8 @@ class _OnboardingPage6_ConfirmationSoundsState
                             height: 40,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? GuardianColors.primary
-                                  : GuardianColors.textSecondary.withOpacity(
+                                  ? EchoColors.primary
+                                  : EchoColors.textSecondary.withOpacity(
                                       0.2,
                                     ),
                               borderRadius: BorderRadius.circular(8),
@@ -1131,7 +1131,7 @@ class _OnboardingPage6_ConfirmationSoundsState
                               Icons.volume_up,
                               color: isSelected
                                   ? Colors.white
-                                  : GuardianColors.textPrimary,
+                                  : EchoColors.textPrimary,
                               size: 20,
                             ),
                           ),
@@ -1146,8 +1146,8 @@ class _OnboardingPage6_ConfirmationSoundsState
                                       ?.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: isSelected
-                                            ? GuardianColors.primary
-                                            : GuardianColors.textPrimary,
+                                            ? EchoColors.primary
+                                            : EchoColors.textPrimary,
                                       ),
                                 ),
                                 const SizedBox(height: 4),
@@ -1155,7 +1155,7 @@ class _OnboardingPage6_ConfirmationSoundsState
                                   _getSoundDescription(sound),
                                   style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
-                                        color: GuardianColors.textSecondary,
+                                        color: EchoColors.textSecondary,
                                       ),
                                 ),
                               ],
@@ -1167,8 +1167,8 @@ class _OnboardingPage6_ConfirmationSoundsState
                                   ? Icons.pause
                                   : Icons.play_arrow,
                               color: isSelected
-                                  ? GuardianColors.primary
-                                  : GuardianColors.textSecondary,
+                                  ? EchoColors.primary
+                                  : EchoColors.textSecondary,
                             ),
                             onPressed: () => _playAudioPreview(sound),
                           ),
@@ -1189,7 +1189,7 @@ class _OnboardingPage6_ConfirmationSoundsState
                                     ? (8 + (index * 2)).toDouble()
                                     : 8,
                                 decoration: BoxDecoration(
-                                  color: GuardianColors.primary,
+                                  color: EchoColors.primary,
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -1209,10 +1209,10 @@ class _OnboardingPage6_ConfirmationSoundsState
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: GuardianColors.surfaceSecondary,
+              color: EchoColors.surfaceSecondary,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: GuardianColors.textPrimary.withOpacity(0.08),
+                color: EchoColors.textPrimary.withOpacity(0.08),
               ),
             ),
             child: Row(
@@ -1221,12 +1221,12 @@ class _OnboardingPage6_ConfirmationSoundsState
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: GuardianColors.primary.withOpacity(0.2),
+                    color: EchoColors.primary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.vibration,
-                    color: GuardianColors.primary,
+                    color: EchoColors.primary,
                     size: 20,
                   ),
                 ),
@@ -1244,7 +1244,7 @@ class _OnboardingPage6_ConfirmationSoundsState
                       Text(
                         'Vibration along with sounds',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: GuardianColors.textSecondary,
+                          color: EchoColors.textSecondary,
                         ),
                       ),
                     ],
@@ -1257,7 +1257,7 @@ class _OnboardingPage6_ConfirmationSoundsState
                       _vibrationEnabled = value;
                     });
                   },
-                  activeColor: GuardianColors.primary,
+                  activeColor: EchoColors.primary,
                 ),
               ],
             ),
@@ -1269,13 +1269,13 @@ class _OnboardingPage6_ConfirmationSoundsState
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: GuardianColors.textSecondary.withOpacity(0.05),
+              color: EchoColors.textSecondary.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '🔊 Audio files play via ConfirmationSoundSystem. Haptic patterns trigger via native channels (Android Vibrator, iOS CoreHaptics).',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: GuardianColors.textSecondary,
+                color: EchoColors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -1324,12 +1324,12 @@ class _OnboardingPage7_SystemTestState
           if (!_testComplete)
             Column(
               children: [
-                Icon(Icons.flash_on, size: 60, color: GuardianColors.primary),
+                Icon(Icons.flash_on, size: 60, color: EchoColors.primary),
                 const SizedBox(height: 24),
                 Text(
                   'Run a test to verify everything works',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: GuardianColors.textSecondary,
+                    color: EchoColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1357,13 +1357,13 @@ class _OnboardingPage7_SystemTestState
                 const Icon(
                   Icons.check_circle,
                   size: 60,
-                  color: GuardianColors.success,
+                  color: EchoColors.success,
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Guardian is ready',
+                  'Echo is ready',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: GuardianColors.success,
+                    color: EchoColors.success,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1371,7 +1371,7 @@ class _OnboardingPage7_SystemTestState
                 Text(
                   'All systems tested and verified.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: GuardianColors.textSecondary,
+                    color: EchoColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
