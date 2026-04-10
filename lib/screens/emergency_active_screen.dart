@@ -109,6 +109,8 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
     );
   }
 
+
+
   /// Recording timer with pulsing ring animation
   Widget _buildRecordingTimer() {
     final minutes = _elapsedSeconds ~/ 60;
