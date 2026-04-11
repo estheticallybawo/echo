@@ -12,47 +12,64 @@ class SocialMediaPostingService {
     required this.twitterService,
   });
 
-  /// Week 1: Mock pipeline (Days 1-2, Apr 9-10)
-  Future<bool> postEmergencyAlertMock({
+  /// Week 1: Mock pipeline 
+  Future<Map<String, dynamic>> postEmergencyAlertMock({
+    required String userName,
     required String audioContext,
     required String location,
   }) async {
     try {
-      // Step 1: Mock threat analysis
+      // Step 1: Mock threat analysis (Gemma determines threat level)
       final threat = await gemmaService.analyzeThreatMock(audioContext);
 
-      // Step 2: Generate post
-      final postText = gemmaService.generateEmergencyPost(location, threat);
+      // Step 2: Generate subtle post
+      final postText = gemmaService.generateEmergencyPost(userName, location, threat);
 
       // Step 3: Mock post to Twitter
       final posted = await twitterService.postEmergencyAlertMock(postText);
 
-      return posted;
+      return {
+        'success': posted,
+        'postText': postText,
+        'threatAssessment': threat,
+      };
     } catch (e) {
       print('Emergency post mock pipeline failed: $e');
-      return false;
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
     }
   }
 
-  /// Week 2+: Real pipeline
-  Future<bool> postEmergencyAlert({
+
+  /// Gemma determines threat level automatically - NOT user selection
+  Future<Map<String, dynamic>> postEmergencyAlert({
+    required String userName,
     required String audioContext,
     required String location,
   }) async {
     try {
-      // Step 1: Analyze threat with Gemma
+      // Step 1: Analyze threat with Gemma (Gemma determines threat level)
       final threat = await gemmaService.analyzeThreat(audioContext);
 
-      // Step 2: Generate post
-      final postText = gemmaService.generateEmergencyPost(location, threat);
+      // Step 2: Generate subtle post
+      final postText = gemmaService.generateEmergencyPost(userName, location, threat);
 
       // Step 3: Post to Twitter
       final posted = await twitterService.postEmergencyAlert(postText);
 
-      return posted;
+      return {
+        'success': posted,
+        'postText': postText,
+        'threatAssessment': threat,
+      };
     } catch (e) {
       print('Emergency post pipeline failed: $e');
-      return false;
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
     }
   }
 

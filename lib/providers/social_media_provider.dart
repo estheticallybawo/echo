@@ -44,7 +44,7 @@ class SocialMediaProvider extends ChangeNotifier {
     try {
       final result = await _twitterService.authenticateOAuthMock();
       isTwitterConnected = result;
-      twitterUsername = 'test_user_guard'; // Mock username
+      twitterUsername = 'test_user_Echo'; // Mock username
       isAuthenticating = false;
       notifyListeners();
       return result;
@@ -88,7 +88,9 @@ class SocialMediaProvider extends ChangeNotifier {
   }
   
   /// Main Track C Pipeline: Audio → Threat → Post → Twitter
+  /// Gemma determines threat level automatically
   Future<bool> postEmergencyAlert({
+    required String userName,
     required String audioContext,
     required String location,
   }) async {
@@ -105,8 +107,8 @@ class SocialMediaProvider extends ChangeNotifier {
       // Step 1: Get threat assessment from Gemma
       await _gemmaProvider.analyzeThreatMock(audioContext);
       
-      // Step 2: Generate post text
-      final postText = _gemmaProvider.generatePostPreview(location);
+      // Step 2: Generate post text (Gemma determined threat is included)
+      final postText = _gemmaProvider.generatePostPreview(userName, location);
       
       // Step 3: Post to Twitter
       final posted = await _twitterService.postEmergencyAlert(postText);

@@ -54,9 +54,10 @@ class GemmaProvider extends ChangeNotifier {
     }
   }
   
-  /// Generate post from threat assessment
-  String generatePostPreview(String location) {
+  /// Generate post preview from threat assessment
+  /// Note: Requires userName and location
+  String generatePostPreview(String userName, String location) {
     if (lastThreatAssessment == null) return '';
-    return _gemmaService.generateEmergencyPost(location, lastThreatAssessment!);
+    return _gemmaService.generateEmergencyPost(userName, location, lastThreatAssessment!);
   }
 }
