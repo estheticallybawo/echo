@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-import '../widgets/background_listening_control.dart';
+
 
 /// Privacy & Listening Settings Screen (For Onboarding or Settings)
 /// Gives users transparent control over background listening
@@ -47,7 +47,6 @@ class PrivacySettingsScreen extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 12),
-              const BackgroundListeningControl(showDetails: true),
               const SizedBox(height: 32),
 
               // Privacy Points

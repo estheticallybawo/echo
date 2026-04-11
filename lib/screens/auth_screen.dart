@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../theme.dart';
-import '../providers/auth_provider.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -55,39 +53,35 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _submitAuth(AuthProvider authProvider) async {
-    bool success = false;
-
-    if (_isNewUser) {
-      // Register
-      success = await authProvider.registerUser(
-        email: _emailController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim().isEmpty
-            ? null
-            : _lastNameController.text.trim(),
-      );
-    } else {
-      // Login
-      success = await authProvider.loginUser(
-        email: _emailController.text.trim(),
-      );
-    }
-
-    if (mounted) {
-      if (success) {
-        // Navigate to onboarding
-        Navigator.of(context).pushReplacementNamed('/onboarding');
-      } else {
-        // Show error
+  Future<void> _submitAuth() async {
+    // Mock authentication logic
+    if (_emailController.text.trim().isEmpty) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.error ?? 'Authentication failed'),
+            content: const Text('Please enter an email'),
             backgroundColor: EchoColors.warning,
           ),
         );
       }
+      return;
+    }
+
+    if (_isNewUser && _phoneController.text.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Please enter a phone number'),
+            backgroundColor: EchoColors.warning,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      // Navigate to onboarding (mocked - no actual auth)
+      Navigator.of(context).pushReplacementNamed('/onboarding');
     }
   }
 
@@ -95,37 +89,33 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Consumer<AuthProvider>(
-          builder: (context, authProvider, _) {
-            return PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (page) {
-                setState(() {
-                  _currentStep = page;
-                });
-              },
-              children: [
-                // Step 1: Login or Register Choice
-                _buildChoiceStep(context, authProvider),
-
-                // Step 2: Email & Phone
-                _buildEmailPhoneStep(context, authProvider),
-
-                // Step 3: Name (only for new users)
-                if (_isNewUser)
-                  _buildNameStep(context, authProvider)
-                else
-                  _buildNameStep(context, authProvider), // Dummy for consistency
-              ],
-            );
+        child: PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          onPageChanged: (page) {
+            setState(() {
+              _currentStep = page;
+            });
           },
+          children: [
+            // Step 1: Login or Register Choice
+            _buildChoiceStep(context),
+
+            // Step 2: Email & Phone
+            _buildEmailPhoneStep(context),
+
+            // Step 3: Name (only for new users)
+            if (_isNewUser)
+              _buildNameStep(context)
+            else
+              _buildNameStep(context), // Dummy for consistency
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildChoiceStep(BuildContext context, AuthProvider authProvider) {
+  Widget _buildChoiceStep(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -208,8 +198,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildEmailPhoneStep(
-      BuildContext context, AuthProvider authProvider) {
+  Widget _buildEmailPhoneStep(BuildContext context) {
     return Column(
       children: [
         // Header
@@ -293,28 +282,15 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EchoColors.primary,
                   ),
-                  onPressed: authProvider.isLoading
-                      ? null
-                      : () {
-                          if (_isNewUser) {
-                            _goToNextStep();
-                          } else {
-                            // For login, skip to name step or submit
-                            _submitAuth(authProvider);
-                          }
-                        },
-                  child: authProvider.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : Text(_isNewUser ? 'Next' : 'Log In'),
+                  onPressed: () {
+                    if (_isNewUser) {
+                      _goToNextStep();
+                    } else {
+                      // For login, skip to name step or submit
+                      _submitAuth();
+                    }
+                  },
+                  child: Text(_isNewUser ? 'Next' : 'Log In'),
                 ),
               ),
             ],
@@ -324,7 +300,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildNameStep(BuildContext context, AuthProvider authProvider) {
+  Widget _buildNameStep(BuildContext context) {
     if (!_isNewUser) {
       // This is a dummy for login path
       return const SizedBox.shrink();
@@ -399,21 +375,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: EchoColors.primary,
                   ),
-                  onPressed: authProvider.isLoading
-                      ? null
-                      : () => _submitAuth(authProvider),
-                  child: authProvider.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Text('Create Account'),
+                  onPressed: () => _submitAuth(),
+                  child: const Text('Create Account'),
                 ),
               ),
             ],

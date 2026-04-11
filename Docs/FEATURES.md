@@ -986,7 +986,7 @@ POLISH/OPTIONAL (Can follow core):
 
 ## TEAM ASSIGNMENT RECOMMENDATION
 
-### Team Member 1: Backend Services Lead Naema
+### Team Member 1: Backend Services Lead (Dev Naema)
 **Branches**:
 1. `feature/voice-activation` - Voice recognition with E2B
 2. `feature/audio-capture` - Audio recording and buffering
