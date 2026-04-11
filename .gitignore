@@ -46,3 +46,5 @@ app.*.map.json
 
 #env files
 *.env
+# Documentation (internal only - not for commits)
+/Docs/
