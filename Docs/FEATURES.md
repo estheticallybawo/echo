@@ -986,7 +986,7 @@ POLISH/OPTIONAL (Can follow core):
 
 ## TEAM ASSIGNMENT RECOMMENDATION
 
-### Team Member 1: Backend Services Lead
+### Team Member 1: Backend Services Lead Naema
 **Branches**:
 1. `feature/voice-activation` - Voice recognition with E2B
 2. `feature/audio-capture` - Audio recording and buffering
@@ -997,7 +997,7 @@ POLISH/OPTIONAL (Can follow core):
 
 ---
 
-### Team Member 2: Location & Notifications Lead
+### Team Member 2: Location & Notifications Lead Precious
 **Branches**:
 1. `feature/location-tracking` - GPS and background location
 2. `feature/contact-notifications` - SMS/WhatsApp alerting
@@ -1008,7 +1008,7 @@ POLISH/OPTIONAL (Can follow core):
 
 ---
 
-### Team Member 3: AI & Data Lead
+### Team Member 3: AI & Data Lead Esther
 **Branches**:
 1. `feature/gemma-analysis` - Real-time incident analysis
 2. `feature/auto-post-alerts` - Social media publishing
@@ -1019,7 +1019,7 @@ POLISH/OPTIONAL (Can follow core):
 
 ---
 
-### Team Member 4: Native & Polish Lead
+### Team Member 4: Native & Polish Lead Rola
 **Branches**:
 1. `feature/haptic-feedback` - Android/iOS native haptics
 2. `feature/audio-feedback` - Audio system integration

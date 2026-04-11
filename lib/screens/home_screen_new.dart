@@ -1,8 +1,10 @@
 // ignore_for_file: unnecessary_to_list_in_spreads
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../theme.dart';
+import '../providers/background_listening_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,14 +72,8 @@ class _HomeScreenState extends State<HomeScreen>
               _buildGlowingOrb(),
               const SizedBox(height: 24),
               
-              // "Gemma is listening" status
-              Text(
-                'Gemma is listening',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: EchoColors.textSecondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
+              // Background Listening Status Card
+              _buildListeningStatusCard(),
               const SizedBox(height: 48),
               
               // Feature Cards Grid (2x2)
@@ -161,6 +157,144 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
+    );
+  }
+
+  /// Background Listening Status Card - Control and Status
+  Widget _buildListeningStatusCard() {
+    return Consumer<BackgroundListeningProvider>(
+      builder: (context, listeningProvider, _) {
+        final isListening = listeningProvider.isListening;
+        
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isListening ? EchoColors.primary.withOpacity(0.08) : EchoColors.surfaceSecondary,
+            border: Border.all(
+              color: isListening ? EchoColors.primary.withOpacity(0.3) : EchoColors.primary.withOpacity(0.1),
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with status indicator
+                Row(
+                  children: [
+                    // Status Indicator Light
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isListening ? EchoColors.success : EchoColors.warning,
+                        boxShadow: [
+                          if (isListening)
+                            BoxShadow(
+                              color: EchoColors.success.withOpacity(0.6),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Status Label
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Background Listening',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: EchoColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isListening ? 'Active - Gemma is listening' : 'Inactive - Tap to enable',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: EchoColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Toggle Switch
+                GestureDetector(
+                  onTap: () async {
+                    final success = await listeningProvider.toggleBackgroundListening(
+                      reason: isListening ? 'User turned off manually' : 'User turned on manually',
+                    );
+                    if (success && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isListening 
+                              ? 'Background listening disabled' 
+                              : 'Background listening enabled',
+                          ),
+                          duration: const Duration(seconds: 2),
+                          backgroundColor: EchoColors.surface,
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: isListening ? EchoColors.primary : EchoColors.surfaceTertiary,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isListening ? EchoColors.primary : EchoColors.primary.withOpacity(0.2),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isListening ? Icons.mic : Icons.mic_off,
+                          color: isListening ? Colors.white : EchoColors.textSecondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isListening ? 'Turn Off Listening' : 'Enable Background Listening',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: isListening ? Colors.white : EchoColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Info text
+                Text(
+                  isListening 
+                    ? 'Gemma is ready to listen for voice prompts. Disable when you\'re in a safe location.'
+                    : 'Enable this before entering an unfamiliar or unsafe area so Gemma can listen for your voice command.',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: EchoColors.textTertiary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
