@@ -20,6 +20,7 @@ import 'services/gemma_threat_assessment_service.dart';
 import 'services/social_media_posting_service.dart';
 import 'services/twitter_oauth_service.dart';
 import 'services/confirmation_sound_service.dart';
+import 'services/deep_link_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,8 +44,33 @@ void main() async {
   runApp(const EchoApp());
 }
 
-class EchoApp extends StatelessWidget {
+class EchoApp extends StatefulWidget {
   const EchoApp({super.key});
+
+  @override
+  State<EchoApp> createState() => _EchoAppState();
+}
+
+class _EchoAppState extends State<EchoApp> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  late DeepLinkService deepLinkService;
+
+  @override
+  void initState() {
+    super.initState();
+    deepLinkService = DeepLinkService();
+    // Initialize deep link handling after widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await deepLinkService.initAppLinks();
+      deepLinkService.startListeningToDeepLinks(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    deepLinkService.stopListeningToDeepLinks();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,9 +128,11 @@ class EchoApp extends StatelessWidget {
         title: 'Echo',
         debugShowCheckedModeBanner: false,
         theme: buildEchoTheme(),
+        navigatorKey: navigatorKey,
         home: const AuthScreen(),
         routes: {
           '/home': (context) => const HomeScreen(),
+          '/emergency': (context) => const EmergencyActiveScreen(),
           '/emergency-active': (context) => const EmergencyActiveScreen(),
           '/onboarding': (context) => const OnboardingFlow(),
           '/contacts': (context) => const ContactsScreen(),
