@@ -48,6 +48,12 @@ app.*.map.json
 *.env
 
 # Documentation (internal only - not for commits)
+
+# Documentation (internal only - not for commits)
 /Docs/
 
 
+=======
+# Documentation (internal only - not for commits)
+/Docs/
+>>>>>>> Gemma4Safety/main

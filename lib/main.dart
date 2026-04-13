@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/emergency_active_screen.dart';
 import 'screens/onboarding_flow.dart';
@@ -16,12 +21,25 @@ import 'services/twitter_oauth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize any services here (audio, location, etc.)
-  runApp(const GuardApp());
+  
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    // Anonymous sign-in for initial app state
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance.signInAnonymously();
+    }
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
+  
+  runApp(const EchoApp());
 }
 
-class GuardApp extends StatelessWidget {
-  const GuardApp({super.key});
+class EchoApp extends StatelessWidget {
+  const EchoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +47,7 @@ class GuardApp extends StatelessWidget {
 
     // Track C: Initialize services
     final gemmaService = GemmaThreatAssessmentService(
-      apiKey: 
+      apiKey: '', // Set from .env in real implementation
     );
     
     final twitterService = TwitterOAuthService(
@@ -65,10 +83,10 @@ class GuardApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Guard',
+        title: 'Echo',
         debugShowCheckedModeBanner: false,
         theme: buildEchoTheme(),
-        home: const OnboardingFlow(), // Start with onboarding to see all UI
+        home: const AuthScreen(),
         routes: {
           '/home': (context) => const HomeScreen(),
           '/emergency-active': (context) => const EmergencyActiveScreen(),

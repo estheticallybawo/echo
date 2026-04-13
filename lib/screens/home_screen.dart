@@ -16,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _orbController;
   late AnimationController _pulseController;
   late AnimationController _waveformController;
+  bool isListening = true; // Track listening state
 
   @override
   void initState() {
@@ -70,14 +71,8 @@ class _HomeScreenState extends State<HomeScreen>
               _buildGlowingOrb(),
               const SizedBox(height: 24),
               
-              // "Gemma is listening" status
-              Text(
-                'Gemma is listening',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: EchoColors.textSecondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
+              // Background Listening Status Card
+              _buildListeningStatusCard(),
               const SizedBox(height: 48),
               
               // Feature Cards Grid (2x2)
@@ -145,13 +140,13 @@ class _HomeScreenState extends State<HomeScreen>
                   Icon(
                     Icons.mic,
                     size: 40,
-                    color: EchoColors.primary,
+                    color: const Color.fromARGB(255, 183, 236, 250),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'TAP',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: EchoColors.primary,
+                      color: const Color.fromARGB(255, 120, 218, 243),
                       fontSize: 12,
                     ),
                   ),
@@ -159,6 +154,177 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Background Listening Status Card - Control and Status
+  Widget _buildListeningStatusCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isListening ? EchoColors.primary.withOpacity(0.08) : EchoColors.warning.withOpacity(0.08),
+        border: Border.all(
+          color: isListening ? EchoColors.primary.withOpacity(0.3) : EchoColors.warning.withOpacity(0.3),
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with status indicator
+            Row(
+              children: [
+                // Status Indicator Light
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isListening ? EchoColors.success : EchoColors.warning,
+                    boxShadow: [
+                      if (isListening)
+                        BoxShadow(
+                          color: EchoColors.success.withOpacity(0.6),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        )
+                      else
+                        BoxShadow(
+                          color: EchoColors.warning.withOpacity(0.6),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Status Label
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Background Listening',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: EchoColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isListening ? 'Active - Gemma is listening' : 'Inactive - Tap to enable',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: EchoColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Toggle Button - Click to change state
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  isListening = !isListening;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isListening 
+                        ? 'Background listening enabled - Gemma is now listening' 
+                        : 'Background listening disabled - Gemma is no longer listening',
+                    ),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: EchoColors.surface,
+                  ),
+                );
+              },
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isListening ? EchoColors.primary : EchoColors.warning,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isListening ? EchoColors.primary : EchoColors.warning,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isListening ? Icons.mic : Icons.mic_off,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isListening ? 'Turn Off Listening' : 'Enable Background Listening',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Info text - Changes based on state
+            Text(
+              isListening 
+                ? 'Gemma is ready to listen for voice prompts. Disable when you\'re in a safe location.'
+                : 'Enable listening before entering an unfamiliar or unsafe area so Gemma can respond to your voice commands.',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: EchoColors.textTertiary,
+                height: 1.5,
+              ),
+            ),
+            
+            // Extra info when listening is OFF
+            if (!isListening) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: EchoColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: EchoColors.warning.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: EchoColors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Listening is OFF. You can still use all features manually.',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: EchoColors.warning,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
