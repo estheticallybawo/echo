@@ -19,6 +19,7 @@ import 'providers/social_media_provider.dart';
 import 'services/gemma_threat_assessment_service.dart';
 import 'services/social_media_posting_service.dart';
 import 'services/twitter_oauth_service.dart';
+import 'services/confirmation_sound_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,6 +66,16 @@ class EchoApp extends StatelessWidget {
       gemmaService: gemmaService,
       twitterService: twitterService,
     );
+
+    // Initialize Confirmation Sound Service (listens to Firestore in real-time)
+    final confirmationSoundService = ConfirmationSoundService();
+    confirmationSoundService.startListening().then((success) {
+      if (success) {
+        print('✅ Confirmation sound service initialized');
+      } else {
+        print('⚠️ Confirmation sound service initialization failed');
+      }
+    });
 
     return MultiProvider(
       providers: [
