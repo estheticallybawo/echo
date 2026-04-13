@@ -111,4 +111,22 @@ class GemmaProvider extends ChangeNotifier {
     if (lastThreatAssessment == null) return '';
     return _gemmaService.generateEmergencyPost(userName, location, lastThreatAssessment!);
   }
+  
+  /// Get real-time stream of incidents from Firestore
+  /// 
+  /// Used by incident_log_screen to display live incident updates
+  /// Returns stream of incidents ordered by timestamp (newest first)
+  Stream<List<IncidentModel>> getIncidentsStream() {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('❌ GemmaProvider: No authenticated user for incidents stream');
+        return Stream.value([]);
+      }
+      return _firestoreService.getIncidentStream(user.uid);
+    } catch (e) {
+      print('❌ Error getting incidents stream: $e');
+      return Stream.value([]);
+    }
+  }
 }
