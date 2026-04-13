@@ -125,4 +125,82 @@ class TwitterOAuthService {
 
   /// Get current access token (for debugging)
   String? get accessToken => _accessToken;
+
+  /// Generate Tier 3 auto-escalation tweet
+  /// Called when no contact confirmation received after 120 seconds
+  String generateEmergencyPostText({
+    required String threatLevel,
+    required String threatCategory,
+    double? latitude,
+    double? longitude,
+    String? additionalContext,
+  }) {
+    final sanitizedLocation = _sanitizeLocation(latitude, longitude);
+    
+    final postText = '''🚨 EMERGENCY ALERT 🚨
+
+User reports: $threatLevel threat ($threatCategory)
+Status: ACTIVE and UNCONFIRMED
+Location: $sanitizedLocation
+Time: ${DateTime.now().toIso8601String()}
+
+If you know this person, please contact them or emergency services immediately.
+
+THIS IS AN AUTOMATED PUBLIC SAFETY BROADCAST from @EchoApp
+${additionalContext != null ? '\nDetails: $additionalContext' : ''}
+
+#SafetyAlert #EmergencyEscalation #PublicSafety''';
+
+    return postText;
+  }
+
+  /// Sanitize location to avoid exact coordinates in public posts
+  String _sanitizeLocation(double? lat, double? lon) {
+    if (lat == null || lon == null) {
+      return 'Location data available to emergency services';
+    }
+    
+    // Round to 2 decimal places (accurate to ~1km) for public safety
+    final roundedLat = (lat * 100).round() / 100;
+    final roundedLon = (lon * 100).round() / 100;
+    
+    return 'Approximate area: $roundedLat°, $roundedLon° (shared with emergency contacts)';
+  }
+
+  /// Auto-post to Twitter when Tier 3 escalation triggered (T+120s)
+  Future<bool> autoPostEmergencyAlert({
+    required String threatLevel,
+    required String threatCategory,
+    double? latitude,
+    double? longitude,
+    String? additionalContext,
+  }) async {
+    try {
+      // Generate emergency post text
+      final postText = generateEmergencyPostText(
+        threatLevel: threatLevel,
+        threatCategory: threatCategory,
+        latitude: latitude,
+        longitude: longitude,
+        additionalContext: additionalContext,
+      );
+
+      print('🐦 Tier 3: Auto-posting to Twitter...');
+      print('Post text: $postText');
+
+      // Post to Twitter
+      final success = await postEmergencyAlert(postText);
+      
+      if (success) {
+        print('✅ Tier 3 tweet posted successfully');
+      } else {
+        print('❌ Tier 3 tweet posting failed');
+      }
+
+      return success;
+    } catch (e) {
+      print('❌ Auto-post error: $e');
+      return false;
+    }
+  }
 }

@@ -255,4 +255,24 @@ class FirestoreIncidentService {
       rethrow;
     }
   }
+
+  /// ⏱️ Update escalation status (convenience method for escalation_timer_service)
+  /// 
+  /// Called by escalation timer to mark Tier escalations
+  Future<void> updateIncidentStatus({
+    required String userId,
+    required String incidentId,
+    required String escalationStatus,
+  }) async {
+    try {
+      await updateIncident(
+        userId,
+        incidentId,
+        escalationStatus: escalationStatus,
+      );
+    } catch (e) {
+      print('❌ Error updating incident status: $e');
+      rethrow;
+    }
+  }
 }
