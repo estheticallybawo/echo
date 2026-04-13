@@ -105,7 +105,7 @@ class SocialMediaProvider extends ChangeNotifier {
     
     try {
       // Step 1: Get threat assessment from Gemma
-      await _gemmaProvider.analyzeThreatMock(audioContext);
+      await _gemmaProvider.analyzeThreat(audioContext);
       
       // Step 2: Generate post text (Gemma determined threat is included)
       final postText = _gemmaProvider.generatePostPreview(userName, location);

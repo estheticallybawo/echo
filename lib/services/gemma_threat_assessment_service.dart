@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 /// Threat level enum - determined by Gemma analysis, NOT user selection
 enum ThreatLevel {
@@ -15,12 +15,24 @@ enum ThreatLevel {
 /// 
 /// IMPORTANT: Threat level is DETERMINED BY GEMMA, not chosen by user
 class GemmaThreatAssessmentService {
-  static const String GOOGLE_AI_STUDIO_API =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemma-2-27b-it:generateContent';
-
   final String apiKey;
+  final String modelName;
+  final bool useMockMode;
 
-  GemmaThreatAssessmentService({required this.apiKey});
+  GemmaThreatAssessmentService({
+    required this.apiKey,
+    this.modelName = 'gemma-3-27b-it',
+    this.useMockMode = false,
+  });
+
+  static const Map<String, dynamic> _genericFallbackAssessment = {
+    'threat': 'Other',
+    'confidence': 60,
+    'action': 'Call emergency contacts and local responders immediately',
+    'summary': 'Potential emergency detected. Escalate and share live location.',
+    'threatLevel': 'high',
+    'analyzedSituation': 'possible emergency requiring urgent support',
+  };
 
   /// Week 1: MOCK VERSION (Days 1-2, Apr 9-10)
   Future<Map<String, dynamic>> analyzeThreatMock(String audioContext) async {
@@ -41,16 +53,18 @@ class GemmaThreatAssessmentService {
   /// Week 2+: REAL API (Days 3+, Apr 11+)
   /// Gemma analyzes and determines threat level automatically
   Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
+    if (useMockMode) {
+      return analyzeThreatMock(audioContext);
+    }
+
+    if (apiKey.trim().isEmpty) {
+      return analyzeThreatMock(audioContext);
+    }
+
     try {
-      final response = await http.post(
-        Uri.parse('$GOOGLE_AI_STUDIO_API?key=$apiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {
-                  'text': '''Analyze this emergency audio context and respond ONLY in valid JSON format (no markdown):
+      final model = GenerativeModel(model: modelName, apiKey: apiKey);
+      final response = await model.generateContent([
+        Content.text('''Analyze this emergency audio context and respond ONLY in valid JSON format (no markdown):
 
 Audio context: "$audioContext"
 
@@ -64,34 +78,63 @@ Respond with EXACTLY this JSON structure:
   "threatLevel": "critical|high|medium|low"
 }
 
-Do not add any markdown, code blocks, or other text.'''
-                }
-              ]
-            }
-          ],
-          'generationConfig': {
-            'temperature': 0.3, // Low temp for deterministic output
-            'maxOutputTokens': 250,
-          }
-        }),
-      );
+Do not add any markdown, code blocks, or other text.'''),
+      ],
+      generationConfig: GenerationConfig(
+        temperature: 0.3,
+        maxOutputTokens: 250,
+      ),
+    ).timeout(const Duration(seconds: 12));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['candidates'][0]['content']['parts'][0]['text'];
-
-        // Parse JSON from response
-        final threatData = jsonDecode(content);
-        return threatData;
-      } else {
-        print('Gemma API error: ${response.statusCode}');
-        print('Response: ${response.body}');
-        return analyzeThreatMock(audioContext); // Fallback to mock
+      final content = response.text;
+      if (content == null || content.trim().isEmpty) {
+        return _buildGenericFallback(audioContext);
       }
+
+      // Parse JSON from response even when wrapped in markdown/code fences.
+      final threatData = _extractThreatPayload(content);
+      return threatData;
     } catch (e) {
       print('Gemma analysis failed: $e');
-      return analyzeThreatMock(audioContext); // Fallback to mock
+      return _buildGenericFallback(audioContext);
     }
+  }
+
+  Map<String, dynamic> _extractThreatPayload(String content) {
+    final normalized = content.trim();
+
+    try {
+      return _normalizeThreatPayload(jsonDecode(normalized) as Map<String, dynamic>);
+    } catch (_) {
+      final start = normalized.indexOf('{');
+      final end = normalized.lastIndexOf('}');
+
+      if (start >= 0 && end > start) {
+        final candidate = normalized.substring(start, end + 1);
+        try {
+          return _normalizeThreatPayload(jsonDecode(candidate) as Map<String, dynamic>);
+        } catch (_) {
+          return Map<String, dynamic>.from(_genericFallbackAssessment);
+        }
+      }
+
+      return Map<String, dynamic>.from(_genericFallbackAssessment);
+    }
+  }
+
+  Map<String, dynamic> _normalizeThreatPayload(Map<String, dynamic> payload) {
+    final fallback = Map<String, dynamic>.from(_genericFallbackAssessment);
+    fallback.addAll(payload);
+    return fallback;
+  }
+
+  Map<String, dynamic> _buildGenericFallback(String audioContext) {
+    final fallback = Map<String, dynamic>.from(_genericFallbackAssessment);
+    fallback['summary'] =
+        'Potential emergency detected from audio context. Escalate and share location.';
+    fallback['analyzedSituation'] =
+        audioContext.isEmpty ? fallback['analyzedSituation'] : audioContext;
+    return fallback;
   }
 
   /// Generate subtle, brand-aligned post from threat assessment

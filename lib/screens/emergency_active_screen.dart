@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
 import '../theme.dart';
+import '../providers/gemma_provider.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   const EmergencyActiveScreen({super.key});
@@ -14,7 +16,6 @@ class EmergencyActiveScreen extends StatefulWidget {
 class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
-  late AnimationController _timerController;
   late Timer _elapsedTimer;
   int _elapsedSeconds = 0;
 
@@ -39,6 +40,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
 
     // Simulate Gemma 4 AI analysis stream
     _aiAnalysisStream = _generateAIAnalysis();
+    unawaited(_startGemmaAnalysis());
   }
 
   @override
@@ -59,6 +61,50 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
     for (int i = 0; i < analysisText.length; i++) {
       await Future.delayed(const Duration(milliseconds: 30));
       yield analysisText.substring(0, i + 1);
+    }
+  }
+
+  Future<void> _startGemmaAnalysis() async {
+    const sampleTranscript =
+        'Help me, someone is forcing me into a car near Adeola Odeku. I am scared and cannot move freely.';
+    const sampleContactId = 'contact_emergency_001';
+    const sampleLocation = '6.5244, 3.3792'; // Adeola Odeku, Lagos
+
+    final gemmaProvider = context.read<GemmaProvider>();
+    final result = await gemmaProvider.analyzeThreat(sampleTranscript);
+
+    if (!mounted || result.isEmpty) {
+      return;
+    }
+
+    // 🔥 Log threat to Firestore after analysis
+    try {
+      await gemmaProvider.logThreatToFirestore(
+        contactId: sampleContactId,
+        location: sampleLocation,
+      );
+      print('✅ Logged to Firestore, real-time listeners notified');
+    } catch (e) {
+      print('⚠️ Firestore logging failed: $e');
+    }
+
+    setState(() {
+      _aiAnalysisStream = _streamGemmaSummary(result);
+    });
+  }
+
+  Stream<String> _streamGemmaSummary(Map<String, dynamic> analysis) async* {
+    final threat = (analysis['threat'] ?? 'Unknown').toString();
+    final confidence = (analysis['confidence'] ?? 'N/A').toString();
+    final action = (analysis['action'] ?? 'Escalate to emergency responders').toString();
+    final summary = (analysis['summary'] ?? 'Emergency context detected.').toString();
+    final threatLevel = (analysis['threatLevel'] ?? 'high').toString();
+
+    final rendered = '''Threat: $threat\nConfidence: $confidence%\nThreat level: $threatLevel\nAction: $action\nSummary: $summary''';
+
+    for (int i = 0; i < rendered.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 18));
+      yield rendered.substring(0, i + 1);
     }
   }
 
@@ -292,6 +338,47 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             ],
           ),
           const SizedBox(height: 12),
+
+          Consumer<GemmaProvider>(
+            builder: (context, gemmaProvider, child) {
+              if (gemmaProvider.isAnalyzing) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: EchoColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Analyzing live emergency context...',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              if (gemmaProvider.error != null) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Gemma unavailable, using fallback guidance.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: EchoColors.warning,
+                    ),
+                  ),
+                );
+              }
+
+              return const SizedBox.shrink();
+            },
+          ),
 
           // StreamBuilder for progressive text
           StreamBuilder<String>(
