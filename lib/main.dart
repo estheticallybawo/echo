@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
@@ -21,6 +22,9 @@ import 'services/twitter_oauth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables from .env file
+  await dotenv.load(fileName: '.env');
   
   // Initialize Firebase
   try {
@@ -46,8 +50,9 @@ class EchoApp extends StatelessWidget {
     GoogleFonts.config.allowRuntimeFetching = true;
 
     // Track C: Initialize services
+    final apiKey = dotenv.env['GOOGLE_AI_STUDIO_API_KEY'] ?? '';
     final gemmaService = GemmaThreatAssessmentService(
-      apiKey: '', // Set from .env in real implementation
+      apiKey: apiKey,
     );
     
     final twitterService = TwitterOAuthService(
