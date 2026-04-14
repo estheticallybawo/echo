@@ -11,6 +11,20 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.1.0
 
+
+  # adding gemma dependencies
+  flutter_gemma: ^0.12.6                                  
+  record: ^5.1.0
+  path_provider: ^2.1.2
+  geolocator: ^14.0.2
+  permission_handler: ^11.3.0   # Runtime permissions
+  audio_session: ^0.1.21       # Background audio management
+  flutter_local_notifications: ^18.0.0  # Foreground service notification
+  shared_preferences: ^2.3.0    # Store recorded phrase
+  flutter_secure_storage: ^8.0.0  # Securely store API keys
+  speech_to_text: ^7.0.0        # Voice activation (rolling window)
+  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

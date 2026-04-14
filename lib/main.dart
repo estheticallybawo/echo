@@ -6,10 +6,23 @@ import 'screens/onboarding_flow.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
 import 'theme.dart';
+import 'services/voice_recognition_service.dart';
+import 'services/secrets_service.dart';
+import 'services/emergency_state_manager.dart';
+
+late VoiceRecognitionService voiceService;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize any services here (audio, location, etc.)
+  final emergencyManager = EmergencyStateManager();
+
+  final savedPhrase = await SecretsService.getSafetyPhrase() ?? 'help me';
+  voiceService = VoiceRecognitionService(safetyPhrase: savedPhrase);
+  final initialized = await voiceService.initialize(
+    onActivation: emergencyManager.handleVoiceActivation,
+  );
+  if (initialized) await voiceService.startListening();
+
   runApp(const GuardianApp());
 }
 

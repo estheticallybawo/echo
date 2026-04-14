@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 
+
 # Symbolication related
 app.*.symbols
 
@@ -43,3 +44,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# files
+/data/
+/services/audio_record_service.dart
+/services/emergency_state_manager.dart
+/services/gemma_production.dart
+/services/gemma_analysis_service.dart
+/data/models
