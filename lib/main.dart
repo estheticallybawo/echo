@@ -15,12 +15,13 @@ import 'theme.dart';
 // Track C: Social Media Providers
 import 'providers/gemma_provider.dart';
 import 'providers/social_media_provider.dart';
+import 'providers/user_preferences_provider.dart';
 // Track C: Services
 import 'services/gemma_threat_assessment_service.dart';
 import 'services/social_media_posting_service.dart';
 import 'services/twitter_oauth_service.dart';
 import 'services/confirmation_sound_service.dart';
-import 'services/deep_link_service.dart';
+import 'services/user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,36 +51,28 @@ class EchoApp extends StatefulWidget {
   @override
   State<EchoApp> createState() => _EchoAppState();
 }
-
 class _EchoAppState extends State<EchoApp> {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  late DeepLinkService deepLinkService;
 
-  @override
-  void initState() {
-    super.initState();
-    deepLinkService = DeepLinkService();
-    // Initialize deep link handling after widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await deepLinkService.initAppLinks();
-      deepLinkService.startListeningToDeepLinks(context);
-    });
-  }
-
-  @override
-  void dispose() {
-    deepLinkService.stopListeningToDeepLinks();
-    super.dispose();
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
     GoogleFonts.config.allowRuntimeFetching = true;
 
-    // Track C: Initialize services
-    final apiKey = dotenv.env['GOOGLE_AI_STUDIO_API_KEY'] ?? '';
+    // Track C: Initialize Gemma 4 service via OpenRouter
+    // Uses Google's open-weight Gemma 4 models with OpenRouter as cloud provider
+    final gemmaMode = dotenv.env['GEMMA_MODE'] ?? 'openrouter';
+    final apiKey = gemmaMode == 'openrouter' 
+        ? dotenv.env['OPENROUTER_API_KEY'] ?? ''
+        : dotenv.env['GOOGLE_AI_STUDIO_API_KEY'] ?? '';
+    
+    final modelName = dotenv.env['OPENROUTER_MODEL'] ?? 'google/gemma-4-31b-it';
+    
+    print('🚀 Gemma Mode: $gemmaMode | Model: $modelName');
+    
     final gemmaService = GemmaThreatAssessmentService(
       apiKey: apiKey,
+      modelName: modelName,
     );
     
     final twitterService = TwitterOAuthService(
@@ -93,18 +86,15 @@ class _EchoAppState extends State<EchoApp> {
       twitterService: twitterService,
     );
 
-    // Initialize Confirmation Sound Service (listens to Firestore in real-time)
-    final confirmationSoundService = ConfirmationSoundService();
-    confirmationSoundService.startListening().then((success) {
-      if (success) {
-        print('✅ Confirmation sound service initialized');
-      } else {
-        print('⚠️ Confirmation sound service initialization failed');
-      }
-    });
+    // NOTE: ConfirmationSoundService initialization moved to after auth in home_screen
+    // (was initializing before Firebase auth was ready)
 
     return MultiProvider(
       providers: [
+        // Track C: User Preferences Provider - Must be first for onboarding checks
+        ChangeNotifierProvider(
+          create: (_) => UserPreferencesProvider(),
+        ),
         // Track C: Gemma Provider
         ChangeNotifierProvider(
           create: (_) => GemmaProvider(gemmaService: gemmaService),
@@ -128,7 +118,6 @@ class _EchoAppState extends State<EchoApp> {
         title: 'Echo',
         debugShowCheckedModeBanner: false,
         theme: buildEchoTheme(),
-        navigatorKey: navigatorKey,
         home: const AuthScreen(),
         routes: {
           '/home': (context) => const HomeScreen(),

@@ -464,9 +464,7 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                     ),
                   ),
                   child: Text(
-                    incident.gemmaAnalysis.isEmpty
-                        ? 'Analysis pending...'
-                        : incident.gemmaAnalysis,
+                    incident.gemmaAnalysis ?? 'Analysis pending...',
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall

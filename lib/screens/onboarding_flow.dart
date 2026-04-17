@@ -1,7 +1,9 @@
 // ignore_for_file: unused_element_parameter, camel_case_types
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme.dart';
+import '../providers/user_preferences_provider.dart';
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key});
@@ -33,8 +35,32 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         curve: Curves.easeInOut,
       );
     } else {
-      // Complete onboarding
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Complete onboarding - initialize user profile
+      _completeOnboarding();
+    }
+  }
+
+  /// Complete onboarding and initialize user preferences
+  Future<void> _completeOnboarding() async {
+    try {
+      final userPreferences = context.read<UserPreferencesProvider>();
+      
+      // Initialize user profile from Firestore after onboarding
+      await userPreferences.initializeUserProfile();
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+    } catch (e) {
+      print('❌ Error completing onboarding: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error completing onboarding: $e'),
+            backgroundColor: EchoColors.warning,
+          ),
+        );
+      }
     }
   }
 

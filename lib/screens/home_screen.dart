@@ -1,8 +1,10 @@
 // ignore_for_file: unnecessary_to_list_in_spreads
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../theme.dart';
+import '../providers/user_preferences_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +23,12 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Load user preferences on home screen launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userPreferences = context.read<UserPreferencesProvider>();
+      userPreferences.initializeUserProfile();
+    });
     
     // Orb animation - smooth continuous rotation
     _orbController = AnimationController(

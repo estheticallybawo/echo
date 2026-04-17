@@ -32,20 +32,6 @@ flutter run -d ios
 flutter run -d android
 ```
 
-### 3. Key File References
-
-**For Developers:**
--  [ARCHITECTURE.md](ARCHITECTURE.md) - Service layer, state management, workflow docs
--  [lib/screens/](lib/screens/) - All UI Template screens
--  [lib/theme.dart](lib/theme.dart) - Color palette & typography
-
-**For Designers:**
--  [DESIGN_BRIEF.md](DESIGN_BRIEF.md) - Brand guidelines, color system, design philosophy
--  [DESIGN_CHECKLIST.md](DESIGN_CHECKLIST.md) - Screen specifications & wireframes
-
-**For Project Manager:**
--  FEATURES.md - Feature list & MVP scope 
--  TASK_TRACKING.md - Sprint tracking & task assignments
 
 ---
 

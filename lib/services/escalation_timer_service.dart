@@ -34,29 +34,31 @@ class EscalationTimerService {
   bool get isRunning => _isRunning;
   int get secondsElapsed => _secondsElapsed;
   int get secondsRemaining => maxDuration - _secondsElapsed;
-  int get maxDuration => 300; // 5 minutes max escalation
+  int get maxDuration => 180; // 3 minutes max escalation (T+90s critical, plus buffer)
   double get progressPercentage => (_secondsElapsed / maxDuration) * 100;
 
   // Escalation tier status
   int get currentTier {
-    if (_secondsElapsed < 60) return 1;
-    if (_secondsElapsed < 120) return 2;
+    if (_secondsElapsed < 30) return 1;
+    if (_secondsElapsed < 90) return 2;
     return 3;
   }
 
   // Callbacks
   VoidCallback? onTierChanged;
   Function(int seconds)? onTick;
-  Function()? onTier1CheckPoint;
-  Function()? onTier2CheckPoint;
-  Function()? onTier3Escalate;
+  Function()? onTier1Activate; // T+5s: Send Tier 1 WhatsApp
+  Function()? onTier2Escalate; // T+30s: Escalate to Tier 2
+  Function()? onTier1Nudge;    // T+60s: Send follow-up nudge
+  Function()? onTier3Escalate; // T+90s: Auto-post to Twitter
 
   /// Start escalation countdown (called after emergency activation)
   void startEscalation({
     required String incidentId,
+    required VoidCallback onTier1Activate,
     required VoidCallback onTier2Escalate,
+    required VoidCallback onTier1Nudge,
     required VoidCallback onTier3Escalate,
-    VoidCallback? onTier1Nudge,
     Function(int seconds)? onTickCallback,
   }) {
     if (_isRunning) {
@@ -72,14 +74,16 @@ class EscalationTimerService {
     _isRunning = true;
 
     onTick = onTickCallback;
-    onTier2CheckPoint = onTier2Escalate;
-    onTier3Escalate = onTier3Escalate;
-    onTier1CheckPoint = onTier1Nudge;
+    this.onTier1Activate = onTier1Activate;
+    this.onTier2Escalate = onTier2Escalate;
+    this.onTier1Nudge = onTier1Nudge;
+    this.onTier3Escalate = onTier3Escalate;
 
     print('⏱️ Escalation timer started (${_currentIncidentId})');
-    print('   T+60s: Tier 2 escalation check');
-    print('   T+90s: Tier 1 follow-up nudge');
-    print('   T+120s: Tier 3 auto-post to Twitter');
+    print('   T+5s:  TIER 1 ACTIVATION - Send WhatsApp to inner circle');
+    print('   T+30s: Tier 1 checkpoint - Escalate to Tier 2 if no confirmation');
+    print('   T+60s: Tier 1 follow-up nudge');
+    print('   T+90s: Tier 3 auto-escalation - Twitter auto-post');
 
     // Start 1-second tick timer
     _escalationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
@@ -88,23 +92,29 @@ class EscalationTimerService {
       // Callback for UI updates
       onTick?.call(_secondsElapsed);
 
-      // Tier 1 checkpoint (T+60s) - Escalate to Tier 2
+      // Tier 1 activation (T+5s) - Send WhatsApp to inner circle
+      if (_secondsElapsed == 5) {
+        print('⏰ T+5s: TIER 1 ACTIVATION - Sending WhatsApp to inner circle');
+        this.onTier1Activate?.call();
+      }
+
+      // Tier 1 checkpoint (T+30s) - Escalate to Tier 2 if no confirmation
+      if (_secondsElapsed == 30 && !_tier1Confirmed) {
+        print('⏰ T+30s: Tier 1 checkpoint - No confirmation, escalating to Tier 2');
+        this.onTier2Escalate?.call();
+      }
+
+      // Tier 1 nudge (T+60s) - Send follow-up message
       if (_secondsElapsed == 60 && !_tier1Confirmed) {
-        print('⏰ T+60s: Tier 2 escalation triggered (no Tier 1 confirmation)');
-        onTier2CheckPoint?.call();
+        print('⏰ T+60s: Sending follow-up nudge to Tier 1 contacts');
+        this.onTier1Nudge?.call();
       }
 
-      // Tier 1 nudge (T+90s) - Send follow-up message
-      if (_secondsElapsed == 90 && !_tier1Confirmed) {
-        print('⏰ T+90s: Sending follow-up nudge to Tier 1 contacts');
-        onTier1CheckPoint?.call();
-      }
-
-      // Tier 3 checkpoint (T+120s) - Auto-post to Twitter
-      if (_secondsElapsed == 120 && !_tier1Confirmed && !_tier2Confirmed) {
-        print('⏰ T+120s: Tier 3 auto-escalation (no confirmation from Tier 1 or 2)');
+      // Tier 3 checkpoint (T+90s) - Auto-post to Twitter
+      if (_secondsElapsed == 90 && !_tier1Confirmed && !_tier2Confirmed) {
+        print('⏰ T+90s: Tier 3 auto-escalation (no confirmation from Tier 1 or 2)');
         await _handleTier3Escalation();
-        onTier3Escalate?.call();
+        this.onTier3Escalate?.call();
       }
 
       // Stop after max duration

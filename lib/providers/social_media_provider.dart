@@ -148,4 +148,53 @@ class SocialMediaProvider extends ChangeNotifier {
     if (lastPostId != null) return 'Posted at ${lastPostTime?.toString().split('.')[0]}';
     return 'Ready to post';
   }
+  
+  /// Tier 3 Auto-Escalation: Called at T+120s when no confirmation from Tier 1/2
+  Future<bool> tier3AutoEscalate({
+    required String threatLevel,
+    required String threatCategory,
+    required double lat,
+    required double lon,
+    String? additionalContext,
+  }) async {
+    isPosting = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      // Generate and post emergency alert to Twitter at Tier 3
+      final posted = await _twitterService.autoPostEmergencyAlert(
+        threatLevel: threatLevel,
+        threatCategory: threatCategory,
+        latitude: lat,
+        longitude: lon,
+        additionalContext: additionalContext,
+      );
+
+      if (posted) {
+        // Store last post info
+        final postText = _twitterService.generateEmergencyPostText(
+          threatLevel: threatLevel,
+          threatCategory: threatCategory,
+          latitude: lat,
+          longitude: lon,
+          additionalContext: additionalContext,
+        );
+        lastPostText = postText;
+        lastPostTime = DateTime.now();
+        lastPostUrl = 'https://twitter.com/i/web/status/emergency-${DateTime.now().millisecondsSinceEpoch}';
+        print('✅ Tier 3 auto-post successful');
+      }
+
+      isPosting = false;
+      notifyListeners();
+      return posted;
+    } catch (e) {
+      error = e.toString();
+      isPosting = false;
+      notifyListeners();
+      print('❌ Tier 3 auto-escalation failed: $e');
+      return false;
+    }
+  }
 }
