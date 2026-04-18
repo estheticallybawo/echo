@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "echo (Flutter)",
+            "program": "lib/main.dart",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

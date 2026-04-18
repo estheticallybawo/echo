@@ -1,6 +1,6 @@
 {
-    "name": "hi_gemma",
-    "short_name": "hi_gemma",
+    "name": "echo",
+    "short_name": "echo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

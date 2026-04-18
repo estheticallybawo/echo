@@ -58,7 +58,9 @@ class _HomeScreenState extends State<HomeScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).pushNamed('/ai-settings');
+            },
           ),
         ],
       ),
