@@ -23,33 +23,28 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/icon/ic_launcher.png
+    - assets/icon/echo.png
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/ic_launcher.png"
+  remove_alpha_ios: true
+  web:
+    generate: true
+    background_color: "#000000"
+  image_path: "assets/icon/echo.png"
+  adaptive_icon_background: "assets/icon/echo_background.png"  # For Android adaptive icons
+  adaptive_icon_foreground: "assets/icon/echo_foreground.png"  # For Android adaptive icons
+
 
 flutter_native_splash:
   # Platform enable/disable
   android: true
   ios: true
   web: true
-
-  # Common settings
-  color: "#F8FAFC"  # Soft background matching Echo's gentle palette
   image: assets/splash/splash.png
+  background_image: assets/splash/splash.png
 
-  # Dark mode support
-  color_dark: "#1A2A25"
-  image_dark: assets/splash/splash.png
-
-  # Android 12+ specific (required for newer Android versions)
-  android_12:
-    color: "#F8FAFC"
-    image: assets/splash/splash.png
-    color_dark: "#1A2A25"
-    image_dark: assets/splash/splash.png
 
   # Web specific
   web_image_mode: center  # Options: center, contain, cover, stretch
