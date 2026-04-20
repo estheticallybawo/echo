@@ -2,12 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:provider/provider.dart';
 import '../theme.dart';
-import '../providers/gemma_provider.dart';
-import '../providers/social_media_provider.dart';
-import '../services/escalation_timer_service.dart';
-import '../services/confirmation_sound_service.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   const EmergencyActiveScreen({super.key});
@@ -19,21 +14,12 @@ class EmergencyActiveScreen extends StatefulWidget {
 class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
+  late AnimationController _timerController;
   late Timer _elapsedTimer;
   int _elapsedSeconds = 0;
 
-  // Escalation Timer Service
-  final EscalationTimerService _escalationTimer = EscalationTimerService();
-  
-  // Confirmation Sound Service
-  final ConfirmationSoundService _confirmationSoundService = ConfirmationSoundService();
-  
-  int _tierCountdown = 0;
-
   // Simulated Gemma 4 AI stream
   late Stream<String> _aiAnalysisStream;
-
-  String? _currentIncidentId; // Track incident ID for escalation timer
 
   @override
   void initState() {
@@ -53,129 +39,12 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
 
     // Simulate Gemma 4 AI analysis stream
     _aiAnalysisStream = _generateAIAnalysis();
-
-    // Defer Gemma analysis and escalation timer to after build phase
-    // This prevents "setState() during build" errors
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_startGemmaAnalysisDeferred());
-    });
-  }
-  /// Start the escalation timer with callbacks and proper incident ID
-  void _startEscalationTimer(String incidentId) {
-    final gemmaProvider = context.read<GemmaProvider>();
-    final socialMediaProvider = context.read<SocialMediaProvider>();
-    
-    _escalationTimer.startEscalation(
-      incidentId: incidentId,
-      onTier1Activate: () {
-        print('🚨 TIER 1 ACTIVATION - Sending WhatsApp to inner circle');
-        // Play confirmation sound for Tier 1 activation
-        unawaited(_confirmationSoundService.confirmTierCompletion(1));
-        if (mounted) setState(() {});
-        
-        // TODO: Send WhatsApp messages to Tier 1 contacts with:
-        // - Gemma threat summary
-        // - Live location link
-        // - First 30s audio clip
-        // - 3 action buttons (Confirm Safe / Contact Details / Emergency Call)
-      },
-      onTier2Escalate: () {
-        print('🚨 TIER 2 ESCALATION TRIGGERED');
-        // Play confirmation sound for Tier 2
-        unawaited(_confirmationSoundService.confirmTierCompletion(2));
-        if (mounted) setState(() {});
-        
-        // TODO: Send WhatsApp messages to Tier 2 (extended network) with:
-        // - Updated threat assessment
-        // - Current live location
-        // - Action buttons
-      },
-      onTier1Nudge: () {
-        print('🔔 TIER 1 FOLLOW-UP NUDGE SENT');
-        // Play confirmation sound for Tier 1 nudge
-        unawaited(_confirmationSoundService.confirmTierCompletion(1));
-        if (mounted) setState(() {});
-        
-        // TODO: Send follow-up WhatsApp to Tier 1 if still no confirmation
-      },
-      onTier3Escalate: () async {
-        print('🚨 TIER 3 AUTO-POST TRIGGERED');
-        // Play confirmation sound for Tier 3
-        unawaited(_confirmationSoundService.confirmTierCompletion(3));
-        if (mounted) setState(() {});
-        
-        // Trigger Twitter auto-post (Track C)
-        try {
-          await socialMediaProvider.tier3AutoEscalate(
-            threatLevel: 'CRITICAL',
-            threatCategory: 'escalation_tier_3',
-            lat: 6.5244,
-            lon: 3.3792,
-            additionalContext: 'Emergency escalated to Tier 3 - no confirmation from Tier 1 or 2',
-          );
-        } catch (e) {
-          print('❌ Tier 3 auto-escalation failed: $e');
-        }
-      },
-      onTickCallback: (seconds) {
-        if (mounted) {
-          setState(() {
-            _tierCountdown = seconds;
-          });
-        }
-      },
-    );
-  }
-
-  /// Deferred Gemma analysis - called after build phase to avoid setState during build
-  Future<void> _startGemmaAnalysisDeferred() async {
-    const sampleTranscript =
-        'Help me, someone is forcing me into a car near Adeola Odeku. I am scared and cannot move freely.';
-    const sampleContactId = 'contact_emergency_001';
-    const sampleLocation = '6.5244, 3.3792'; // Adeola Odeku, Lagos
-
-    final gemmaProvider = context.read<GemmaProvider>();
-    
-    // Analyze threat
-    final result = await gemmaProvider.analyzeThreat(sampleTranscript);
-
-    if (!mounted || result.isEmpty) {
-      return;
-    }
-
-    // 🔥 Log threat to Firestore after analysis
-    try {
-      await gemmaProvider.logThreatToFirestore(
-        contactId: sampleContactId,
-        location: sampleLocation,
-      );
-      print('✅ Logged to Firestore, real-time listeners notified');
-      
-      // Capture incident ID and start escalation timer with correct ID
-      final incidentId = gemmaProvider.lastIncidentId;
-      if (incidentId != null && mounted) {
-        _currentIncidentId = incidentId;
-        // Start escalation timer AFTER incident is logged
-        _startEscalationTimer(incidentId);
-      }
-    } catch (e) {
-      print('⚠️ Firestore logging failed: $e');
-    }
-
-    // Update AI analysis stream
-    if (mounted) {
-      setState(() {
-        _aiAnalysisStream = _streamGemmaSummary(result);
-      });
-    }
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _elapsedTimer.cancel();
-    _escalationTimer.stopEscalation();
-    unawaited(_confirmationSoundService.dispose());
     super.dispose();
   }
 
@@ -190,21 +59,6 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
     for (int i = 0; i < analysisText.length; i++) {
       await Future.delayed(const Duration(milliseconds: 30));
       yield analysisText.substring(0, i + 1);
-    }
-  }
-
-  Stream<String> _streamGemmaSummary(Map<String, dynamic> analysis) async* {
-    final threat = (analysis['threat'] ?? 'Unknown').toString();
-    final confidence = (analysis['confidence'] ?? 'N/A').toString();
-    final action = (analysis['action'] ?? 'Escalate to emergency responders').toString();
-    final summary = (analysis['summary'] ?? 'Emergency context detected.').toString();
-    final threatLevel = (analysis['threatLevel'] ?? 'high').toString();
-
-    final rendered = '''Threat: $threat\nConfidence: $confidence%\nThreat level: $threatLevel\nAction: $action\nSummary: $summary''';
-
-    for (int i = 0; i < rendered.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 18));
-      yield rendered.substring(0, i + 1);
     }
   }
 
@@ -254,8 +108,6 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
       ),
     );
   }
-
-
 
   /// Recording timer with pulsing ring animation
   Widget _buildRecordingTimer() {
@@ -439,47 +291,6 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           ),
           const SizedBox(height: 12),
 
-          Consumer<GemmaProvider>(
-            builder: (context, gemmaProvider, child) {
-              if (gemmaProvider.isAnalyzing) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: EchoColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Analyzing live emergency context...',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              if (gemmaProvider.error != null) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'Gemma unavailable, using fallback guidance.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: EchoColors.warning,
-                    ),
-                  ),
-                );
-              }
-
-              return const SizedBox.shrink();
-            },
-          ),
-
           // StreamBuilder for progressive text
           StreamBuilder<String>(
             stream: _aiAnalysisStream,
@@ -652,12 +463,9 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
   /// Shows 2-tier escalation: Tier 1 (0-30s) → Tier 2
   /// Developer: Wire EscalationManager FSM stream here
   Widget _buildEscalationTimerCard() {
-    // Get live data from EscalationTimerService
-    int secondsUntilTier2 = 60 - _escalationTimer.secondsElapsed;
-    int secondsUntilTier3 = 120 - _escalationTimer.secondsElapsed;
-    bool isTier1Active = _escalationTimer.currentTier == 1;
-    bool isTier2Active = _escalationTimer.currentTier == 2;
-    bool isTier3Active = _escalationTimer.currentTier == 3;
+    // PLACEHOLDER: Developers will replace with EscalationManager stream
+    int secondsUntilTier2 = 18; // Countdown from 30s
+    bool isTier1Active = secondsUntilTier2 > 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -665,11 +473,9 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
         color: EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isTier3Active
-              ? EchoColors.warning.withOpacity(0.5)
-              : isTier2Active
+          color: isTier1Active
               ? EchoColors.primary.withOpacity(0.3)
-              : EchoColors.primary.withOpacity(0.3),
+              : EchoColors.success.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -680,7 +486,7 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
             children: [
               Icon(
                 Icons.people_outline,
-                color: isTier3Active ? EchoColors.warning : EchoColors.primary,
+                color: EchoColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -688,13 +494,6 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                 'Escalation Status',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: EchoColors.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'T+${_escalationTimer.secondsElapsed}s',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: EchoColors.textSecondary,
                 ),
               ),
             ],
@@ -721,21 +520,21 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
-                        value: _escalationTimer.secondsElapsed / 60,
+                        value: (30 - secondsUntilTier2) / 30,
                         minHeight: 8,
                         backgroundColor: EchoColors.textSecondary
                             .withOpacity(0.1),
                         valueColor: const AlwaysStoppedAnimation<Color>(
-                          EchoColors.primary,
+                          EchoColors.warning,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    '${secondsUntilTier2}s to Tier 2',
+                    '${secondsUntilTier2}s',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: EchoColors.primary,
+                      color: EchoColors.warning,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -747,53 +546,9 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           // Tier 2 Status
           _buildTierRow(
             tier: 'TIER 2',
-            status: isTier2Active ? 'ACTIVE' : (isTier1Active ? 'STANDBY' : 'COMPLETED'),
+            status: isTier1Active ? 'STANDBY' : 'ACTIVATED',
             contacts: '5-10 extended contacts',
-            isActive: isTier2Active,
-            context: context,
-          ),
-          
-          const SizedBox(height: 12),
-
-          // Countdown timer for Tier 3
-          if (isTier1Active || isTier2Active) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: _escalationTimer.secondsElapsed / 120,
-                        minHeight: 8,
-                        backgroundColor: EchoColors.textSecondary
-                            .withOpacity(0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isTier2Active ? EchoColors.warning : EchoColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    isTier2Active ? '${secondsUntilTier3}s to Twitter' : '${secondsUntilTier3}s',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: isTier2Active ? EchoColors.warning : EchoColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Tier 3 Status
-          _buildTierRow(
-            tier: 'TIER 3',
-            status: isTier3Active ? '🚨 ACTIVE - TWITTER' : (isTier1Active || isTier2Active ? 'STANDBY' : 'COMPLETED'),
-            contacts: 'Public safety alert',
-            isActive: isTier3Active,
+            isActive: !isTier1Active,
             context: context,
           ),
         ],

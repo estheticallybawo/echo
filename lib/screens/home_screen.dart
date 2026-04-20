@@ -1,10 +1,10 @@
 // ignore_for_file: unnecessary_to_list_in_spreads
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../theme.dart';
-import '../providers/user_preferences_provider.dart';
+import '../models/community_feed_model.dart';
+import '../widgets/community_feed_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,16 +19,14 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _pulseController;
   late AnimationController _waveformController;
   bool isListening = true; // Track listening state
+  late List<CommunityFeedEntry> _communityFeed;
 
   @override
   void initState() {
     super.initState();
     
-    // Load user preferences on home screen launch
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userPreferences = context.read<UserPreferencesProvider>();
-      userPreferences.initializeUserProfile();
-    });
+    // Initialize community feed with mock data
+    _initializeMockFeed();
     
     // Orb animation - smooth continuous rotation
     _orbController = AnimationController(
@@ -49,6 +47,63 @@ class _HomeScreenState extends State<HomeScreen>
     )..repeat();
   }
 
+  void _initializeMockFeed() {
+    _communityFeed = [
+      CommunityFeedEntry(
+        id: 'feed_1',
+        victimName: 'Jane Okafor',
+        victimId: 'user_123',
+        location: 'Ikoyi',
+        state: 'Lagos',
+        country: 'Nigeria',
+        triggeredAt: DateTime.now().subtract(const Duration(minutes: 2)),
+        hashTag: '#findJaneOkafor',
+        shareCount: 47,
+        userAmplified: false,
+        status: 'active',
+        gemmaAssessment: 'High-risk situation detected. Immediate amplification recommended.',
+        retweetCount: 2300,
+        impressions: 50000,
+      ),
+      CommunityFeedEntry(
+        id: 'feed_2',
+        victimName: 'Ahmed Hassan',
+        victimId: 'user_456',
+        location: 'Nairobi CBD',
+        state: 'Nairobi',
+        country: 'Kenya',
+        triggeredAt: DateTime.now().subtract(const Duration(minutes: 8)),
+        hashTag: '#findAhmedHassan',
+        shareCount: 23,
+        userAmplified: false,
+        status: 'active',
+        gemmaAssessment: 'Medium-risk situation. Community amplification in progress.',
+      ),
+      CommunityFeedEntry(
+        id: 'feed_3',
+        victimName: 'Chioma Eze',
+        victimId: 'user_789',
+        location: 'Abuja City Centre',
+        state: 'Abuja',
+        country: 'Nigeria',
+        triggeredAt: DateTime.now().subtract(const Duration(minutes: 15)),
+        hashTag: '#findChiomaEze',
+        shareCount: 200,
+        userAmplified: false,
+        status: 'resolved',
+        gemmaAssessment: 'Case resolved successfully. Thank you to all who helped.',
+        retweetCount: 5100,
+        impressions: 120000,
+      ),
+    ];
+  }
+
+  void _refreshFeed() {
+    setState(() {
+      _initializeMockFeed();
+    });
+  }
+
   @override
   void dispose() {
     _orbController.dispose();
@@ -66,7 +121,9 @@ class _HomeScreenState extends State<HomeScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).pushNamed('/ai-settings');
+            },
           ),
         ],
       ),
@@ -89,6 +146,14 @@ class _HomeScreenState extends State<HomeScreen>
               
               // Priority Contacts Row
               _buildPriorityContacts(),
+              const SizedBox(height: 48),
+              
+              // Echo Feed Section
+              CommunityFeedSection(
+                feedEntries: _communityFeed,
+                onRefresh: _refreshFeed,
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
