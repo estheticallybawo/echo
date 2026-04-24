@@ -1,5 +1,6 @@
 /// Gemma 4 System Instructions for Echo App
 /// These prompts guide Gemma 4 to make emergency threat assessments
+library;
 
 class GemmaSystemPrompts {
   /// Main system prompt for threat assessment
@@ -23,7 +24,6 @@ Analyze for these threat types:
 - FIRE: Building fire, vehicle fire, chemical fire
 - ACCIDENT: Traffic collision, fall, structural collapse
 - HARASSMENT: Stalking, threats, cyberbullying signs
-- FRAUD: Financial scam, phishing, identity theft
 - OTHER: Any other emergency not above
 
 ## RESPONSE FORMAT

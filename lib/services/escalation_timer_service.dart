@@ -79,7 +79,7 @@ class EscalationTimerService {
     this.onTier1Nudge = onTier1Nudge;
     this.onTier3Escalate = onTier3Escalate;
 
-    print('⏱️ Escalation timer started (${_currentIncidentId})');
+    print('⏱️ Escalation timer started ($_currentIncidentId)');
     print('   T+5s:  TIER 1 ACTIVATION - Send WhatsApp to inner circle');
     print('   T+30s: Tier 1 checkpoint - Escalate to Tier 2 if no confirmation');
     print('   T+60s: Tier 1 follow-up nudge');

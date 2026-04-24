@@ -5,6 +5,8 @@ import 'dart:math' as math;
 import '../theme.dart';
 import '../models/community_feed_model.dart';
 import '../widgets/community_feed_section.dart';
+import '../services/gemma_threat_assessment_service.dart';
+import 'emergency_active_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -165,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildGlowingOrb() {
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).pushNamed('/emergency-active');
+        _showEmergencyDescriptionDialog();
       },
       child: AnimatedBuilder(
         animation: _pulseController,
@@ -566,6 +568,110 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  /// Show dialog to capture emergency description
+  void _showEmergencyDescriptionDialog() {
+    final TextEditingController descriptionController = TextEditingController();
+    final gemmaService = GemmaThreatAssessmentService();
+    bool isAnalyzing = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Describe Your Emergency'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'What\'s happening? Be specific - this helps Gemma assess the threat accurately.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: EchoColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 5,
+                  enabled: !isAnalyzing,
+                  decoration: InputDecoration(
+                    hintText: 'E.g., "I\'m being forced into a car by two men"',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: EchoColors.surfaceSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (isAnalyzing)
+                  Center(
+                    child: Column(
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Gemma is analyzing...',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            if (!isAnalyzing)
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            if (!isAnalyzing)
+              ElevatedButton(
+                onPressed: () async {
+                  if (descriptionController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please describe the emergency')),
+                    );
+                    return;
+                  }
+
+                  setState(() => isAnalyzing = true);
+
+                  try {
+                    // Call Gemma threat assessment
+                    final threatAnalysis =
+                        await gemmaService.analyzeThreat(descriptionController.text);
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      // Navigate to emergency screen with the analysis data
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EmergencyActiveScreen(threatAnalysis: threatAnalysis),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                      setState(() => isAnalyzing = false);
+                    }
+                  }
+                },
+                child: const Text('Send Emergency'),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -33,6 +33,12 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Node.js (if accidentally used)
+node_modules/
+package.json
+package-lock.json
+npm-debug.log
+
 # Symbolication related
 app.*.symbols
 
@@ -46,6 +52,14 @@ app.*.map.json
 
 #env files
 *.env
+
+# Firebase configuration with credentials
+lib/firebase_options.dart
+
+# Generated plugin registrants (auto-generated per platform)
+**/flutter/generated_plugin_registrant.*
+**/flutter/GeneratedPluginRegistrant.swift
+**/flutter/GeneratedPluginRegistrant.h
 
 # Documentation (internal only - not for commits)
 

@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/emergency_active_screen.dart';
@@ -11,6 +12,7 @@ import 'screens/onboarding_flow.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
 import 'theme.dart';
+import 'config/ollama_config.dart';
 // Track C: Social Media Providers
 import 'providers/gemma_provider.dart';
 import 'providers/social_media_provider.dart';
@@ -19,14 +21,22 @@ import 'providers/user_preferences_provider.dart';
 import 'services/gemma_threat_assessment_service.dart';
 import 'services/social_media_posting_service.dart';
 import 'services/twitter_oauth_service.dart';
-import 'services/confirmation_sound_service.dart';
-import 'services/user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables from .env file
   await dotenv.load(fileName: '.env');
+  
+  // Configure Ollama with Ngrok URL (for team testing)
+  // If NGROK_URL is set, teammates can test without local Gemma download
+  final ngrokUrl = dotenv.env['NGROK_URL'];
+  if (ngrokUrl != null && ngrokUrl.isNotEmpty) {
+    OllamaConfig.setNgrokUrl(ngrokUrl);
+    print('✅ Ngrok configured: Teammates can test at $ngrokUrl');
+  } else {
+    print('📍 Using local Ollama: http://localhost:11434');
+  }
   
   // Initialize Firebase
   try {
@@ -58,20 +68,24 @@ class _EchoAppState extends State<EchoApp> {
   Widget build(BuildContext context) {
     GoogleFonts.config.allowRuntimeFetching = true;
 
-    // Track C: Initialize Gemma 4 service via OpenRouter
-    // Uses Google's open-weight Gemma 4 models with OpenRouter as cloud provider
-    final gemmaMode = dotenv.env['GEMMA_MODE'] ?? 'openrouter';
+    // Track C: Initialize Gemma 4 service
+    // Now using LOCAL OLLAMA (localhost:11434 or Ngrok tunnel)
+    // Fallback to OpenRouter if Ollama unavailable
+    final gemmaMode = dotenv.env['GEMMA_MODE'] ?? 'ollama'; // Default to local Ollama
     final apiKey = gemmaMode == 'openrouter' 
         ? dotenv.env['OPENROUTER_API_KEY'] ?? ''
         : dotenv.env['GOOGLE_AI_STUDIO_API_KEY'] ?? '';
     
     final modelName = dotenv.env['OPENROUTER_MODEL'] ?? 'google/gemma-4-31b-it';
     
-    print('🚀 Gemma Mode: $gemmaMode | Model: $modelName');
+    print('🚀 Using LOCAL OLLAMA via ${OllamaConfig.activeHost}');
+    print('📍 Model: ${OllamaConfig.MODEL}');
+    print('🌍 Ngrok Status: ${OllamaConfig.ngrokHost.isNotEmpty ? "Active" : "Not configured"}');
     
     final gemmaService = GemmaThreatAssessmentService(
       apiKey: apiKey,
       modelName: modelName,
+      useMockMode: false, // Use real Ollama
     );
     
     final twitterService = TwitterOAuthService(

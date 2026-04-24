@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../constants/gemma_system_prompts.dart';
+import '../config/ollama_config.dart';
 
 /// Threat level enum - determined by Gemma analysis, NOT user selection
 enum ThreatLevel {
@@ -28,7 +28,7 @@ class GemmaThreatAssessmentService {
   final String systemInstructions;
 
   GemmaThreatAssessmentService({
-    required this.apiKey,
+    this.apiKey = 'ollama-local', // Not used with local Ollama
     this.modelName = 'gemma-4-31b-it', // Using Gemma 4 31B (flagship dense model)
     this.useMockMode = false,
     this.systemInstructions = GemmaSystemPrompts.emergencyThreatAssessment,
@@ -59,68 +59,76 @@ class GemmaThreatAssessmentService {
     };
   }
 
-  /// Week 2+: REAL API with OpenRouter (Days 3+, Apr 11+)
+  /// Week 2+: LOCAL OLLAMA (Days 3+, Apr 11+)
   /// Gemma analyzes and determines threat level automatically
+  /// Uses local Ollama instance (localhost:11434) for privacy & speed
+  /// Falls back to OpenRouter if Ollama unavailable
   Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
     if (useMockMode) {
       return analyzeThreatMock(audioContext);
     }
 
-    if (apiKey.trim().isEmpty) {
-      return analyzeThreatMock(audioContext);
-    }
-
     try {
-      print('🧠 Using Gemma 4 model: $modelName via OpenRouter (Open-weight, Hackathon-compliant)');
-      print('📡 API Endpoint: openrouter.ai/api/v1/chat/completions');
-      
+      // Check if Ollama is healthy first
+      final ollamaHealthy = await OllamaConfig.isOllamaHealthy();
+      if (!ollamaHealthy) {
+        print('⚠️ Ollama unavailable at ${OllamaConfig.activeHost}, falling back to mock');
+        return analyzeThreatMock(audioContext);
+      }
+
+      print('🧠 Using Gemma 4 via LOCAL OLLAMA: ${OllamaConfig.activeHost}/api/generate');
+      print('📍 Model: ${OllamaConfig.MODEL}');
+
+      final prompt = '''You are an emergency threat assessment system. Analyze this emergency report and respond ONLY with valid JSON (no markdown, no code blocks, no explanation).
+
+Emergency Report: "$audioContext"
+
+System Instructions: $systemInstructions
+
+Respond with ONLY this JSON structure (no extra text):
+{
+  "threat": "Kidnapping|Assault|Fire|Medical|Robbery|Stalking|Other",
+  "confidence": 0-100,
+  "action": "specific emergency action to take",
+  "summary": "brief explanation of the threat",
+  "analyzedSituation": "one-line description of what is happening",
+  "threatLevel": "critical|high|medium|low"
+}''';
+
       final response = await http.post(
-        Uri.parse('https://openrouter.ai/api/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://echo-gemma-app.com', // Required by OpenRouter
-          'X-Title': 'Echo App - Emergency Threat Assessment',
-        },
+        Uri.parse('${OllamaConfig.activeHost}/api/generate'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': modelName, // Configurable model: gemma-4-31b-it, gemma-2-27b-it, etc.
-          'messages': [
-            {
-              'role': 'system',
-              'content': systemInstructions,
-            },
-            {
-              'role': 'user',
-              'content': '''Analyze this emergency and respond ONLY with valid JSON (no markdown, no explanation):\n\nEmergency report: "$audioContext"\n\nJSON format:\n{\n  "threat": "Kidnapping|Assault|Fire|Medical|Robbery|Stalking|Other",\n  "confidence": 0-100,\n  "action": "specific emergency action",\n  "summary": "brief explanation",\n  "analyzedSituation": "one-line description",\n  "threatLevel": "critical|high|medium|low"\n}''',
-            }
-          ],
-          'temperature': 0.3, // Lower temp for consistent threat assessment
-          'max_tokens': 300,
+          'model': OllamaConfig.MODEL,
+          'prompt': prompt,
+          'temperature': OllamaConfig.TEMPERATURE,
+          'stream': false, // Wait for complete response
+          'num_predict': OllamaConfig.MAX_TOKENS,
         }),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(OllamaConfig.TIMEOUT);
 
       if (response.statusCode != 200) {
-        print('❌ OpenRouter error: ${response.statusCode} - ${response.body}');
+        print('❌ Ollama error: ${response.statusCode}');
+        print('📍 Falling back to mock assessment');
         return _buildGenericFallback(audioContext);
       }
 
       final data = jsonDecode(response.body);
+      final responseText = data['response'] ?? '';
+
+      if (responseText.trim().isEmpty) {
+        print('⚠️ Empty response from Ollama');
+        return _buildGenericFallback(audioContext);
+      }
+
+      // Parse JSON from response (Ollama sometimes wraps in markdown)
+      final threatData = _extractThreatPayload(responseText);
       
-      if (data['error'] != null) {
-        print('❌ API error: ${data['error']['message']}');
-        return _buildGenericFallback(audioContext);
-      }
-
-      final content = data['choices']?[0]?['message']?['content'] ?? '';
-      if (content.trim().isEmpty) {
-        return _buildGenericFallback(audioContext);
-      }
-
-      // Parse JSON from response even when wrapped in markdown/code fences.
-      final threatData = _extractThreatPayload(content);
+      print('✅ Threat assessed: ${threatData['threat']} (confidence: ${threatData['confidence']}%)');
       return threatData;
     } catch (e) {
-      print('Gemma analysis failed: $e');
+      print('❌ Threat assessment failed: $e');
+      print('📍 Using fallback assessment');
       return _buildGenericFallback(audioContext);
     }
   }

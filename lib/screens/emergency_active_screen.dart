@@ -5,7 +5,12 @@ import 'dart:async';
 import '../theme.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
-  const EmergencyActiveScreen({super.key});
+  final Map<String, dynamic>? threatAnalysis;
+
+  const EmergencyActiveScreen({
+    this.threatAnalysis,
+    super.key,
+  });
 
   @override
   State<EmergencyActiveScreen> createState() => _EmergencyActiveScreenState();
@@ -17,13 +22,29 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   late AnimationController _timerController;
   late Timer _elapsedTimer;
   int _elapsedSeconds = 0;
-
-  // Simulated Gemma 4 AI stream
   late Stream<String> _aiAnalysisStream;
+
+  // Threat analysis data from Gemma
+  late Map<String, dynamic> threatData;
+  late double confidence;
+  late String threatType;
+  late String threatLevel;
 
   @override
   void initState() {
     super.initState();
+
+    // Extract threat data from widget arguments
+    threatData = widget.threatAnalysis ?? {
+      'threat': 'Unknown',
+      'confidence': 0,
+      'threatLevel': 'low',
+      'summary': 'Unable to assess threat',
+    };
+
+    confidence = (threatData['confidence'] ?? 0).toDouble();
+    threatType = threatData['threat']?.toString() ?? 'Unknown';
+    threatLevel = threatData['threatLevel']?.toString() ?? 'low';
 
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -37,7 +58,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
       });
     });
 
-    // Simulate Gemma 4 AI analysis stream
+    // Simulate Gemma 4 AI analysis stream with real data
     _aiAnalysisStream = _generateAIAnalysis();
   }
 
@@ -48,13 +69,21 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
     super.dispose();
   }
 
-  /// Simulate streaming text from Gemma 4 AI
+  /// Generate AI analysis text from real Gemma data
   Stream<String> _generateAIAnalysis() async* {
-    final analysisText = '''User location: Confirmed. 
-Recording: Active (audio + metadata).
-Proximity alerts: 3 contacts notified.
-Police dispatch: Queued for operator.
-Real-time analysis: Assessing environment audio for threat patterns...''';
+    final analysisText = '''Threat Assessment Complete:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Type: $threatType
+Confidence: ${confidence.toStringAsFixed(0)}%
+Level: ${threatLevel.toUpperCase()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${threatData['summary'] ?? 'Threat detected - escalation in progress'}
+
+Location: Confirmed & LOCKED
+Police: Queued for dispatch
+Contacts: 3 notified (Tier 1)
+Social: Queued for amplification
+''';
 
     for (int i = 0; i < analysisText.length; i++) {
       await Future.delayed(const Duration(milliseconds: 30));
@@ -366,24 +395,26 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
   // NEW WIDGETS FOR DEVELOPER IMPLEMENTATION
   // ========================================
 
-  /// WOW FACTOR #1: Emotion Detection Gauge (Track A - Dev 1)
-  /// Shows real-time fear/panic level from voice analysis
-  /// Developer: Wire EmotionDetectionService stream here
+  /// Threat Confidence Gauge
   Widget _buildEmotionGauge() {
-    // PLACEHOLDER: Developers will replace with EmotionDetectionService stream
-    double emotionLevel = 45; // 0-100, where 100 = panic
-    bool isPanic = emotionLevel > 70;
+    double threatConfidence = confidence;
+    bool isCritical = threatConfidence >= 85;
+    bool isHigh = threatConfidence >= 65;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isPanic
+        color: isCritical
             ? EchoColors.warning.withOpacity(0.1)
+            : isHigh
+            ? EchoColors.primary.withOpacity(0.1)
             : EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPanic
+          color: isCritical
               ? EchoColors.warning.withOpacity(0.5)
+              : isHigh
+              ? EchoColors.primary.withOpacity(0.3)
               : EchoColors.primary.withOpacity(0.2),
           width: 2,
         ),
@@ -394,26 +425,30 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           Row(
             children: [
               Icon(
-                Icons.monitor_heart,
-                color: isPanic
+                Icons.warning_amber_rounded,
+                color: isCritical
                     ? EchoColors.warning
-                    : EchoColors.primary,
+                    : isHigh
+                    ? EchoColors.primary
+                    : EchoColors.success,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
-                'Emotion Level',
+                'Threat Confidence',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: EchoColors.textPrimary,
                 ),
               ),
               const Spacer(),
               Text(
-                '${emotionLevel.toStringAsFixed(0)}%',
+                '${threatConfidence.toStringAsFixed(0)}%',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: isPanic
+                  color: isCritical
                       ? EchoColors.warning
-                      : EchoColors.primary,
+                      : isHigh
+                      ? EchoColors.primary
+                      : EchoColors.success,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -421,37 +456,39 @@ Real-time analysis: Assessing environment audio for threat patterns...''';
           ),
           const SizedBox(height: 12),
 
-          // Gauge bar showing emotion level
+          // Threat confidence bar
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
-              value: emotionLevel / 100,
+              value: threatConfidence / 100,
               minHeight: 24,
               backgroundColor: EchoColors.textSecondary.withOpacity(0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
-                emotionLevel < 30
+                threatConfidence < 60
                     ? EchoColors.success
-                    : emotionLevel < 70
+                    : threatConfidence < 80
                     ? EchoColors.primary
                     : EchoColors.warning,
               ),
-              semanticsLabel: 'Fear Level',
+              semanticsLabel: 'Threat Confidence',
             ),
           ),
           const SizedBox(height: 12),
 
           // Status text
           Text(
-            isPanic
-                ? '🚨 PANIC DETECTED - Auto-contacting police...'
-                : emotionLevel > 50
-                ? '⚠️ High stress detected'
-                : '✅ Monitoring stress levels',
+            isCritical
+                ? '🚨 CRITICAL THREAT - Automatic escalation active'
+                : isHigh
+                ? '⚠️ High threat level confirmed'
+                : '⚠️ Moderate threat - Monitoring escalation',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: isPanic
+              color: isCritical
                   ? EchoColors.warning
+                  : isHigh
+                  ? EchoColors.primary
                   : EchoColors.textSecondary,
-              fontWeight: isPanic ? FontWeight.w600 : FontWeight.w400,
+              fontWeight: isCritical ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
         ],
