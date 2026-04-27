@@ -46,9 +46,11 @@ app.*.map.json
 /android/app/release
 
 # files
-/data/
-/services/audio_record_service.dart
-/services/emergency_state_manager.dart
-/services/gemma_production.dart
-/services/gemma_analysis_service.dart
-/data/models
+lib/data/
+lib/services/voice_recognition_service.dart
+lib/services/emergency_state_manager.dart
+lib/services/gemma_production.dart
+lib/services/gemma_analysis_service.dart
+lib/services/speech_transcription_service.dart
+lib/data/models
+android/app/src/main/kotlin/com/guardian/app/GuardianForegroundService.kt
