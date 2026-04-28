@@ -4,7 +4,7 @@ import 'llama_config.dart';
 
 class LlamaThreatService {
   static const String _systemPrompt =
-      'You are Echo emergency threat analyzer. Return ONLY one-line JSON with keys: '
+      'You are Echo emergency threat analyzer. Who understands Nigerian threat context and returns only one-line JSON with keys: '
       'threat, confidence, threatLevel, action, summary, analyzedSituation. '
       'No markdown, no explanation.';
 
@@ -197,7 +197,14 @@ class LlamaThreatService {
     required String systemPrompt,
     required String userPrompt,
   }) {
-    return '<bos><|turn>system\n$systemPrompt<turn|>\n'
+    final enhancedSystemPrompt = '''$systemPrompt
+
+    EMERGENCY DEFINITIONS FOR NIGERIA:
+    - "One chance" / "Korope" / "Danfo" = Fake taxi/bus used for robbery/kidnapping. This is a CRITICAL threat.
+    - If user mentions ANY of these words, threatLevel = "critical" and threat = "kidnapping".
+
+    ''';
+    return '<bos><|turn>system\n$enhancedSystemPrompt<turn|>\n'
         '<|turn>user\n$userPrompt<turn|>\n'
         '<|turn>model\n';
   }
@@ -224,6 +231,7 @@ class LlamaThreatService {
   Future<Map<String, dynamic>> assessThreat(
     String userInput, {
     int maxTokens = 56,
+    Duration timeout = _requestTimeout,
   }) async {
     try {
       final compactUserPrompt = _buildJsonUserPayload(userInput);
@@ -244,7 +252,7 @@ class LlamaThreatService {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(requestBody),
           )
-          .timeout(_requestTimeout);
+          .timeout(timeout);
 
       print('🔍 Response status: ${response.statusCode}');
 
@@ -281,7 +289,9 @@ class LlamaThreatService {
 
       return {'threat': 'unknown', 'type': 'unknown', 'confidence': 0};
     } on Exception catch (e) {
-      print('❌ Llama request timed out or failed: $e');
+      print(
+        '❌ Llama request timed out or failed after ${timeout.inSeconds}s: $e',
+      );
       return {'threat': 'unknown', 'type': 'unknown', 'confidence': 0};
     } catch (e) {
       print('❌ Llama threat assessment failed: $e');
