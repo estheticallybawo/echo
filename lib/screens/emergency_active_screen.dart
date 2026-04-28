@@ -1,14 +1,24 @@
 // ignore_for_file: deprecated_member_use, duplicate_ignore, unused_field
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../theme.dart';
+import '../providers/gemma_provider.dart';
+import '../providers/social_media_provider.dart';
+import '../providers/user_preferences_provider.dart';
+import '../services/firestore_incident_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   final Map<String, dynamic>? threatAnalysis;
+  final String? emergencyDescription;
+  final String? userLocation;
 
   const EmergencyActiveScreen({
     this.threatAnalysis,
+    this.emergencyDescription,
+    this.userLocation,
     super.key,
   });
 
@@ -30,6 +40,28 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   late String threatType;
   late String threatLevel;
 
+  // Auto-posting state tracking
+  bool _isPostingEnabled = true; // Auto-post if consent/settings allow
+  bool _isPosting = false;
+  bool _postSuccess = false;
+  String? _postError;
+  String? _lastIncidentId;
+  int _postTimestamp = 0;
+  
+  // Configuration
+  static const double AUTO_POST_CONFIDENCE_THRESHOLD = 0.70; // 70% confidence minimum
+  final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
+
+  double _safeConfidenceValue(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -42,7 +74,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
       'summary': 'Unable to assess threat',
     };
 
-    confidence = (threatData['confidence'] ?? 0).toDouble();
+    confidence = _safeConfidenceValue(threatData['confidence']);
     threatType = threatData['threat']?.toString() ?? 'Unknown';
     threatLevel = threatData['threatLevel']?.toString() ?? 'low';
 
@@ -60,6 +92,128 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
 
     // Simulate Gemma 4 AI analysis stream with real data
     _aiAnalysisStream = _generateAIAnalysis();
+
+    // 🚀 **PHASE 3A: AUTO-POSTING TRIGGER**
+    // Wire the validated inference path with auto-posting logic
+    _initializeAutoPosting();
+  }
+
+  /// Initialize auto-posting flow
+  /// Triggers if confidence >= threshold; requires Firestore logging before Twitter post
+  Future<void> _initializeAutoPosting() async {
+    final preferences = context.read<UserPreferencesProvider>();
+    final socialMediaProvider = context.read<SocialMediaProvider>();
+    _isPostingEnabled =
+        preferences.allowPublicPosts && socialMediaProvider.autoPostEnabled;
+
+    if (!_isPostingEnabled) {
+      _updatePostingState(false, error: 'Auto-post is disabled by your preferences.');
+      return;
+    }
+
+    // Validate threat assessment exists
+    if (threatData.isEmpty || threatData['confidence'] == null) {
+      _updatePostingState(false, error: 'No threat assessment available');
+      return;
+    }
+
+    final confidencePercent = (confidence / 100);
+
+    // Gate 1: Check confidence threshold
+    if (confidencePercent < AUTO_POST_CONFIDENCE_THRESHOLD) {
+      print('⏭️ Confidence ${(confidencePercent * 100).toStringAsFixed(0)}% below auto-post threshold (${AUTO_POST_CONFIDENCE_THRESHOLD * 100})%');
+      _updatePostingState(false);
+      return;
+    }
+
+    print('✅ Threat confidence ${(confidencePercent * 100).toStringAsFixed(0)}% meets auto-post threshold');
+
+    // Gate 2: Log to Firestore BEFORE posting
+    await _logThreatToFirestore();
+
+    // Gate 3: Only post if Firestore logging succeeded
+    if (_lastIncidentId != null && _postError == null) {
+      await _postToSocialMedia();
+    }
+  }
+
+  /// Log threat assessment to Firestore before posting
+  /// This ensures we have an audit trail and incident ID before going public
+  Future<void> _logThreatToFirestore() async {
+    try {
+      setState(() => _isPosting = true);
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final threatLevel = (threatData['threatLevel'] ?? 'HIGH').toString().toUpperCase();
+      final threatCategory = (threatData['threat'] ?? 'unknown_threat').toString();
+      final analysisJson = threatData.toString();
+      final location = widget.userLocation ?? 'Location not available';
+
+      // Log incident to Firestore
+      _lastIncidentId = await _firestoreService.logIncident(
+        userId: user.uid,
+        actionType: 'emergency_auto_post',
+        contactId: user.email ?? 'unknown',
+        location: location,
+        threatLevel: threatLevel,
+        threatCategory: threatCategory,
+        gemmaAnalysis: analysisJson,
+      );
+
+      print('✅ Incident logged to Firestore: $_lastIncidentId');
+    } catch (e) {
+      print('❌ Firestore logging failed: $e');
+      _updatePostingState(false, error: 'Failed to log incident: $e');
+    }
+  }
+
+  /// Post emergency alert to social media (Twitter)
+  /// Only called after Firestore logging succeeds
+  Future<void> _postToSocialMedia() async {
+    try {
+      setState(() => _isPosting = true);
+
+      final gemmaProvider = context.read<GemmaProvider>();
+      final socialMediaProvider = context.read<SocialMediaProvider>();
+
+      // Set Gemma provider's last assessment so SocialMediaProvider can use it
+      gemmaProvider.lastThreatAssessment = threatData;
+      gemmaProvider.lastIncidentId = _lastIncidentId;
+
+      // Post to Twitter
+      final posted = await socialMediaProvider.postEmergencyAlert(
+        userName: FirebaseAuth.instance.currentUser?.displayName ?? 'User',
+        audioContext: widget.emergencyDescription ?? 'Emergency detected',
+        location: widget.userLocation ?? 'Location not available',
+        precomputedThreatAssessment: threatData,
+      );
+
+      if (posted) {
+        print('✅ Emergency alert posted to Twitter');
+        _postTimestamp = DateTime.now().millisecondsSinceEpoch;
+        _updatePostingState(true);
+      } else {
+        throw Exception('Failed to post to Twitter');
+      }
+    } catch (e) {
+      print('❌ Social media posting failed: $e');
+      _updatePostingState(false, error: 'Failed to post: $e');
+    }
+  }
+
+  /// Update posting state and rebuild UI
+  void _updatePostingState(bool success, {String? error}) {
+    if (mounted) {
+      setState(() {
+        _isPosting = false;
+        _postSuccess = success;
+        _postError = error;
+      });
+    }
   }
 
   @override
@@ -661,27 +815,216 @@ Social: Queued for amplification
 
   /// Social Media Post Status (Track C - Dev 3)
   /// Shows auto-post confirmation to Twitter/social media
-  /// Developer: Wire SocialMediaPostingService stream here
+  /// **PHASE 3: WIRED TO REAL AUTO-POSTING FLOW**
+  /// Shows real status: pending → success/error
   Widget _buildSocialPostStatus() {
-    // PLACEHOLDER: Developers will replace with StreamBuilder wrapping SocialMediaPostingService
-    // Example implementation:
-    // StreamBuilder<SocialPostStatus>(
-    //   stream: socialMediaService.postStatusStream(),
-    //   builder: (context, snapshot) { ... }
-    // )
+    // Show pending state while posting
+    if (_isPosting) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: EchoColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: EchoColors.primary.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(EchoColors.primary),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Publishing Emergency Alert',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: EchoColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Logging incident and posting to social media...',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: EchoColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-    final postTime = DateTime.now();
+    // Show error state
+    if (_postError != null) {
+      final isPreferenceError = _postError!.contains('disabled by your preferences');
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: EchoColors.warning.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: EchoColors.warning.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.error_outline, color: EchoColors.warning, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  isPreferenceError ? 'Auto-Post Disabled' : 'Auto-Post Failed',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: EchoColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _postError ?? 'Unknown error',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: EchoColors.warning,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isPreferenceError
+                  ? 'Enable public posting in preferences to allow automatic posting.'
+                  : 'Manual posting may be required. Emergency services have been notified.',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: EchoColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-    // Default: Show success state
-    // Developers: Replace with state from SocialMediaPostingService stream
+    // Show success state
+    if (_postSuccess) {
+      final postTime = DateTime.fromMillisecondsSinceEpoch(_postTimestamp);
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: EchoColors.success.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: EchoColors.success.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: EchoColors.success, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Emergency Alert Posted',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: EchoColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Post preview box
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: EchoColors.textSecondary.withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🚨 EMERGENCY ALERT',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: EchoColors.warning,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Threat: ${threatType.toUpperCase()} | Confidence: ${(confidence).toStringAsFixed(0)}%',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: EchoColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Posted to Twitter • Emergency services notified • Help needed',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: EchoColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Post metadata
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
+                  color: EchoColors.textTertiary,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Posted ${postTime.toString().substring(11, 16)}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: EchoColors.textTertiary,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Incident: ${_lastIncidentId?.substring(0, 8) ?? "—"}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: EchoColors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show default state (confidence below threshold)
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: EchoColors.success.withOpacity(0.1),
+        color: EchoColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: EchoColors.success.withOpacity(0.3),
-          width: 2,
+          color: EchoColors.textSecondary.withOpacity(0.2),
+          width: 1,
         ),
       ),
       child: Column(
@@ -689,85 +1032,29 @@ Social: Queued for amplification
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle, color: EchoColors.success, size: 20),
+              Icon(Icons.info_outline, color: EchoColors.textSecondary, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Emergency Alert Posted',
+                'Social Media Status',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: EchoColors.textPrimary,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-
-          // Post preview box
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: EchoColors.textSecondary.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '🚨 EMERGENCY ALERT',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: EchoColors.warning,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Posted to Twitter • Emergency services notified • Help needed',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: EchoColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
+          Text(
+            'Confidence level (${(confidence).toStringAsFixed(0)}%) is below auto-post threshold (70%).',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: EchoColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Post metadata
-          Row(
-            children: [
-              Icon(
-                Icons.schedule,
-                color: EchoColors.textTertiary,
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Posted ${postTime.toString().substring(11, 16)}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: EchoColors.textTertiary,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  // Open post in browser or copy URL
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Opening post...')),
-                  );
-                },
-                child: Text(
-                  'View Post',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: EchoColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            'Emergency services have been notified. You can manually post if needed.',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: EchoColors.textTertiary,
+            ),
           ),
         ],
       ),

@@ -1,10 +1,10 @@
-import 'gemma_threat_assessment_service.dart';
+import 'llama_threat_service.dart';
 import 'twitter_oauth_service.dart';
 
 /// Track C: Social Media Posting Service
 /// Orchestrates the main pipeline: Audio → Threat analysis → Post generation → Twitter
 class SocialMediaPostingService {
-  final GemmaThreatAssessmentService gemmaService;
+  final LlamaThreatService gemmaService;
   final TwitterOAuthService twitterService;
 
   SocialMediaPostingService({

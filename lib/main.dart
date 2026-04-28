@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
@@ -12,13 +11,13 @@ import 'screens/onboarding_flow.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
 import 'theme.dart';
-import 'config/ollama_config.dart';
 // Track C: Social Media Providers
 import 'providers/gemma_provider.dart';
 import 'providers/social_media_provider.dart';
 import 'providers/user_preferences_provider.dart';
 // Track C: Services
-import 'services/gemma_threat_assessment_service.dart';
+import 'services/llama_threat_service.dart';
+import 'services/llama_config.dart';
 import 'services/social_media_posting_service.dart';
 import 'services/twitter_oauth_service.dart';
 
@@ -28,27 +27,27 @@ void main() async {
   // Load environment variables from .env file
   await dotenv.load(fileName: '.env');
   
-  // Configure Ollama with Ngrok URL (for team testing)
+  // Configure Llama.cpp server with Ngrok URL (for team testing)
   // If NGROK_URL is set, teammates can test without local Gemma download
-  final ngrokUrl = dotenv.env['NGROK_URL'];
-  if (ngrokUrl != null && ngrokUrl.isNotEmpty) {
-    OllamaConfig.setNgrokUrl(ngrokUrl);
-    print('✅ Ngrok configured: Teammates can test at $ngrokUrl');
+ 
+  // Verify llama-server is healthy before proceeding
+  final isHealthy = await LlamaConfig.isServerHealthy();
+  if (!isHealthy) {
+    print('⚠️ WARNING: llama-server is not responding at ${LlamaConfig.activeHost}');
+    print('   Make sure to run: .\\llama-server.exe -m <model.gguf> --host 0.0.0.0 --port 8080');
   } else {
-    print('📍 Using local Ollama: http://localhost:11434');
+    print('✅ llama-server is healthy and ready');
   }
   
   // Initialize Firebase
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    // Anonymous sign-in for initial app state
-    if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
-    }
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  print('✅ Firebase initialized successfully');
+    
   } catch (e) {
-    print('Firebase initialization error: $e');
+     print('❌ Firebase initialization error: $e');
   }
   
   runApp(const EchoApp());
@@ -71,22 +70,8 @@ class _EchoAppState extends State<EchoApp> {
     // Track C: Initialize Gemma 4 service
     // Now using LOCAL OLLAMA (localhost:11434 or Ngrok tunnel)
     // Fallback to OpenRouter if Ollama unavailable
-    final gemmaMode = dotenv.env['GEMMA_MODE'] ?? 'ollama'; // Default to local Ollama
-    final apiKey = gemmaMode == 'openrouter' 
-        ? dotenv.env['OPENROUTER_API_KEY'] ?? ''
-        : dotenv.env['GOOGLE_AI_STUDIO_API_KEY'] ?? '';
     
-    final modelName = dotenv.env['OPENROUTER_MODEL'] ?? 'google/gemma-4-31b-it';
-    
-    print('🚀 Using LOCAL OLLAMA via ${OllamaConfig.activeHost}');
-    print('📍 Model: ${OllamaConfig.MODEL}');
-    print('🌍 Ngrok Status: ${OllamaConfig.ngrokHost.isNotEmpty ? "Active" : "Not configured"}');
-    
-    final gemmaService = GemmaThreatAssessmentService(
-      apiKey: apiKey,
-      modelName: modelName,
-      useMockMode: false, // Use real Ollama
-    );
+    final gemmaService = LlamaThreatService(); // Using local llama-server for testing
     
     final twitterService = TwitterOAuthService(
       apiKey: 'your-client-id',
@@ -110,14 +95,14 @@ class _EchoAppState extends State<EchoApp> {
         ),
         // Track C: Gemma Provider
         ChangeNotifierProvider(
-          create: (_) => GemmaProvider(gemmaService: gemmaService),
+          create: (_) => GemmaProvider(llamaThreatService: gemmaService),
         ),
         // Track C: Social Media Provider (depends on Gemma)
         ChangeNotifierProxyProvider<GemmaProvider, SocialMediaProvider>(
           create: (_) => SocialMediaProvider(
             socialMediaService: socialMediaService,
             twitterService: twitterService,
-            gemmaProvider: GemmaProvider(gemmaService: gemmaService),
+            gemmaProvider: GemmaProvider(llamaThreatService: gemmaService),
           ),
           update: (_, gemmaProvider, socialMediaProvider) =>
               socialMediaProvider ?? SocialMediaProvider(

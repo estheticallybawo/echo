@@ -76,3 +76,6 @@ Docs/google-services*.json
 # Documentation (internal only - not for commits)
 /Docs/
 >>>>>>> Gemma4Safety/main
+
+firebase.json
+

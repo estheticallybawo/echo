@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import '../theme.dart';
 import '../models/community_feed_model.dart';
 import '../widgets/community_feed_section.dart';
-import '../services/gemma_threat_assessment_service.dart';
+import '../services/llama_threat_service.dart';
 import 'emergency_active_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -574,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// Show dialog to capture emergency description
   void _showEmergencyDescriptionDialog() {
     final TextEditingController descriptionController = TextEditingController();
-    final gemmaService = GemmaThreatAssessmentService();
+    final gemmaService = LlamaThreatService();
     bool isAnalyzing = false;
 
     showDialog(
@@ -651,10 +651,15 @@ class _HomeScreenState extends State<HomeScreen>
                     if (mounted) {
                       Navigator.pop(context);
                       // Navigate to emergency screen with the analysis data
+                      // **PHASE 3A: PASS DESCRIPTION TO EMERGENCY SCREEN FOR AUTO-POSTING**
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) =>
-                              EmergencyActiveScreen(threatAnalysis: threatAnalysis),
+                              EmergencyActiveScreen(
+                                threatAnalysis: threatAnalysis,
+                                emergencyDescription: descriptionController.text,
+                                userLocation: 'Current Location', // TODO: Get actual GPS location
+                              ),
                         ),
                       );
                     }

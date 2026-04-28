@@ -93,6 +93,7 @@ class SocialMediaProvider extends ChangeNotifier {
     required String userName,
     required String audioContext,
     required String location,
+    Map<String, dynamic>? precomputedThreatAssessment,
   }) async {
     if (!autoPostEnabled) {
       print('Auto-posting disabled');
@@ -104,8 +105,13 @@ class SocialMediaProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      // Step 1: Get threat assessment from Gemma
-      await _gemmaProvider.analyzeThreat(audioContext);
+      // Step 1: Use precomputed threat (preferred) or analyze now
+      if (precomputedThreatAssessment != null &&
+          precomputedThreatAssessment.isNotEmpty) {
+        _gemmaProvider.lastThreatAssessment = precomputedThreatAssessment;
+      } else {
+        await _gemmaProvider.analyzeThreat(audioContext);
+      }
       
       // Step 2: Generate post text (Gemma determined threat is included)
       final postText = _gemmaProvider.generatePostPreview(userName, location);
@@ -114,9 +120,10 @@ class SocialMediaProvider extends ChangeNotifier {
       final posted = await _twitterService.postEmergencyAlert(postText);
       
       if (posted) {
+        lastPostId = 'mock-${DateTime.now().millisecondsSinceEpoch}';
         lastPostText = postText;
         lastPostTime = DateTime.now();
-        lastPostUrl = 'https://twitter.com/i/web/status/mock-${DateTime.now().millisecondsSinceEpoch}';
+        lastPostUrl = 'https://twitter.com/i/web/status/$lastPostId';
       }
       
       isPosting = false;

@@ -1,6 +1,8 @@
 // ignore_for_file: unused_element_parameter, camel_case_types
 
 import 'package:flutter/material.dart';
+import '../services/llama_config.dart';
+import '../services/llama_threat_service.dart';
 import '../theme.dart';
 
 class OnboardingFlow extends StatefulWidget {
@@ -1185,7 +1187,281 @@ class _OnboardingPage7_SystemTest extends StatefulWidget {
 
 class _OnboardingPage7_SystemTestState
     extends State<_OnboardingPage7_SystemTest> {
+  final LlamaThreatService _gemmaService = LlamaThreatService();
+
+  bool _isRunning = false;
   bool _testComplete = false;
+  bool _testPassed = false;
+  String _overallStatus = 'Not started';
+  String? _errorMessage;
+  Map<String, dynamic>? _drillResult;
+
+  final Map<String, String> _stepStates = {
+    'health': 'pending',
+    'warmup': 'pending',
+    'inference': 'pending',
+  };
+
+  final Map<String, int> _stepTimingsMs = {
+    'health': 0,
+    'warmup': 0,
+    'inference': 0,
+    'total': 0,
+  };
+
+  Future<void> _runSystemDrill() async {
+    if (_isRunning) return;
+
+    setState(() {
+      _isRunning = true;
+      _testComplete = false;
+      _testPassed = false;
+      _overallStatus = 'Running live drill...';
+      _errorMessage = null;
+      _drillResult = null;
+      _stepStates['health'] = 'pending';
+      _stepStates['warmup'] = 'pending';
+      _stepStates['inference'] = 'pending';
+      _stepTimingsMs['health'] = 0;
+      _stepTimingsMs['warmup'] = 0;
+      _stepTimingsMs['inference'] = 0;
+      _stepTimingsMs['total'] = 0;
+    });
+
+    final totalStopwatch = Stopwatch()..start();
+
+    try {
+      // Step 1: Real server health check.
+      setState(() {
+        _stepStates['health'] = 'running';
+        _overallStatus = 'Checking Gemma server health...';
+      });
+
+      final healthStopwatch = Stopwatch()..start();
+      final isHealthy = await LlamaConfig.isServerHealthy();
+      healthStopwatch.stop();
+
+      if (!mounted) return;
+      setState(() {
+        _stepTimingsMs['health'] = healthStopwatch.elapsedMilliseconds;
+      });
+
+      if (!isHealthy) {
+        setState(() {
+          _stepStates['health'] = 'failure';
+          _overallStatus = 'Gemma server offline';
+          _errorMessage =
+              'Unable to reach Gemma at ${LlamaConfig.activeHost}. Start llama-server and retry.';
+        });
+        return;
+      }
+
+      setState(() {
+        _stepStates['health'] = 'success';
+      });
+
+      // Step 2: Warm-up call to reduce first-token latency.
+      setState(() {
+        _stepStates['warmup'] = 'running';
+        _overallStatus = 'Warming up Gemma...';
+      });
+
+      final warmupStopwatch = Stopwatch()..start();
+      final warmupPrompt =
+          'This is an onboarding warm-up drill ping. Return emergency assessment JSON now.';
+      final warmupResult = await _gemmaService.assessThreat(
+        warmupPrompt,
+        maxTokens: 40,
+      );
+      warmupStopwatch.stop();
+
+      if (!mounted) return;
+      setState(() {
+        _stepTimingsMs['warmup'] = warmupStopwatch.elapsedMilliseconds;
+      });
+
+      final warmupThreat = (warmupResult['threat'] ?? 'unknown').toString();
+      if (warmupThreat == 'unknown') {
+        setState(() {
+          _stepStates['warmup'] = 'failure';
+          _overallStatus = 'Gemma warm-up failed';
+          _errorMessage = 'Warm-up response was not parseable JSON.';
+        });
+        return;
+      }
+
+      setState(() {
+        _stepStates['warmup'] = 'success';
+      });
+
+      // Step 3: Run an actual onboarding drill inference.
+      setState(() {
+        _stepStates['inference'] = 'running';
+        _overallStatus = 'Running live threat drill...';
+      });
+
+      final inferenceStopwatch = Stopwatch()..start();
+      final drillInput =
+          'This is a drill. I am safe. Simulate a report: I think someone is following me from a black car while I walk home.';
+      final drillResult = await _gemmaService.assessThreat(
+        drillInput,
+        maxTokens: 56,
+      );
+      inferenceStopwatch.stop();
+
+      if (!mounted) return;
+      setState(() {
+        _stepTimingsMs['inference'] = inferenceStopwatch.elapsedMilliseconds;
+      });
+
+      final drillThreat = (drillResult['threat'] ?? 'unknown').toString();
+      final drillConfidence = drillResult['confidence'];
+      final validConfidence = drillConfidence is num;
+
+      if (drillThreat == 'unknown' || !validConfidence) {
+        setState(() {
+          _stepStates['inference'] = 'failure';
+          _overallStatus = 'Drill inference failed';
+          _errorMessage = 'Gemma returned an invalid drill payload.';
+        });
+        return;
+      }
+
+      setState(() {
+        _stepStates['inference'] = 'success';
+        _drillResult = drillResult;
+        _testPassed = true;
+        _overallStatus = 'Gemma active: live drill passed';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _overallStatus = 'Drill failed with exception';
+        _errorMessage = e.toString();
+
+        if (_stepStates['health'] == 'running') {
+          _stepStates['health'] = 'failure';
+        } else if (_stepStates['warmup'] == 'running') {
+          _stepStates['warmup'] = 'failure';
+        } else if (_stepStates['inference'] == 'running') {
+          _stepStates['inference'] = 'failure';
+        }
+      });
+    } finally {
+      totalStopwatch.stop();
+
+      if (!mounted) return;
+      setState(() {
+        _stepTimingsMs['total'] = totalStopwatch.elapsedMilliseconds;
+        _testComplete = true;
+        _isRunning = false;
+      });
+    }
+  }
+
+  IconData _statusIcon(String state) {
+    switch (state) {
+      case 'running':
+        return Icons.autorenew;
+      case 'success':
+        return Icons.check_circle;
+      case 'failure':
+        return Icons.error;
+      default:
+        return Icons.radio_button_unchecked;
+    }
+  }
+
+  Color _statusColor(String state) {
+    switch (state) {
+      case 'running':
+        return EchoColors.primary;
+      case 'success':
+        return EchoColors.success;
+      case 'failure':
+        return EchoColors.warning;
+      default:
+        return EchoColors.textTertiary;
+    }
+  }
+
+  String _statusText(String state) {
+    switch (state) {
+      case 'running':
+        return 'Running';
+      case 'success':
+        return 'Passed';
+      case 'failure':
+        return 'Failed';
+      default:
+        return 'Pending';
+    }
+  }
+
+  Widget _buildStepCard({
+    required String stepKey,
+    required String title,
+    required String subtitle,
+  }) {
+    final state = _stepStates[stepKey] ?? 'pending';
+    final timing = _stepTimingsMs[stepKey] ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: EchoColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _statusColor(state).withOpacity(0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(_statusIcon(state), color: _statusColor(state)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: EchoColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _statusText(state),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: _statusColor(state),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                timing > 0 ? '${timing} ms' : '--',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: EchoColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1195,63 +1471,130 @@ class _OnboardingPage7_SystemTestState
         children: [
           const SizedBox(height: 24),
           Text('System Test', style: Theme.of(context).textTheme.displayMedium),
-          const SizedBox(height: 32),
-          if (!_testComplete)
-            Column(
+          const SizedBox(height: 24),
+          Text(
+            'Live Gemma readiness report',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: EchoColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          _buildStepCard(
+            stepKey: 'health',
+            title: 'Step 1 - Server Health Check',
+            subtitle: 'Verifies Gemma endpoint is reachable.',
+          ),
+          _buildStepCard(
+            stepKey: 'warmup',
+            title: 'Step 2 - Warm-up Call',
+            subtitle: 'Runs a small prompt to reduce cold-start latency.',
+          ),
+          _buildStepCard(
+            stepKey: 'inference',
+            title: 'Step 3 - Live Drill Inference',
+            subtitle: 'Analyzes a drill scenario and validates JSON output.',
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _testPassed
+                  ? EchoColors.success.withOpacity(0.1)
+                  : EchoColors.surfaceSecondary,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _testPassed
+                    ? EchoColors.success
+                    : EchoColors.textSecondary.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.flash_on, size: 60, color: EchoColors.primary),
-                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Icon(
+                      _testPassed ? Icons.check_circle : Icons.info,
+                      color: _testPassed
+                          ? EchoColors.success
+                          : EchoColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _overallStatus,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: _testPassed
+                              ? EchoColors.success
+                              : EchoColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  'Run a test to verify everything works',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  'Total activation time: ${_stepTimingsMs['total']} ms',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: EchoColors.textSecondary,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _testComplete = true;
-                    });
-                  },
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('START TEST DRILL'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+                if (_drillResult != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Gemma is now active | Confidence: ${_drillResult!['confidence']}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: EchoColors.textSecondary,
                     ),
                   ),
-                ),
-              ],
-            )
-          else
-            Column(
-              children: [
-                const Icon(
-                  Icons.check_circle,
-                  size: 60,
-                  color: EchoColors.success,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Echo is ready',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: EchoColors.success,
+                ],
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _errorMessage!,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: EchoColors.warning,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                Text(
-                  'All systems tested and verified.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: EchoColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                ],
               ],
             ),
+          ),
+          const SizedBox(height: 28),
+          ElevatedButton.icon(
+            onPressed: _isRunning ? null : _runSystemDrill,
+            icon: _isRunning
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.play_arrow),
+            label: Text(
+              _isRunning
+                  ? 'RUNNING LIVE DRILL...'
+                  : _testComplete
+                      ? 'RUN DRILL AGAIN'
+                      : 'START TEST DRILL',
+            ),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _testPassed
+                ? 'Gemma is active and onboarding drill is using real inference.'
+                : 'Run the drill to verify Gemma activity in real time.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: EchoColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/gemma_threat_assessment_service.dart';
+import '../services/llama_threat_service.dart';
 import '../services/firestore_incident_service.dart';
 import '../services/gemma_decision_engine.dart';
 
@@ -11,7 +11,7 @@ import '../services/gemma_decision_engine.dart';
 /// Integrates with GemmaDecisionEngine to make dynamic escalation decisions
 /// based on threat assessment + user history + pattern analysis
 class GemmaProvider extends ChangeNotifier {
-  final GemmaThreatAssessmentService _gemmaService;
+  final LlamaThreatService _llamaThreatService;
   final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
   final GemmaDecisionEngine _decisionEngine = GemmaDecisionEngine();
   
@@ -21,8 +21,8 @@ class GemmaProvider extends ChangeNotifier {
   String? error;
   String? lastIncidentId; // Track last logged incident
   
-  GemmaProvider({required GemmaThreatAssessmentService gemmaService})
-      : _gemmaService = gemmaService;
+  GemmaProvider({required LlamaThreatService llamaThreatService})
+      : _llamaThreatService = llamaThreatService;
   
   /// Week 1: Mock threat analysis (Days 1-2)
   Future<Map<String, dynamic>> analyzeThreatMock(String audioContext) async {
@@ -31,7 +31,7 @@ class GemmaProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final result = await _gemmaService.analyzeThreatMock(audioContext);
+      final result = await _llamaThreatService.analyzeThreatMock(audioContext);
       lastThreatAssessment = result;
       isAnalyzing = false;
       notifyListeners();
@@ -51,7 +51,7 @@ class GemmaProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final result = await _gemmaService.analyzeThreat(audioContext);
+      final result = await _llamaThreatService.analyzeThreat(audioContext);
       lastThreatAssessment = result;
       isAnalyzing = false;
       notifyListeners();
@@ -192,7 +192,7 @@ class GemmaProvider extends ChangeNotifier {
   /// Note: Requires userName and location
   String generatePostPreview(String userName, String location) {
     if (lastThreatAssessment == null) return '';
-    return _gemmaService.generateEmergencyPost(userName, location, lastThreatAssessment!);
+    return _llamaThreatService.generateEmergencyPost(userName, location, lastThreatAssessment!);
   }
   
   /// Get real-time stream of incidents from Firestore
