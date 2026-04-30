@@ -2,7 +2,6 @@
 // Real-time Firestore listener + Audio playback
 
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 
@@ -17,7 +16,6 @@ import 'package:flutter/services.dart';
 /// - Tier 3 auto-escalation triggered (T+120s)
 /// - Contact action confirmed (deep link)
 class ConfirmationSoundService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AudioPlayer _audioPlayer = AudioPlayer();
   
   // Firestore listener subscription (deprecated - not used for tier confirmations)

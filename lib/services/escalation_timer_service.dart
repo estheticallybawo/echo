@@ -7,7 +7,7 @@ import 'firestore_incident_service.dart';
 /// Manages multi-tier escalation countdown (0-120+ seconds)
 /// T+60s → Tier 2 escalation check
 /// T+90s → Follow-up nudge to Tier 1
-/// T+120s → Tier 3 auto-post to Twitter
+/// T+120s → Tier 3 auto-post to X
 class EscalationTimerService {
   static final EscalationTimerService _instance = EscalationTimerService._internal();
 
@@ -27,7 +27,6 @@ class EscalationTimerService {
   // Escalation tracking
   bool _tier1Confirmed = false;
   bool _tier2Confirmed = false;
-  DateTime? _emergencyStartTime;
   String? _currentIncidentId;
 
   // Public getters
@@ -50,7 +49,7 @@ class EscalationTimerService {
   Function()? onTier1Activate; // T+5s: Send Tier 1 WhatsApp
   Function()? onTier2Escalate; // T+30s: Escalate to Tier 2
   Function()? onTier1Nudge;    // T+60s: Send follow-up nudge
-  Function()? onTier3Escalate; // T+90s: Auto-post to Twitter
+  Function()? onTier3Escalate; // T+90s: Auto-post to X
 
   /// Start escalation countdown (called after emergency activation)
   void startEscalation({
@@ -67,7 +66,6 @@ class EscalationTimerService {
     }
 
     _currentIncidentId = incidentId;
-    _emergencyStartTime = DateTime.now();
     _secondsElapsed = 0;
     _tier1Confirmed = false;
     _tier2Confirmed = false;
@@ -83,7 +81,7 @@ class EscalationTimerService {
     print('   T+5s:  TIER 1 ACTIVATION - Send WhatsApp to inner circle');
     print('   T+30s: Tier 1 checkpoint - Escalate to Tier 2 if no confirmation');
     print('   T+60s: Tier 1 follow-up nudge');
-    print('   T+90s: Tier 3 auto-escalation - Twitter auto-post');
+    print('   T+90s: Tier 3 auto-escalation - X auto-post');
 
     // Start 1-second tick timer
     _escalationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
@@ -110,7 +108,7 @@ class EscalationTimerService {
         this.onTier1Nudge?.call();
       }
 
-      // Tier 3 checkpoint (T+90s) - Auto-post to Twitter
+      // Tier 3 checkpoint (T+90s) - Auto-post to X
       if (_secondsElapsed == 90 && !_tier1Confirmed && !_tier2Confirmed) {
         print('⏰ T+90s: Tier 3 auto-escalation (no confirmation from Tier 1 or 2)');
         await _handleTier3Escalation();
@@ -143,7 +141,7 @@ class EscalationTimerService {
     }
   }
 
-  /// Handle Tier 3 escalation (prepare for Twitter auto-post)
+  /// Handle Tier 3 escalation (prepare for X auto-post)
   Future<void> _handleTier3Escalation() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -179,7 +177,6 @@ class EscalationTimerService {
     _tier1Confirmed = false;
     _tier2Confirmed = false;
     _currentIncidentId = null;
-    _emergencyStartTime = null;
   }
 
   /// Get human-readable time remaining
@@ -197,9 +194,9 @@ class EscalationTimerService {
       case 1:
         return 'Tier 1: Sending to inner circle (${60 - _secondsElapsed}s until escalation)';
       case 2:
-        return 'Tier 2: Extended network alerted (${120 - _secondsElapsed}s until Twitter post)';
+        return 'Tier 2: Extended network alerted (${120 - _secondsElapsed}s until X post)';
       case 3:
-        return 'Tier 3: ACTIVE - Location now public on Twitter';
+        return 'Tier 3: ACTIVE - Location now public on X';
       default:
         return 'Unknown tier';
     }

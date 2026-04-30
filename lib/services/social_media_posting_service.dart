@@ -1,49 +1,19 @@
 import 'llama_threat_service.dart';
-import 'twitter_oauth_service.dart';
+import 'x_oauth_service.dart';
 
-/// Track C: Social Media Posting Service
-/// Orchestrates the main pipeline: Audio → Threat analysis → Post generation → Twitter
+/// Track C: Social Media Posting Service (DEPRECATED)
+/// This service is no longer actively used - posting is handled directly by SocialMediaProvider
+/// Kept for reference and potential future use
 class SocialMediaPostingService {
   final LlamaThreatService gemmaService;
-  final TwitterOAuthService twitterService;
+  final XOauthService xService;
 
   SocialMediaPostingService({
     required this.gemmaService,
-    required this.twitterService,
+    required this.xService,
   });
 
-  /// Week 1: Mock pipeline 
-  Future<Map<String, dynamic>> postEmergencyAlertMock({
-    required String userName,
-    required String audioContext,
-    required String location,
-  }) async {
-    try {
-      // Step 1: Mock threat analysis (Gemma determines threat level)
-      final threat = await gemmaService.analyzeThreatMock(audioContext);
-
-      // Step 2: Generate subtle post
-      final postText = gemmaService.generateEmergencyPost(userName, location, threat);
-
-      // Step 3: Mock post to Twitter
-      final posted = await twitterService.postEmergencyAlertMock(postText);
-
-      return {
-        'success': posted,
-        'postText': postText,
-        'threatAssessment': threat,
-      };
-    } catch (e) {
-      print('Emergency post mock pipeline failed: $e');
-      return {
-        'success': false,
-        'error': e.toString(),
-      };
-    }
-  }
-
-
-  /// Gemma determines threat level automatically - NOT user selection
+  /// Gemma determines threat level automatically
   Future<Map<String, dynamic>> postEmergencyAlert({
     required String userName,
     required String audioContext,
@@ -56,8 +26,8 @@ class SocialMediaPostingService {
       // Step 2: Generate subtle post
       final postText = gemmaService.generateEmergencyPost(userName, location, threat);
 
-      // Step 3: Post to Twitter
-      final posted = await twitterService.postEmergencyAlert(postText);
+      // Step 3: Post to X
+      final posted = await xService.postEmergencyAlert(postText);
 
       return {
         'success': posted,

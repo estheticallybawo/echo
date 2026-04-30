@@ -9,7 +9,7 @@ class EchoUser {
   final bool hasCompletedOnboarding;
   
   // Social media connections (optional, future)
-  final bool twitterConnected;
+  final bool xConnected;
   final bool enableAutoPosting;
 
   EchoUser({
@@ -20,7 +20,7 @@ class EchoUser {
     this.lastName,
     required this.createdAt,
     this.hasCompletedOnboarding = false,
-    this.twitterConnected = false,
+    this.xConnected = false,
     this.enableAutoPosting = false,
   });
 
@@ -40,7 +40,7 @@ class EchoUser {
       'lastName': lastName,
       'createdAt': createdAt.toIso8601String(),
       'hasCompletedOnboarding': hasCompletedOnboarding,
-      'twitterConnected': twitterConnected,
+      'xConnected': xConnected,
       'enableAutoPosting': enableAutoPosting,
     };
   }
@@ -55,7 +55,7 @@ class EchoUser {
       lastName: json['lastName'],
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
       hasCompletedOnboarding: json['hasCompletedOnboarding'] ?? false,
-      twitterConnected: json['twitterConnected'] ?? false,
+      xConnected: json['XConnected'] ?? false,
       enableAutoPosting: json['enableAutoPosting'] ?? false,
     );
   }
@@ -69,7 +69,7 @@ class EchoUser {
     String? lastName,
     DateTime? createdAt,
     bool? hasCompletedOnboarding,
-    bool? twitterConnected,
+    bool? xConnected,
     bool? enableAutoPosting,
   }) {
     return EchoUser(
@@ -80,7 +80,7 @@ class EchoUser {
       lastName: lastName ?? this.lastName,
       createdAt: createdAt ?? this.createdAt,
       hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
-      twitterConnected: twitterConnected ?? this.twitterConnected,
+      xConnected: xConnected ?? this.xConnected,
       enableAutoPosting: enableAutoPosting ?? this.enableAutoPosting,
     );
   }

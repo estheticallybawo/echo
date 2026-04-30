@@ -1,6 +1,7 @@
 // ignore_for_file: unnecessary_to_list_in_spreads
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math' as math;
 import '../theme.dart';
 import '../models/community_feed_model.dart';
@@ -21,14 +22,11 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _pulseController;
   late AnimationController _waveformController;
   bool isListening = true; // Track listening state
-  late List<CommunityFeedEntry> _communityFeed;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    
-    // Initialize community feed with mock data
-    _initializeMockFeed();
     
     // Orb animation - smooth continuous rotation
     _orbController = AnimationController(
@@ -49,69 +47,82 @@ class _HomeScreenState extends State<HomeScreen>
     )..repeat();
   }
 
-  void _initializeMockFeed() {
-    _communityFeed = [
-      CommunityFeedEntry(
-        id: 'feed_1',
-        victimName: 'Jane Okafor',
-        victimId: 'user_123',
-        location: 'Ikoyi',
-        state: 'Lagos',
-        country: 'Nigeria',
-        triggeredAt: DateTime.now().subtract(const Duration(minutes: 2)),
-        hashTag: '#findJaneOkafor',
-        shareCount: 47,
-        userAmplified: false,
-        status: 'active',
-        gemmaAssessment: 'High-risk situation detected. Immediate amplification recommended.',
-        retweetCount: 2300,
-        impressions: 50000,
-      ),
-      CommunityFeedEntry(
-        id: 'feed_2',
-        victimName: 'Ahmed Hassan',
-        victimId: 'user_456',
-        location: 'Nairobi CBD',
-        state: 'Nairobi',
-        country: 'Kenya',
-        triggeredAt: DateTime.now().subtract(const Duration(minutes: 8)),
-        hashTag: '#findAhmedHassan',
-        shareCount: 23,
-        userAmplified: false,
-        status: 'active',
-        gemmaAssessment: 'Medium-risk situation. Community amplification in progress.',
-      ),
-      CommunityFeedEntry(
-        id: 'feed_3',
-        victimName: 'Chioma Eze',
-        victimId: 'user_789',
-        location: 'Abuja City Centre',
-        state: 'Abuja',
-        country: 'Nigeria',
-        triggeredAt: DateTime.now().subtract(const Duration(minutes: 15)),
-        hashTag: '#findChiomaEze',
-        shareCount: 200,
-        userAmplified: false,
-        status: 'resolved',
-        gemmaAssessment: 'Case resolved successfully. Thank you to all who helped.',
-        retweetCount: 5100,
-        impressions: 120000,
-      ),
-    ];
+  /// Convert Firestore document to CommunityFeedEntry
+  CommunityFeedEntry _documentToCommunityFeedEntry(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+    
+    return CommunityFeedEntry(
+      id: doc.id,
+      victimName: data['userId'] ?? 'Unknown User',
+      victimId: data['userId'] ?? 'unknown',
+      location: data['location'] ?? 'Unknown Location',
+      state: data['state'] ?? 'Unknown State',
+      country: data['country'] ?? 'Nigeria',
+      triggeredAt: timestamp,
+      hashTag: data['hashtag'] ?? '#echo',
+      shareCount: data['shareCount'] ?? 0,
+      userAmplified: false,
+      status: data['status'] ?? 'active',
+      gemmaAssessment: data['gemmaAssessment'] ?? 'Assessment in progress...',
+      retweetCount: data['retweetCount'] as int? ?? 0,
+      impressions: data['impressions'] as int? ?? 0,
+    );
   }
 
-  void _refreshFeed() {
-    setState(() {
-      _initializeMockFeed();
-    });
-  }
+  /// Build Community Feed with Real-time Firestore listener
+  Widget _buildCommunityFeedSection() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
+          .collection('communityFeed')
+          .where('status', isEqualTo: 'active')
+          .orderBy('timestamp', descending: true)
+          .limit(10)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text('Error loading feed: ${snapshot.error}'),
+            ),
+          );
+        }
 
-  @override
-  void dispose() {
-    _orbController.dispose();
-    _pulseController.dispose();
-    _waveformController.dispose();
-    super.dispose();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Loading community feed...',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final feedEntries = snapshot.data?.docs ?? [];
+        
+        // Convert Firestore docs to CommunityFeedEntry objects
+        final communityFeed = feedEntries
+            .map((doc) => _documentToCommunityFeedEntry(doc))
+            .toList();
+
+        return CommunityFeedSection(
+          feedEntries: communityFeed,
+          onRefresh: () {
+            // Real-time listener will auto-update, but allow manual refresh too
+            setState(() {});
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -150,11 +161,8 @@ class _HomeScreenState extends State<HomeScreen>
               _buildPriorityContacts(),
               const SizedBox(height: 48),
               
-              // Echo Feed Section
-              CommunityFeedSection(
-                feedEntries: _communityFeed,
-                onRefresh: _refreshFeed,
-              ),
+              // Echo Feed Section - Real-time from Firestore
+              _buildCommunityFeedSection(),
               const SizedBox(height: 24),
             ],
           ),

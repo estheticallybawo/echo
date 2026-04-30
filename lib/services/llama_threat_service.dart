@@ -215,15 +215,32 @@ class LlamaThreatService {
         .replaceAll('```', '')
         .trim();
 
-    final start = cleanContent.indexOf('{');
-    final end = cleanContent.lastIndexOf('}');
+    // Remove outer quotes if the entire response is string-encoded
+    var processContent = cleanContent;
+    if (processContent.startsWith('"') && processContent.endsWith('"')) {
+      processContent = processContent.substring(1, processContent.length - 1);
+      // Unescape the string
+      processContent = processContent
+          .replaceAll('\\n', '\n')
+          .replaceAll('\\t', '\t')
+          .replaceAll('\\"', '"')
+          .replaceAll('\\\\', '\\');
+    }
+
+    final start = processContent.indexOf('{');
+    final end = processContent.lastIndexOf('}');
     if (start == -1 || end == -1 || end <= start) {
       return null;
     }
 
-    final candidate = cleanContent.substring(start, end + 1);
-    final decoded = jsonDecode(candidate);
-    return decoded is Map<String, dynamic> ? decoded : null;
+    final candidate = processContent.substring(start, end + 1);
+    try {
+      final decoded = jsonDecode(candidate);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (e) {
+      print('❌ JSON decode error in candidate: $e');
+      return null;
+    }
   }
 
   /// Main threat assessment method

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Echo Brand Colors - Light Mode, Soft Blue & Cyan
 class EchoColors {
@@ -31,17 +30,19 @@ class EchoColors {
   static const Color glassLight = Color(0x0FFFFFFF);
 }
 
-/// Echo Typography Scale - Funnel Sans across the board
+/// Echo Typography Scale - Using Local Poppins Font
 class EchoTypography {
   // Display - Brand identity with Poppins
-  static TextStyle displayLarge = GoogleFonts.poppins(
+  static const TextStyle displayLarge = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 32,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.3,
     height: 1.2,
   );
   
-  static TextStyle displayMedium = GoogleFonts.poppins(
+  static const TextStyle displayMedium = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 24,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.2,
@@ -49,14 +50,16 @@ class EchoTypography {
   );
   
   // Headings - Poppins, friendly but strong
-  static TextStyle headingLarge = GoogleFonts.poppins(
+  static const TextStyle headingLarge = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 20,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.15,
     height: 1.4,
   );
   
-  static TextStyle headingMedium = GoogleFonts.poppins(
+  static const TextStyle headingMedium = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 16,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.1,
@@ -64,21 +67,24 @@ class EchoTypography {
   );
   
   // Body text - Poppins, warm and readable
-  static TextStyle bodyLarge = GoogleFonts.poppins(
+  static const TextStyle bodyLarge = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.6,
     letterSpacing: 0.1,
   );
   
-  static TextStyle bodyMedium = GoogleFonts.poppins(
+  static const TextStyle bodyMedium = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.5,
     letterSpacing: 0.05,
   );
   
-  static TextStyle bodySmall = GoogleFonts.poppins(
+  static const TextStyle bodySmall = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.4,
@@ -86,14 +92,16 @@ class EchoTypography {
   );
   
   // Labels - Poppins, clear and accessible
-  static TextStyle labelLarge = GoogleFonts.poppins(
+  static const TextStyle labelLarge = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 12,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.4,
     height: 1.3,
   );
   
-  static TextStyle labelSmall = GoogleFonts.poppins(
+  static const TextStyle labelSmall = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 10,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.3,

@@ -100,7 +100,7 @@ lib/
 - Emergency active screen (3 WOW widgets)
 - Theme system (colors, typography)
 - Voice phrase recording UI
-- Twitter OAuth template (Page 5)
+- X OAuth template (Page 5)
 - Audio/haptic preview (Page 6)
 
 ###  In Progress

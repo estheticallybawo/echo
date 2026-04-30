@@ -99,7 +99,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   }
 
   /// Initialize auto-posting flow
-  /// Triggers if confidence >= threshold; requires Firestore logging before Twitter post
+  /// Triggers if confidence >= threshold; requires Firestore logging before X post
   Future<void> _initializeAutoPosting() async {
     final preferences = context.read<UserPreferencesProvider>();
     final socialMediaProvider = context.read<SocialMediaProvider>();
@@ -171,7 +171,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
     }
   }
 
-  /// Post emergency alert to social media (Twitter)
+  /// Post emergency alert to social media (X)
   /// Only called after Firestore logging succeeds
   Future<void> _postToSocialMedia() async {
     try {
@@ -184,7 +184,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
       gemmaProvider.lastThreatAssessment = threatData;
       gemmaProvider.lastIncidentId = _lastIncidentId;
 
-      // Post to Twitter
+      // Post to X
       final posted = await socialMediaProvider.postEmergencyAlert(
         userName: FirebaseAuth.instance.currentUser?.displayName ?? 'User',
         audioContext: widget.emergencyDescription ?? 'Emergency detected',
@@ -193,11 +193,11 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
       );
 
       if (posted) {
-        print('✅ Emergency alert posted to Twitter');
+        print('✅ Emergency alert posted to X');
         _postTimestamp = DateTime.now().millisecondsSinceEpoch;
         _updatePostingState(true);
       } else {
-        throw Exception('Failed to post to Twitter');
+        throw Exception('Failed to post to X');
       }
     } catch (e) {
       print('❌ Social media posting failed: $e');
@@ -814,7 +814,7 @@ Social: Queued for amplification
   }
 
   /// Social Media Post Status (Track C - Dev 3)
-  /// Shows auto-post confirmation to Twitter/social media
+  /// Shows auto-post confirmation to X/social media
   /// **PHASE 3: WIRED TO REAL AUTO-POSTING FLOW**
   /// Shows real status: pending → success/error
   Widget _buildSocialPostStatus() {
@@ -975,7 +975,7 @@ Social: Queued for amplification
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Posted to Twitter • Emergency services notified • Help needed',
+                    'Posted to X • Emergency services notified • Help needed',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: EchoColors.textSecondary,
                       height: 1.4,

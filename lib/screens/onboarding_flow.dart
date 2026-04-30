@@ -1,8 +1,10 @@
 // ignore_for_file: unused_element_parameter, camel_case_types
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/llama_config.dart';
 import '../services/llama_threat_service.dart';
+import '../providers/social_media_provider.dart';
 import '../theme.dart';
 
 class OnboardingFlow extends StatefulWidget {
@@ -489,13 +491,11 @@ class _OnboardingPage5_AutoPost extends StatefulWidget {
 
 class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
   bool _autoPostConsent = false;
-  bool _twitterConnected = false;
-  bool _isConnectingTwitter = false;
+  bool _includeLocation = true;
+  bool _includeContactInfo = false;
 
   // Post template customization state
   late TextEditingController _postTemplateController;
-  bool _includeLocation = true;
-  bool _includeContactInfo = false;
 
   @override
   void initState() {
@@ -512,47 +512,23 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
     super.dispose();
   }
 
-  Future<void> _connectTwitter() async {
-    setState(() {
-      _isConnectingTwitter = true;
-    });
-
-    // PLACEHOLDER: Implement Twitter OAuth 2.0 flow here
-    // Expected behavior:
-    // 1. Launch Twitter identity provider (e.g., flutter_appauth)
-    // 2. User authorizes Echo app permissions
-    // 3. Store access token in secure storage
-    // 4. Verify token with Twitter API
-    // 5. Display success/failure
-
-    // For now, simulate OAuth flow with 2-second delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() {
-        _twitterConnected = true;
-        _isConnectingTwitter = false;
-      });
-    }
-  }
-
   String _buildPreviewPost() {
     String preview = _postTemplateController.text;
 
     // Replace placeholders with sample values
     preview = preview.replaceAll(
-      '[LOCATION]',
+      '{location}',
       _includeLocation ? 'Downtown, City' : '[Your Location]',
     );
-    preview = preview.replaceAll('[PANIC_LEVEL]', '8');
+    preview = preview.replaceAll('{analyzed situation}', 'CRITICAL THREAT');
 
     if (_includeContactInfo) {
       preview = preview.replaceAll(
-        '[CONTACT_INFO]',
+        '{contact}',
         '+1 (555) 123-4567 Emergency\n',
       );
     } else {
-      preview = preview.replaceAll('[CONTACT_INFO]', '');
+      preview = preview.replaceAll('{contact}', '');
     }
 
     return preview;
@@ -591,7 +567,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
 
           // Post template editor
           Text(
-            'Post Template (use [PLACEHOLDERS])',
+            'Post Template (use {PLACEHOLDERS})',
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
@@ -608,11 +584,13 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
               controller: _postTemplateController,
               maxLines: 6,
               onChanged: (value) {
+                // Update provider
+                context.read<SocialMediaProvider>().updatePostTemplate(value);
                 setState(() {});
               },
               decoration: InputDecoration(
                 hintText:
-                    'Enter your post template with placeholders like [LOCATION], [THREAT_LEVEL], [PANIC_LEVEL]',
+                    'Enter your post template with placeholders like {location}, {threat_level}, {analyzed situation}',
                 hintStyle: TextStyle(
                   color: EchoColors.textSecondary.withOpacity(0.5),
                 ),
@@ -625,39 +603,49 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
           const SizedBox(height: 16),
 
           // Template options
-          CheckboxListTile(
-            value: _includeLocation,
-            onChanged: (value) {
-              setState(() {
-                _includeLocation = value ?? false;
-              });
+          Consumer<SocialMediaProvider>(
+            builder: (context, provider, _) {
+              return Column(
+                children: [
+                  CheckboxListTile(
+                    value: _includeLocation,
+                    onChanged: (value) {
+                      setState(() {
+                        _includeLocation = value ?? false;
+                      });
+                      provider.setIncludeLocation(value ?? false);
+                    },
+                    title: Text(
+                      'Include location in post',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  CheckboxListTile(
+                    value: _includeContactInfo,
+                    onChanged: (value) {
+                      setState(() {
+                        _includeContactInfo = value ?? false;
+                      });
+                      provider.setIncludeContactInfo(value ?? false);
+                    },
+                    title: Text(
+                      'Include emergency contact info',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    subtitle: Text(
+                      '(Phone number will be visible to public)',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: EchoColors.warning),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ],
+              );
             },
-            title: Text(
-              'Include location in post',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-          CheckboxListTile(
-            value: _includeContactInfo,
-            onChanged: (value) {
-              setState(() {
-                _includeContactInfo = value ?? false;
-              });
-            },
-            title: Text(
-              'Include emergency contact info',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            subtitle: Text(
-              '(Phone number will be visible to public)',
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: EchoColors.warning),
-            ),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
           ),
           const SizedBox(height: 24),
 
@@ -750,80 +738,45 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
           ),
           const SizedBox(height: 32),
 
-          // Twitter OAuth Button
+          // X Auto-Posting Status
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: _twitterConnected
-                  ? EchoColors.success.withOpacity(0.1)
-                  : Colors.blue.withOpacity(0.1),
+              color: EchoColors.success.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _twitterConnected
-                    ? EchoColors.success
-                    : Colors.blue.shade400,
+                color: EchoColors.success,
                 width: 2,
               ),
             ),
             child: Column(
               children: [
-                if (!_twitterConnected)
-                  ElevatedButton.icon(
-                    onPressed: _isConnectingTwitter ? null : _connectTwitter,
-                    icon: const Icon(Icons.link),
-                    label: _isConnectingTwitter
-                        ? const Text('CONNECTING...')
-                        : const Text('CONNECT TWITTER'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: EchoColors.success,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'X Auto-Posting Ready',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: EchoColors.success,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  )
-                else
-                  Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: EchoColors.success,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Twitter Connected',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: EchoColors.success,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _twitterConnected = false;
-                          });
-                        },
-                        child: Text(
-                          'Disconnect',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: EchoColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                    ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Echo can auto-post to X at Tier 3 escalation',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: EchoColors.textSecondary,
                   ),
+                ),
               ],
             ),
           ),
@@ -884,7 +837,7 @@ class _OnboardingPage5_AutoPostState extends State<_OnboardingPage5_AutoPost> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Twitter OAuth uses secure authentication. Your template is stored locally and only shared when you approve during emergency. You can edit or reject any post before it\'s sent.',
+                  'Your post template is stored locally on your device. At Tier 3 escalation (90 seconds with no contact response), Echo will automatically post to X using OAuth 1.0a secure authentication. Your location will be included as a map link for emergency responders.',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: EchoColors.textSecondary,
                     height: 1.4,
