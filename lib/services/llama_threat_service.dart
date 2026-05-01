@@ -210,14 +210,21 @@ class LlamaThreatService {
   }
 
   Map<String, dynamic>? _extractJson(String rawContent) {
-    final cleanContent = rawContent
+    var cleanContent = rawContent
         .replaceAll('```json', '')
         .replaceAll('```', '')
         .trim();
 
+    print('🔧 DEBUG _extractJson:');
+    print('   Raw input length: ${rawContent.length}');
+    print('   Starts with ": ${cleanContent.startsWith('"')}');
+    print('   Ends with ": ${cleanContent.endsWith('"')}');
+    print('   First 50 chars: ${cleanContent.substring(0, cleanContent.length > 50 ? 50 : cleanContent.length)}');
+
     // Remove outer quotes if the entire response is string-encoded
     var processContent = cleanContent;
     if (processContent.startsWith('"') && processContent.endsWith('"')) {
+      print('   ✓ Removing outer quotes...');
       processContent = processContent.substring(1, processContent.length - 1);
       // Unescape the string
       processContent = processContent
@@ -225,20 +232,27 @@ class LlamaThreatService {
           .replaceAll('\\t', '\t')
           .replaceAll('\\"', '"')
           .replaceAll('\\\\', '\\');
+      print('   After unescape: ${processContent.substring(0, processContent.length > 50 ? 50 : processContent.length)}');
     }
 
     final start = processContent.indexOf('{');
     final end = processContent.lastIndexOf('}');
+    print('   JSON markers - start: $start, end: $end');
+    
     if (start == -1 || end == -1 || end <= start) {
+      print('   ❌ No valid JSON markers found');
       return null;
     }
 
     final candidate = processContent.substring(start, end + 1);
+    print('   Candidate JSON: ${candidate.substring(0, candidate.length > 100 ? 100 : candidate.length)}...');
+    
     try {
       final decoded = jsonDecode(candidate);
+      print('   ✓ Successfully decoded JSON');
       return decoded is Map<String, dynamic> ? decoded : null;
     } catch (e) {
-      print('❌ JSON decode error in candidate: $e');
+      print('   ❌ JSON decode error: $e');
       return null;
     }
   }

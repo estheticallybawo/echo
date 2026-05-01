@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen>
     
     return CommunityFeedEntry(
       id: doc.id,
-      victimName: data['userId'] ?? 'Unknown User',
+      victimName: data['userName'] ?? 'Unknown User',
       victimId: data['userId'] ?? 'unknown',
       location: data['location'] ?? 'Unknown Location',
       state: data['state'] ?? 'Unknown State',

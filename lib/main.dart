@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -11,23 +11,23 @@ import 'screens/onboarding_flow.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
 import 'theme.dart';
-// Track C: Social Media Providers
+// Track C: Providers
 import 'providers/gemma_provider.dart';
-import 'providers/social_media_provider.dart';
 import 'providers/user_preferences_provider.dart';
 // Track C: Services
 import 'services/llama_threat_service.dart';
 import 'services/llama_config.dart';
-import 'services/x_oauth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env file
-  await dotenv.load(fileName: '.env');
-
-  // Configure Llama.cpp server with Ngrok URL (for team testing)
-  // If NGROK_URL is set, teammates can test without local Gemma download
+  // Load environment variables from .env file (mobile/desktop only)
+  // Web builds don't support file assets in dotenv - skip loading
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    print('⚠️ Could not load .env file (OK for Web builds): $e');
+  }
 
   // Verify llama-server is healthy before proceeding
   final isHealthy = await LlamaConfig.isServerHealthy();
@@ -68,28 +68,6 @@ class _EchoAppState extends State<EchoApp> {
     // Track C: Initialize Gemma 4 service
     final gemmaService =
         LlamaThreatService(); // Using local llama-server for testing
-    
-    // Load X OAuth 1.0a credentials from .env
-    final xConsumerKey = dotenv.env['X_CONSUMER_KEY'] ?? '';
-    final xConsumerSecret = dotenv.env['X_CONSUMER_SECRET'] ?? '';
-    final xAccessToken = dotenv.env['X_ACCESS_TOKEN'] ?? '';
-    final xAccessTokenSecret = dotenv.env['X_ACCESS_TOKEN_SECRET'] ?? '';
-    
-    // Validate OAuth 1.0a credentials are available
-    if (xConsumerKey.isEmpty || xConsumerSecret.isEmpty || xAccessToken.isEmpty || xAccessTokenSecret.isEmpty) {
-      print('❌ X OAuth 1.0a credentials missing from .env - auto-posting will fail');
-    } else {
-      print('✅ X OAuth 1.0a Config loaded:');
-      print('   Consumer Key: ${xConsumerKey.substring(0, min(10, xConsumerKey.length))}...');
-      print('   Access Token: ${xAccessToken.substring(0, min(10, xAccessToken.length))}...');
-    }
-    
-    final xService = XOauthService(
-      consumerKey: xConsumerKey,
-      consumerSecret: xConsumerSecret,
-      accessToken: xAccessToken,
-      accessTokenSecret: xAccessTokenSecret,
-    );
 
     // NOTE: ConfirmationSoundService initialization moved to after auth in home_screen
     // (was initializing before Firebase auth was ready)
@@ -101,19 +79,6 @@ class _EchoAppState extends State<EchoApp> {
         // Track C: Gemma Provider
         ChangeNotifierProvider(
           create: (_) => GemmaProvider(llamaThreatService: gemmaService),
-        ),
-        // Track C: Social Media Provider (depends on Gemma)
-        ChangeNotifierProxyProvider<GemmaProvider, SocialMediaProvider>(
-          create: (_) => SocialMediaProvider(
-            xService: xService,
-            gemmaProvider: GemmaProvider(llamaThreatService: gemmaService),
-          ),
-          update: (_, gemmaProvider, socialMediaProvider) =>
-              socialMediaProvider ??
-              SocialMediaProvider(
-                xService: xService,
-                gemmaProvider: gemmaProvider,
-              ),
         ),
       ],
       child: MaterialApp(

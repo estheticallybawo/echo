@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import '../theme.dart';
-import '../providers/gemma_provider.dart';
-import '../providers/social_media_provider.dart';
 import '../providers/user_preferences_provider.dart';
 import '../services/firestore_incident_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -99,12 +97,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   }
 
   /// Initialize auto-posting flow
-  /// Triggers if confidence >= threshold; requires Firestore logging before X post
+  /// Triggers Firestore logging; Cloud Function handles communityFeed at T+30s
   Future<void> _initializeAutoPosting() async {
     final preferences = context.read<UserPreferencesProvider>();
-    final socialMediaProvider = context.read<SocialMediaProvider>();
-    _isPostingEnabled =
-        preferences.allowPublicPosts && socialMediaProvider.autoPostEnabled;
+    _isPostingEnabled = preferences.allowPublicPosts;
 
     if (!_isPostingEnabled) {
       _updatePostingState(false, error: 'Auto-post is disabled by your preferences.');
@@ -128,13 +124,8 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
 
     print('✅ Threat confidence ${(confidencePercent * 100).toStringAsFixed(0)}% meets auto-post threshold');
 
-    // Gate 2: Log to Firestore BEFORE posting
+    // Log to Firestore - Cloud Function will create communityFeed at T+30s
     await _logThreatToFirestore();
-
-    // Gate 3: Only post if Firestore logging succeeded
-    if (_lastIncidentId != null && _postError == null) {
-      await _postToSocialMedia();
-    }
   }
 
   /// Log threat assessment to Firestore before posting
@@ -168,40 +159,6 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
     } catch (e) {
       print('❌ Firestore logging failed: $e');
       _updatePostingState(false, error: 'Failed to log incident: $e');
-    }
-  }
-
-  /// Post emergency alert to social media (X)
-  /// Only called after Firestore logging succeeds
-  Future<void> _postToSocialMedia() async {
-    try {
-      setState(() => _isPosting = true);
-
-      final gemmaProvider = context.read<GemmaProvider>();
-      final socialMediaProvider = context.read<SocialMediaProvider>();
-
-      // Set Gemma provider's last assessment so SocialMediaProvider can use it
-      gemmaProvider.lastThreatAssessment = threatData;
-      gemmaProvider.lastIncidentId = _lastIncidentId;
-
-      // Post to X
-      final posted = await socialMediaProvider.postEmergencyAlert(
-        userName: FirebaseAuth.instance.currentUser?.displayName ?? 'User',
-        audioContext: widget.emergencyDescription ?? 'Emergency detected',
-        location: widget.userLocation ?? 'Location not available',
-        precomputedThreatAssessment: threatData,
-      );
-
-      if (posted) {
-        print('✅ Emergency alert posted to X');
-        _postTimestamp = DateTime.now().millisecondsSinceEpoch;
-        _updatePostingState(true);
-      } else {
-        throw Exception('Failed to post to X');
-      }
-    } catch (e) {
-      print('❌ Social media posting failed: $e');
-      _updatePostingState(false, error: 'Failed to post: $e');
     }
   }
 
