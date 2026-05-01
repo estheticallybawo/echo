@@ -23,7 +23,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/icon/echo.png
+    - assets/icon/
+    - assets/onboarding/
+    - assets/splash/
 
 flutter_launcher_icons:
   android: true
@@ -42,8 +44,8 @@ flutter_native_splash:
   android: true
   ios: true
   web: true
-  image: assets/splash/splash.png
-  background_image: assets/splash/splash.png
+  image: assets/splash/echosplashicon.png
+  color: "#02091A"
 
 
   # Web specific

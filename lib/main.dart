@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/auth_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/emergency_active_screen.dart';
-import 'screens/onboarding_flow.dart';
-import 'screens/contacts_screen.dart';
-import 'screens/ai_intel_screen.dart';
-import 'screens/ai_settings_screen.dart';
+// import 'screens/auth_screen.dart';
+// import 'screens/home_screen.dart';
+// import 'screens/emergency_active_screen.dart';
+import 'screens/onboarding/onboarding_flow.dart';
+// import 'screens/contacts_screen.dart';
+// import 'screens/ai_intel_screen.dart';
+// import 'screens/ai_settings_screen.dart';
 import 'theme.dart';
+import 'screens/onboarding/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,14 +26,14 @@ class EchoApp extends StatelessWidget {
       title: 'Echo',
       debugShowCheckedModeBanner: false,
       theme: buildEchoTheme(),
-      home: const AuthScreen(),
+      home: const SplashScreen(),
       routes: {
-        '/home': (context) => const HomeScreen(),
-        '/emergency-active': (context) => const EmergencyActiveScreen(),
+        // '/home': (context) => const HomeScreen(),
+        // '/emergency-active': (context) => const EmergencyActiveScreen(),
         '/onboarding': (context) => const OnboardingFlow(),
-        '/contacts': (context) => const ContactsScreen(),
-        '/ai-intel': (context) => const AIIntelScreen(),
-        '/ai-settings': (context) => const AISettingsScreen(),
+        // '/contacts': (context) => const ContactsScreen(),
+        // '/ai-intel': (context) => const AIIntelScreen(),
+        // '/ai-settings': (context) => const AISettingsScreen(),
       },
     );
   }
