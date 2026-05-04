@@ -13,7 +13,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.didChangeDependencies();
   
     precacheImage(const AssetImage('assets/splash/echosplashicon.png'), context);
-    precacheImage(const AssetImage('assets/onboarding/Echosoundwave.png'), context);
+    precacheImage(const AssetImage('onboarding/Echosoundwave.png'), context);
   }
 
   @override

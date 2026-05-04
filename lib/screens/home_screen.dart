@@ -20,7 +20,6 @@ class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin {
   late AnimationController _orbController;
   late AnimationController _pulseController;
-  late AnimationController _waveformController;
   bool isListening = true; // Track listening state
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -39,12 +38,6 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 2500),
       vsync: this,
     )..repeat(reverse: true);
-    
-    // Waveform animation
-    _waveformController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    )..repeat();
   }
 
   /// Convert Firestore document to CommunityFeedEntry

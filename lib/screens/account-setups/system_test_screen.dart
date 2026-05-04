@@ -56,7 +56,6 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
   }) {
     bool isPassed = _currentStep > stepIndex;
     bool isRunning = _currentStep == stepIndex;
-    bool isPending = _currentStep < stepIndex;
 
     Color iconColor;
     IconData iconData;

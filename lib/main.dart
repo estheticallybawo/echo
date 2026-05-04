@@ -1,13 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
-import 'screens/auth_screen.dart';
+import 'screens/onboarding/onboarding_flow.dart';
 import 'screens/home_screen.dart';
 import 'screens/emergency_active_screen.dart';
-import 'screens/onboarding_flow.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
 import 'theme.dart';
@@ -85,12 +83,12 @@ class _EchoAppState extends State<EchoApp> {
         title: 'Echo',
         debugShowCheckedModeBanner: false,
         theme: buildEchoTheme(),
-        home: const AuthScreen(),
+        home: const OnboardingFlow(),
         routes: {
+          '/onboarding': (context) => const OnboardingFlow(),
           '/home': (context) => const HomeScreen(),
           '/emergency': (context) => const EmergencyActiveScreen(),
           '/emergency-active': (context) => const EmergencyActiveScreen(),
-          '/onboarding': (context) => const OnboardingFlow(),
           '/contacts': (context) => const ContactsScreen(),
           '/ai-intel': (context) => const AIIntelScreen(),
         },
