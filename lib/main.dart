@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'screens/auth_screen.dart';
-// import 'screens/home_screen.dart';
-// import 'screens/emergency_active_screen.dart';
+
+import 'screens/account-setups/permission_setup_screen.dart';
+import 'screens/account-setups/phrase_setup_screen.dart';
+import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
+import 'screens/account-setups/tier2_public_alert_setup_screen.dart';
+import 'screens/account-setups/system_test_screen.dart';
 import 'screens/onboarding/onboarding_flow.dart';
-// import 'screens/contacts_screen.dart';
-// import 'screens/ai_intel_screen.dart';
-// import 'screens/ai_settings_screen.dart';
+
 import 'theme.dart';
 import 'screens/onboarding/splash_screen.dart';
 
@@ -28,12 +29,13 @@ class EchoApp extends StatelessWidget {
       theme: buildEchoTheme(),
       home: const SplashScreen(),
       routes: {
-        // '/home': (context) => const HomeScreen(),
-        // '/emergency-active': (context) => const EmergencyActiveScreen(),
+        '/account-setups': (context) => const AccountSetupsScreen(),
+        '/permission-setup': (context) => const AccountSetupsScreen(),
+        '/phrase-setup': (context) => const PhraseSetupScreen(),
+        '/tier1-inner-circle-setup': (context) => const Tier1InnerCircleSetupScreen(),
+        '/tier2-public-alert-setup': (context) => const Tier2PublicAlertSetupScreen(),
         '/onboarding': (context) => const OnboardingFlow(),
-        // '/contacts': (context) => const ContactsScreen(),
-        // '/ai-intel': (context) => const AIIntelScreen(),
-        // '/ai-settings': (context) => const AISettingsScreen(),
+        '/system-test': (context) => const SystemTestScreen(),
       },
     );
   }

@@ -9,11 +9,14 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
-  final TextEditingController _nameController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -27,10 +30,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           gradient: RadialGradient(
             center: Alignment(0.0, -0.3),
             radius: 1.2,
-            colors: [
-              Color(0xFF0F3169),
-              Color(0xFF02091A),
-            ],
+            colors: [Color(0xFF0F3169), Color(0xFF02091A)],
             stops: [0.0, 1.0],
           ),
         ),
@@ -45,8 +45,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      
-                      
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -63,36 +62,26 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             ),
                           ),
                           Row(
-                            children: [
-                            
-                              Container(
-                                width: 32,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2563EB),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                            
-                              ...List.generate(5, (index) => Container(
-                                width: 6,
-                                height: 6,
-                                margin: const EdgeInsets.only(left: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                              )),
-                            ],
+                        children: List.generate(7, (index) {
+                          final bool active = index == 0;
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: active ? 74 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: active ? const Color(0xFF2563EB) : Colors.white24,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          );
+                        }),
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 48),
-                      
+
                       Text(
-                        "Tell us about you",
+                        "TELL US ABOUT YOURSELF",
                         style: GoogleFonts.poppins(
                           fontSize: 26,
                           fontWeight: FontWeight.w600,
@@ -109,56 +98,112 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           fontWeight: FontWeight.w400,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 48),
 
-                      
-                      Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: Colors.white, width: 1.0),
-                        ),
-                        child: Row(
+                      Form(
+                        key: _formKey,
+                        child: Column(
                           children: [
-                            const SizedBox(width: 20),
-                            const Icon(
-                              Icons.person_outline,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _nameController,
-                                keyboardType: TextInputType.name,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                                decoration: InputDecoration(
-                                  filled: false,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  hintText: 'Enter Full name',
-                                  hintStyle: GoogleFonts.poppins(
+                            Container(
+                              height: 56,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(color: Colors.white, width: 1.0),
+                              ),
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 20),
+                                  const Icon(
+                                    Icons.person_outline,
                                     color: Colors.white,
-                                    fontSize: 16,
+                                    size: 22,
                                   ),
-                                ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _firstNameController,
+                                      keyboardType: TextInputType.name,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                      decoration: InputDecoration(
+                                        filled: false,
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        hintText: 'ENTER FIRST NAME',
+                                        hintStyle: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Enter your first name';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                            Container(
+                              height: 56,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(color: Colors.white, width: 1.0),
+                              ),
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 20),
+                                  const Icon(
+                                    Icons.person_outline,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _lastNameController,
+                                      keyboardType: TextInputType.name,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                      decoration: InputDecoration(
+                                        filled: false,
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        hintText: 'ENTER LAST NAME',
+                                        hintStyle: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Enter your last name';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-
                     ],
                   ),
                 ),
               ),
 
-             
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Container(
@@ -170,7 +215,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                   child: ElevatedButton(
                     onPressed: () {
-                      
+                      if (_formKey.currentState?.validate() ?? false) {
+                        Navigator.pushNamed(context, '/permission-setup');
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,

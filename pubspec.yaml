@@ -25,6 +25,8 @@ flutter:
   assets:
     - assets/icon/
     - assets/onboarding/
+    - assets/onboarding/x_logo.png
+    - assets/onboarding/echo_alert_logo.png
     - assets/splash/
 
 flutter_launcher_icons:

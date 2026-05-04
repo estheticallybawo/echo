@@ -10,6 +10,7 @@ class PhoneAuthScreen extends StatefulWidget {
 }
 
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _phoneController = TextEditingController();
 
   @override
@@ -28,10 +29,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
           gradient: RadialGradient(
             center: Alignment(0.0, -0.3),
             radius: 1.2,
-            colors: [
-              Color(0xFF0F3169),
-              Color(0xFF02091A),
-            ],
+            colors: [Color(0xFF0F3169), Color(0xFF02091A)],
             stops: [0.0, 1.0],
           ),
         ),
@@ -39,7 +37,6 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -47,8 +44,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      
-                      
+
                       Row(
                         children: [
                           InkWell(
@@ -65,9 +61,9 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 48),
-                      
+
                       Text(
                         "Create your Echo account",
                         style: GoogleFonts.poppins(
@@ -86,52 +82,68 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                           fontWeight: FontWeight.w400,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 48),
 
-                     
-                      Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2E3D5E),
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 20),
-                            const Icon(
-                              Icons.phone_outlined,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                                decoration: InputDecoration(
-                                  filled: false,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  hintText: 'Enter phone number',
-                                  hintStyle: GoogleFonts.poppins(
-                                    color: Colors.white70,
+                      Form(
+                        key: _formKey,
+                        child: Container(
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E3D5E),
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 20),
+                              const Icon(
+                                Icons.phone_outlined,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
                                     fontSize: 16,
                                   ),
+                                  decoration: InputDecoration(
+                                    filled: false,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    hintText: 'Enter phone number',
+                                    hintStyle: GoogleFonts.poppins(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Enter your phone number';
+                                    }
+                                    final digits = value.replaceAll(
+                                      RegExp(r'[^0-9]'),
+                                      '',
+                                    );
+                                    if (digits.length < 7 ||
+                                        digits.length > 15) {
+                                      return 'Enter a valid phone number';
+                                    }
+                                    return null;
+                                  },
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
 
                       const SizedBox(height: 24),
-                      
+
                       Center(
                         child: Text(
                           "We'll send a code to verify your number",
@@ -146,7 +158,6 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 ),
               ),
 
-              
               Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Container(
@@ -158,11 +169,13 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                   ),
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (ctx) => const ProfileSetupScreen(),
-                        ),
-                      );
+                      if (_formKey.currentState?.validate() ?? false) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (ctx) => const ProfileSetupScreen(),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
