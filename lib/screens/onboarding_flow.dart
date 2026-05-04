@@ -1518,26 +1518,37 @@ class _OnboardingPage7_SystemTestState
             ),
           ),
           const SizedBox(height: 28),
-          ElevatedButton.icon(
-            onPressed: _isRunning ? null : _runSystemDrill,
-            icon: _isRunning
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.play_arrow),
-            label: Text(
-              _isRunning
-                  ? 'RUNNING LIVE DRILL...'
-                  : _testComplete
-                      ? 'RUN DRILL AGAIN'
-                      : 'START TEST DRILL',
+          if (_testPassed)
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+              icon: const Icon(Icons.check_circle),
+              label: const Text('CONTINUE TO HOME'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EchoColors.success,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: _isRunning ? null : _runSystemDrill,
+              icon: _isRunning
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.play_arrow),
+              label: Text(
+                _isRunning
+                    ? 'RUNNING LIVE DRILL...'
+                    : _testComplete
+                        ? 'RUN DRILL AGAIN'
+                        : 'START TEST DRILL',
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
             ),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            ),
-          ),
           const SizedBox(height: 16),
           Text(
             _testPassed

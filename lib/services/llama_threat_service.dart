@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'llama_config.dart';
 
@@ -85,36 +86,8 @@ class LlamaThreatService {
   }
 
   String _buildJsonUserPayload(String userInput) {
-    final localContext = _buildLocalContextSignals(userInput);
-
-    return jsonEncode({
-      'task': 'emergency_assessment',
-      'input': userInput,
-      'local_context': localContext,
-      'rules': {
-        'json_only': true,
-        'max_summary_words': 18,
-        'threat_values': [
-          'stalking',
-          'assault',
-          'kidnapping',
-          'medical',
-          'fire',
-          'accident',
-          'other',
-        ],
-        'threat_level_values': ['low', 'medium', 'high', 'critical'],
-      },
-      'output_schema': {
-        'threat': 'string',
-        'confidence': 'integer_0_to_100',
-        'threatLevel': 'string',
-        'action': 'string',
-        'summary': 'string',
-        'analyzedSituation': 'string',
-      },
-    });
-  }
+  return 'Emergency report: $userInput';
+}
 
   int _parseConfidence(dynamic value) {
     if (value is int) {
@@ -194,20 +167,13 @@ class LlamaThreatService {
   }
 
   String _buildGemmaTurnPrompt({
-    required String systemPrompt,
-    required String userPrompt,
-  }) {
-    final enhancedSystemPrompt = '''$systemPrompt
-
-    EMERGENCY DEFINITIONS FOR NIGERIA:
-    - "One chance" / "Korope" / "Danfo" = Fake taxi/bus used for robbery/kidnapping. This is a CRITICAL threat.
-    - If user mentions ANY of these words, threatLevel = "critical" and threat = "kidnapping".
-
-    ''';
-    return '<bos><|turn>system\n$enhancedSystemPrompt<turn|>\n'
-        '<|turn>user\n$userPrompt<turn|>\n'
-        '<|turn>model\n';
-  }
+  required String systemPrompt,
+  required String userPrompt,
+}) {
+  return '<|turn>system\n$systemPrompt<turn|>\n'
+         '<|turn>user\n$userPrompt<turn|>\n'
+         '<|turn>model\n';
+}
 
   Map<String, dynamic>? _extractJson(String rawContent) {
     var cleanContent = rawContent
@@ -265,6 +231,9 @@ class LlamaThreatService {
     Duration timeout = _requestTimeout,
   }) async {
     try {
+      print('🚀 ASSESS_THREAT START: timeout=${timeout.inSeconds}s, maxTokens=$maxTokens');
+      final requestStartTime = DateTime.now();
+      
       final compactUserPrompt = _buildJsonUserPayload(userInput);
       final prompt = _buildGemmaTurnPrompt(
         systemPrompt: _systemPrompt,
@@ -277,15 +246,24 @@ class LlamaThreatService {
       );
       requestBody['stop'] = ['<turn|>'];
 
+      print('📤 Sending request to ${LlamaConfig.activeHost}/completion');
+      final responseStartTime = DateTime.now();
+      
       final response = await http
           .post(
             Uri.parse('${LlamaConfig.activeHost}/completion'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(requestBody),
           )
-          .timeout(timeout);
+          .timeout(timeout, onTimeout: () {
+            final elapsedMs = DateTime.now().difference(responseStartTime).inMilliseconds;
+            print('⏱️ HTTP REQUEST TIMEOUT after ${elapsedMs}ms');
+            throw TimeoutException('llama-server /completion endpoint did not respond within ${timeout.inSeconds}s');
+          });
 
-      print('🔍 Response status: ${response.statusCode}');
+      final responseEndTime = DateTime.now();
+      final responseTimeMs = responseEndTime.difference(responseStartTime).inMilliseconds;
+      print('📥 Response received in ${responseTimeMs}ms, status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final parsedResponse = jsonDecode(response.body);
@@ -293,8 +271,7 @@ class LlamaThreatService {
             (parsedResponse['content'] ?? parsedResponse['response'] ?? '')
                 .toString();
 
-        print('📊 Raw Llama response: "$content"');
-        print('   Length: ${content.length} chars');
+        print('📊 Raw Llama response length: ${content.length} chars');
         if (content.isEmpty) {
           print('⚠️ Empty model content. Raw response body: ${response.body}');
         }
@@ -306,7 +283,8 @@ class LlamaThreatService {
               extracted,
               userInput,
             );
-            print('✅ Parsed threat assessment: $normalized');
+            final totalMs = DateTime.now().difference(requestStartTime).inMilliseconds;
+            print('✅ Parsed threat assessment (${totalMs}ms total): $normalized');
             return normalized;
           }
           print('⚠️ No JSON found in model response content');
@@ -319,10 +297,11 @@ class LlamaThreatService {
       }
 
       return {'threat': 'unknown', 'type': 'unknown', 'confidence': 0};
+    } on TimeoutException catch (e) {
+      print('❌ TIMEOUT: $e');
+      return {'threat': 'unknown', 'type': 'unknown', 'confidence': 0};
     } on Exception catch (e) {
-      print(
-        '❌ Llama request timed out or failed after ${timeout.inSeconds}s: $e',
-      );
+      print('❌ Llama request failed: $e');
       return {'threat': 'unknown', 'type': 'unknown', 'confidence': 0};
     } catch (e) {
       print('❌ Llama threat assessment failed: $e');

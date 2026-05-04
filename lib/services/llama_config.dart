@@ -37,7 +37,7 @@ class LlamaConfig {
   static const Duration TIMEOUT = Duration(seconds: 300);
 
   /// Health check timeout (longer for ngrok's variable latency)
-  static const Duration HEALTH_CHECK_TIMEOUT_LOCAL = Duration(seconds: 10);
+  static const Duration HEALTH_CHECK_TIMEOUT_LOCAL = Duration(seconds: 60);
 
 
   /// Health check: Is llama-server running?

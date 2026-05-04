@@ -197,7 +197,7 @@ class _OnboardingScreen extends StatelessWidget {
                               ],
                             ),
                             child: ElevatedButton(
-                              onPressed: () => _showAuthBottomSheet(context),
+                              onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
