@@ -8,6 +8,13 @@ import 'screens/home_screen.dart';
 import 'screens/emergency_active_screen.dart';
 import 'screens/contacts_screen.dart';
 import 'screens/ai_intel_screen.dart';
+import 'screens/ai_settings_screen.dart';
+import 'screens/auth/profile_setup_screen.dart';
+import 'screens/account-setups/permission_setup_screen.dart';
+import 'screens/account-setups/phrase_setup_screen.dart';
+import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
+import 'screens/account-setups/tier2_public_alert_setup_screen.dart';
+import 'screens/account-setups/system_test_screen.dart';
 import 'theme.dart';
 // Track C: Providers
 import 'providers/gemma_provider.dart';
@@ -85,12 +92,19 @@ class _EchoAppState extends State<EchoApp> {
         theme: buildEchoTheme(),
         home: const OnboardingFlow(),
         routes: {
-          '/onboarding': (context) => const OnboardingFlow(),
-          '/home': (context) => const HomeScreen(),
-          '/emergency': (context) => const EmergencyActiveScreen(),
-          '/emergency-active': (context) => const EmergencyActiveScreen(),
-          '/contacts': (context) => const ContactsScreen(),
-          '/ai-intel': (context) => const AIIntelScreen(),
+          '/onboarding': (context) => OnboardingFlow(),
+          '/profile-setup': (context) => ProfileSetupScreen(),
+          '/permission-setup': (context) => AccountSetupsScreen(),
+          '/phrase-setup': (context) => PhraseSetupScreen(),
+          '/tier1-inner-circle-setup': (context) => Tier1InnerCircleSetupScreen(),
+          '/tier2-public-alert-setup': (context) => Tier2PublicAlertSetupScreen(),
+          '/system-test': (context) => SystemTestScreen(),
+          '/home': (context) => HomeScreen(),
+          '/emergency': (context) => EmergencyActiveScreen(),
+          '/emergency-active': (context) => EmergencyActiveScreen(),
+          '/contacts': (context) => ContactsScreen(),
+          '/ai-intel': (context) => AIIntelScreen(),
+          '/ai-settings': (context) => AISettingsScreen(),
         },
         navigatorObservers: [
           // Add analytics or logging observer here
