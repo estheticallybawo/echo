@@ -415,7 +415,11 @@ Social: Queued for amplification
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    Navigator.of(context).pushNamed('/home');
+                    _escalationService.confirmSafety();
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/home',
+                      (route) => false,
+                    );
                   },
                   child: Text(
                     'Cancel Emergency',

@@ -17,7 +17,7 @@ class EscalationTimerService {
 
   EscalationTimerService._internal();
 
-  final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
+  FirestoreIncidentService? _firestoreService;
 
   // Timer state
   Timer? _escalationTimer;
@@ -123,9 +123,11 @@ class EscalationTimerService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
+      final firestoreService = _firestoreService ??= FirestoreIncidentService();
+
       // Update incident in Firestore to mark Tier 3 escalation and auto-post to Echo feed
       if (_currentIncidentId != null) {
-        await _firestoreService.updateIncidentStatus(
+        await firestoreService.updateIncidentStatus(
           userId: user.uid,
           incidentId: _currentIncidentId!,
           escalationStatus: 'TIER_3_ECHO_FEED_AUTO_POST',
