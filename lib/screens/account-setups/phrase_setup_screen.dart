@@ -134,7 +134,7 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Choose a secret phrase or sound only you would make',
+                  'Create a unique phrase or sound only you would make to activate echo',
                   style: GoogleFonts.poppins(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
@@ -167,6 +167,11 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
+                            color: const Color(0xFF3B82F6).withOpacity(0.6),
+                            blurRadius: 60,
+                            spreadRadius: 10,
+                          ),
+                          BoxShadow(
                             color: EchoColors.primary.withOpacity(
                               _isListening ? 0.25 : 0.0,
                             ),
@@ -176,12 +181,13 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                         ],
                       ),
                       child: Center(
-                        child: Container(
-                          width: 92,
-                          height: 92,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 92 + (_isListening ? _level * 25 : 0),
+                          height: 92 + (_isListening ? _level * 25 : 0),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF0D1F45),
+                            color: _isListening ? EchoColors.primary : const Color(0xFF0D1F45),
                           ),
                           child: const Icon(
                             Icons.mic_rounded,
@@ -198,7 +204,7 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                 const SizedBox(height: 18),
                 Center(
                   child: Text(
-                    _statusMessages[_currentStep],
+                    _isListening ? 'Listening...' : _statusMessages[_currentStep],
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
@@ -214,6 +220,11 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                     onPressed: () {
                       if (_currentStep < 2) {
                         setState(() {
+                          if (_isListening) {
+                            _timer?.cancel();
+                            _isListening = false;
+                            _level = 0.0;
+                          }
                           _currentStep += 1;
                         });
                       } else {

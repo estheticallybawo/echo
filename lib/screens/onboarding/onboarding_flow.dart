@@ -268,7 +268,7 @@ class _OnboardingScreen extends StatelessWidget {
                                     ],
                                   ),
                                   child: const Icon(
-                                    Icons.arrow_forward_rounded,
+                                    Icons.chevron_right_rounded,
                                     color: Colors.white,
                                     size: 28,
                                   ),

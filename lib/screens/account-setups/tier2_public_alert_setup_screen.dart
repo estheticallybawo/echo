@@ -17,34 +17,37 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
   bool consented = false;
 
   Widget _buildToggleItem(String title, bool value, ValueChanged<bool> onChanged) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D1F45).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.white,
-              fontWeight: FontWeight.w400,
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D1F45).withOpacity(0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.white,
+                fontWeight: FontWeight.w400,
+              ),
             ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF34C759), // Green like in screenshot
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.white12,
-          ),
-        ],
+            Switch.adaptive(
+              value: value,
+              onChanged: onChanged,
+              activeColor: Colors.white,
+              activeTrackColor: EchoColors.switchOn,
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: EchoColors.switchOff,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -166,7 +169,7 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                                 ),
                               ),
                               Text(
-                                '@EchoEmergency',
+                                'Echo Feed',
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: Colors.white54,
@@ -179,19 +182,12 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: Colors.black,
+                              color: EchoColors.primary.withOpacity(0.15),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white24, width: 1),
-                            ),
-                            child: Center(
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/onboarding/x_logo.png',
-                                  width: 24,
-                                  height: 24,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => const Text('𝕏', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                ),
+                              border: Border.all(color: EchoColors.primary.withOpacity(0.5), width: 1),
+                              image: const DecorationImage(
+                                image: AssetImage('assets/icon/echo.png'),
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),
@@ -283,11 +279,11 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              '@policeNG @NPF_PRO',
+                              'Verified SMS Alert sent to Police',
                               style: GoogleFonts.poppins(fontSize: 13, color: Colors.white54),
                             ),
                             Text(
-                              '#Echoemergency',
+                              'Public Echo Feed Active',
                               style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF2563EB)),
                             ),
                           ],

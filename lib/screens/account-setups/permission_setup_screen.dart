@@ -42,63 +42,66 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
     required bool enabled,
     required ValueChanged<bool> onChanged,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12284A),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+    return GestureDetector(
+      onTap: () => onChanged(!enabled),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF12284A),
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(icon, color: EchoColors.primary, size: 28),
             ),
-            child: Icon(icon, color: EchoColors.primary, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    height: 1.6,
-                    color: Colors.white70,
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      height: 1.6,
+                      color: Colors.white70,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Transform.scale(
-            scale: 0.95,
-            child: Switch.adaptive(
-              value: enabled,
-              activeColor: Colors.white,
-              activeTrackColor: EchoColors.primary,
-              inactiveThumbColor: Colors.white,
-              inactiveTrackColor: Colors.white12,
-              onChanged: onChanged,
+            const SizedBox(width: 16),
+            Transform.scale(
+              scale: 0.95,
+              child: Switch.adaptive(
+                value: enabled,
+                activeColor: Colors.white,
+                activeTrackColor: EchoColors.switchOn,
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: EchoColors.switchOff,
+                onChanged: onChanged,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -124,22 +127,22 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
               children: [
                 Row(
                   children: [
-                    InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => Navigator.maybePop(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0D1D3E),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                          size: 18,
+                      InkWell(
+                        onTap: () => Navigator.maybePop(context),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
-                    ),
                     const Spacer(),
                     _buildProgressBar(),
                   ],
@@ -206,7 +209,7 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
                         ),
                         _buildPermissionItem(
                           icon: Icons.volume_up_rounded,
-                          title: 'Volume Long-Press',
+                          title: 'Volume Long Press',
                           subtitle:
                               'Trigger SOS by holding any volume button. Perfect for discreet activation in your pocket.',
                           enabled: volumeLongPressEnabled,
@@ -218,6 +221,15 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                Text(
+                  'You can change these later in Settings > Permissions',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    height: 1.6,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity,
                   height: 62,

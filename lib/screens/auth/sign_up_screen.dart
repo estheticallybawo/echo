@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'phone_auth_screen.dart';
+import '../home/terms_privacy_screen.dart';
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  bool _agreed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -30,18 +38,21 @@ class SignUpScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 16),
                 
-              
                 Row(
                   children: [
                     InkWell(
                       onTap: () => Navigator.of(context).pop(),
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.arrow_back,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
                           color: Colors.white,
-                          size: 24,
+                          size: 20,
                         ),
                       ),
                     ),
@@ -123,6 +134,8 @@ class SignUpScreen extends StatelessWidget {
                   backgroundColor: const Color(0xFF2E3D5E),
                   onPressed: () {},
                 ),
+
+                const Spacer(),
               ],
             ),
           ),
@@ -171,7 +184,8 @@ class _AuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(

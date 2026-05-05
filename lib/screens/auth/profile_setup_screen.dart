@@ -12,6 +12,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  bool _agreed = false;
 
   @override
   void dispose() {
@@ -51,13 +52,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         children: [
                           InkWell(
                             onTap: () => Navigator.of(context).pop(),
-                            borderRadius: BorderRadius.circular(20),
-                            child: const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Icon(
-                                Icons.arrow_back,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
                                 color: Colors.white,
-                                size: 24,
+                                size: 20,
                               ),
                             ),
                           ),
@@ -109,14 +114,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               height: 56,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(28),
-                                border: Border.all(color: Colors.white, width: 1.0),
+                                border: Border.all(color: Colors.white24, width: 1.0),
                               ),
                               child: Row(
                                 children: [
                                   const SizedBox(width: 20),
                                   const Icon(
                                     Icons.person_outline,
-                                    color: Colors.white,
+                                    color: Colors.blue,
                                     size: 22,
                                   ),
                                   const SizedBox(width: 12),
@@ -130,10 +135,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                       ),
                                       decoration: InputDecoration(
                                         filled: false,
+                                        fillColor: Colors.transparent,
                                         border: InputBorder.none,
                                         enabledBorder: InputBorder.none,
                                         focusedBorder: InputBorder.none,
-                                        hintText: 'ENTER FIRST NAME',
+                                        hintText: 'Enter First Name',
                                         hintStyle: GoogleFonts.poppins(
                                           color: Colors.white,
                                           fontSize: 16,
@@ -155,14 +161,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               height: 56,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(28),
-                                border: Border.all(color: Colors.white, width: 1.0),
+                                border: Border.all(color: Colors.white24, width: 1.0),
                               ),
                               child: Row(
                                 children: [
                                   const SizedBox(width: 20),
                                   const Icon(
                                     Icons.person_outline,
-                                    color: Colors.white,
+                                    color: Colors.blue,
                                     size: 22,
                                   ),
                                   const SizedBox(width: 12),
@@ -176,10 +182,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                                       ),
                                       decoration: InputDecoration(
                                         filled: false,
+                                        fillColor: Colors.transparent,
                                         border: InputBorder.none,
                                         enabledBorder: InputBorder.none,
                                         focusedBorder: InputBorder.none,
-                                        hintText: 'ENTER LAST NAME',
+                                        hintText: 'Enter Last Name',
                                         hintStyle: GoogleFonts.poppins(
                                           color: Colors.white,
                                           fontSize: 16,
@@ -199,6 +206,45 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 32),
+                      Row(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: Checkbox(
+                              value: _agreed,
+                              onChanged: (val) => setState(() => _agreed = val ?? false),
+                              activeColor: const Color(0xFF2563EB),
+                              checkColor: Colors.white,
+                              side: const BorderSide(color: Colors.white38),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, '/terms-privacy'),
+                              child: RichText(
+                                text: TextSpan(
+                                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+                                  children: [
+                                    const TextSpan(text: 'I agree to the '),
+                                    TextSpan(
+                                      text: 'Terms & Privacy Policy',
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFF00A3C4),
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' of Echo.'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -210,14 +256,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   width: double.infinity,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
+                    color: _agreed ? const Color(0xFF2563EB) : const Color(0xFF2563EB).withOpacity(0.3),
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: _agreed ? () {
                       if (_formKey.currentState?.validate() ?? false) {
                         Navigator.pushNamed(context, '/permission-setup');
                       }
+                    } : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please agree to the Terms & Privacy Policy to continue.')),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,

@@ -27,6 +27,10 @@ class EchoColors {
   static const Color warning = Color(0xFFF59E0B); // Soft amber
   static const Color neutral = Color(0xFF6B7280); // Soft grey-blue
   
+  // Custom Toggle Colors (from screenshot)
+  static const Color switchOn = Color(0xFF00A3C4); // Bright Cyan
+  static const Color switchOff = Color(0xFF334155); // Slate Gray
+  
   // Glassmorphism overlay - light variant
   static const Color glassLight = Color(0x0FFFFFFF);
 }
@@ -137,18 +141,18 @@ ThemeData buildEchoTheme() {
       fillColor: EchoColors.surfaceSecondary,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: EchoColors.surfaceTertiary),
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: Colors.white24),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: EchoColors.surfaceTertiary),
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: Colors.white12),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(28),
         borderSide: const BorderSide(
-          color: EchoColors.primary,
-          width: 2,
+          color: Color(0xFF00A3C4),
+          width: 1.5,
         ),
       ),
       hintStyle: EchoTypography.bodyMedium.copyWith(

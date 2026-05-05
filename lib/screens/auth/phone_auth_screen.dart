@@ -49,13 +49,17 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                         children: [
                           InkWell(
                             onTap: () => Navigator.of(context).pop(),
-                            borderRadius: BorderRadius.circular(20),
-                            child: const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Icon(
-                                Icons.arrow_back,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
                                 color: Colors.white,
-                                size: 24,
+                                size: 20,
                               ),
                             ),
                           ),
@@ -98,7 +102,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                               const SizedBox(width: 20),
                               const Icon(
                                 Icons.phone_outlined,
-                                color: Colors.white70,
+                                color: Colors.blue,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -112,6 +116,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                                   ),
                                   decoration: InputDecoration(
                                     filled: false,
+                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,

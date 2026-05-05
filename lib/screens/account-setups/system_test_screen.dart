@@ -201,11 +201,11 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0B1C41),
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: Colors.white.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
-                                  Icons.arrow_back,
+                                  Icons.arrow_back_ios_new_rounded,
                                   color: Colors.white,
                                   size: 18,
                                 ),
@@ -316,6 +316,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
                   height: 60,
                   child: ElevatedButton(
                     onPressed: allDone ? () {
+                      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
                     } : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EchoColors.primary,
@@ -334,6 +335,35 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
                     ),
                   ),
                 ),
+                if (allDone) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentStep = 0;
+                        });
+                        _startCurrentStep();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(34),
+                        ),
+                      ),
+                      child: Text(
+                        'Retry Test',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
