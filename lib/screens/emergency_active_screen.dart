@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math';
 import '../theme.dart';
+import '../services/escalation_timer_service.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   final Map<String, dynamic>? threatAnalysis;
@@ -27,6 +29,8 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   late Timer _elapsedTimer;
   int _elapsedSeconds = 0;
   late Stream<String> _aiAnalysisStream;
+  late EscalationTimerService _escalationService;
+  int _currentTier = 1;
 
   // Threat analysis data from Gemma
   late Map<String, dynamic> threatData;
@@ -67,11 +71,37 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
       vsync: this,
     )..repeat();
 
-    // Elapsed timer
+    _timerController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Initialize escalation timer service
+    _escalationService = EscalationTimerService();
+    
+    // Start escalation with callbacks
+    _escalationService.startEscalation(
+      incidentId: widget.emergencyDescription ?? 'emergency_${DateTime.now().millisecondsSinceEpoch}',
+      onTier1Activate: () {
+        print('🎯 Tier 1 Activated - Inner circle notified');
+        setState(() => _currentTier = 1);
+      },
+      onTier2Escalate: () {
+        print('🎯 Tier 2 Escalated - Extended network notified');
+        setState(() => _currentTier = 2);
+      },
+      onTier3Escalate: () {
+        print('🎯 Tier 3 Auto-posted - Echo community feed updated');
+        setState(() => _currentTier = 3);
+      },
+      onTickCallback: (seconds) {
+        setState(() => _elapsedSeconds = seconds);
+      },
+    );
+
+    // Legacy elapsed timer (kept for compatibility)
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _elapsedSeconds++;
-      });
+      // Timer updates now come from escalation service callback
     });
 
     // Simulate Gemma 4 AI analysis stream with real data
@@ -83,7 +113,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   @override
   void dispose() {
     _pulseController.dispose();
+    _timerController.dispose();
     _elapsedTimer.cancel();
+    _escalationService.stopEscalation();
     super.dispose();
   }
 
@@ -405,10 +437,7 @@ Social: Queued for amplification
     );
   }
 
-  // ========================================
-  // NEW WIDGETS FOR DEVELOPER IMPLEMENTATION
-  // ========================================
-
+  
   /// Threat Confidence Gauge
   Widget _buildEmotionGauge() {
     double threatConfidence = confidence;
@@ -511,12 +540,20 @@ Social: Queued for amplification
   }
 
   /// Escalation Timer (Track B - Dev 2)
-  /// Shows 2-tier escalation: Tier 1 (0-30s) → Tier 2
-  /// Developer: Wire EscalationManager FSM stream here
+  /// Shows 3-tier escalation: Tier 1 (T+5s) → Tier 2 (T+60s) → Tier 3 (T+90s)
+  /// Wired to EscalationTimerService with real-time callbacks
   Widget _buildEscalationTimerCard() {
-    // PLACEHOLDER: Developers will replace with EscalationManager stream
-    int secondsUntilTier2 = 18; // Countdown from 30s
-    bool isTier1Active = secondsUntilTier2 > 0;
+    // Get time remaining until next tier escalation
+    int secondsUntilTier2 = 0;
+    bool isTier1Active = _currentTier == 1;
+    bool isTier2Active = _currentTier == 2;
+    bool isTier3Active = _currentTier == 3;
+    
+    if (_currentTier == 1) {
+      secondsUntilTier2 = max(0, 60 - _elapsedSeconds);
+    } else if (_currentTier == 2) {
+      secondsUntilTier2 = max(0, 90 - _elapsedSeconds);
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -561,7 +598,7 @@ Social: Queued for amplification
           ),
           const SizedBox(height: 12),
 
-          // Countdown timer for Tier 2
+          // Countdown timer for Tier 2 (T+60s escalation)
           if (isTier1Active) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -571,7 +608,7 @@ Social: Queued for amplification
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
-                        value: (30 - secondsUntilTier2) / 30,
+                        value: (_elapsedSeconds / 60).clamp(0.0, 1.0),
                         minHeight: 8,
                         backgroundColor: EchoColors.textSecondary
                             .withOpacity(0.1),
@@ -583,7 +620,7 @@ Social: Queued for amplification
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    '${secondsUntilTier2}s',
+                    '${secondsUntilTier2}s until Tier 2',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: EchoColors.warning,
                       fontWeight: FontWeight.w700,
@@ -597,9 +634,52 @@ Social: Queued for amplification
           // Tier 2 Status
           _buildTierRow(
             tier: 'TIER 2',
-            status: isTier1Active ? 'STANDBY' : 'ACTIVATED',
+            status: isTier2Active ? 'ACTIVE' : (isTier1Active ? 'STANDBY' : 'COMPLETED'),
             contacts: '5-10 extended contacts',
-            isActive: !isTier1Active,
+            isActive: isTier2Active,
+            context: context,
+          ),
+          const SizedBox(height: 12),
+
+          // Countdown timer for Tier 3 (T+90s escalation)
+          if (isTier2Active) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: (_elapsedSeconds / 90).clamp(0.0, 1.0),
+                        minHeight: 8,
+                        backgroundColor: EchoColors.textSecondary
+                            .withOpacity(0.1),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          EchoColors.warning,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${max(0, 90 - _elapsedSeconds)}s until Echo Feed',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: EchoColors.warning,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Tier 3 Status
+          _buildTierRow(
+            tier: 'TIER 3',
+            status: isTier3Active ? 'POSTED' : (isTier2Active ? 'PENDING' : 'STANDBY'),
+            contacts: 'Echo community feed',
+            isActive: isTier3Active,
             context: context,
           ),
         ],

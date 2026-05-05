@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/llama_threat_service.dart';
 import '../services/firestore_incident_service.dart';
 import '../services/gemma_decision_engine.dart';
+import '../services/escalation_timer_service.dart';
 
 /// Track C: Gemma 4 Threat Assessment Provider
 /// Week 1: Mocks Google AI Studio
@@ -156,17 +157,29 @@ class GemmaProvider extends ChangeNotifier {
     }
   }
   
-  /// Get contacts to notify based on threat severity
+  /// Get contacts to notify based on current ESCALATION TIER (not threat severity)
+  /// 
+  /// Now integrates with EscalationTimerService to determine which tier is currently active.
+  /// This ensures contacts are only notified at the appropriate escalation level.
+  /// 
+  /// T+5s:  Tier 1 (inner circle) notified
+  /// T+60s: Tier 2 (extended network) notified
+  /// T+90s: Tier 3 (Echo community feed) notified
   Future<List<String>> getContactsToNotify() async {
     if (lastThreatAssessment == null) return [];
     
     try {
       final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
       final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
+      
+      // Get current escalation tier from service (singleton)
+      final escalationService = EscalationTimerService();
+      final currentTier = escalationService.currentTier;
 
       return await _decisionEngine.getContactsToAlert(
         threatType: threatType,
         confidence: confidence,
+        currentTier: currentTier,
       );
     } catch (e) {
       print('❌ Error getting contacts to notify: $e');

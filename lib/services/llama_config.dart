@@ -34,10 +34,10 @@ class LlamaConfig {
   static const double REPEAT_PENALTY = 1.0;
 
   /// Timeout for llama-server responses
-  static const Duration TIMEOUT = Duration(seconds: 300);
+  static const Duration TIMEOUT = Duration(seconds: 30);
 
   /// Health check timeout (longer for ngrok's variable latency)
-  static const Duration HEALTH_CHECK_TIMEOUT_LOCAL = Duration(seconds: 60);
+  static const Duration HEALTH_CHECK_TIMEOUT_LOCAL = Duration(seconds: 30);
 
 
   /// Health check: Is llama-server running?

@@ -22,7 +22,7 @@ class GemmaDecisionEngine {
 
   /// Decision thresholds for threat escalation
   static const Map<String, int> threatConfidenceThresholds = {
-    'kidnapping': 60,     // Escalate at 60% confidence
+    'kidnapping': 90,     // Escalate at 60% confidence
     'assault': 65,        // Escalate at 65% confidence
     'medical': 70,        // Escalate at 70% confidence
     'fire': 85,           // Escalate at 85% confidence
@@ -172,34 +172,39 @@ class GemmaDecisionEngine {
     }
   }
 
-  /// Determine which contacts to alert based on threat severity
-  /// Returns list of contact categories to notify
+  /// Determine which contacts to alert based on CURRENT ESCALATION TIER
+  /// Note: This method is now called by EscalationTimerService at specific intervals
+  /// T+5s: Return Tier 1 only (tier_1_emergency)
+  /// T+60s: Return Tier 2 (tier_2_extended)
+  /// T+90s: Return Tier 3 (tier_3_public)
+  /// 
+  /// IMPORTANT: This method should NOT use confidence to determine tier!
+  /// Tier determination is ONLY the responsibility of EscalationTimerService timing.
+  /// Confidence is used to decide WHETHER to escalate, not WHEN to escalate.
   Future<List<String>> getContactsToAlert({
     required String threatType,
     required double confidence,
+    required int currentTier,
   }) async {
     List<String> contactsToAlert = [];
 
-    // Default: always alert Tier 1 emergency contacts
-    contactsToAlert.add('tier_1_emergency');
+    // Return contacts ONLY for the current tier and below
+    // Tier 1 is default, activated at T+5s
+    if (currentTier >= 1) {
+      contactsToAlert.add('tier_1_emergency');
+    }
 
-    if (confidence > 70) {
+    // Tier 2 extended network, activated at T+60s
+    if (currentTier >= 2) {
       contactsToAlert.add('tier_2_extended');
     }
 
-    if (confidence > 85) {
+    // Tier 3 public/Echo feed, activated at T+90s
+    if (currentTier >= 3) {
       contactsToAlert.add('tier_3_public');
     }
 
-    // Certain threats require immediate higher-tier notification
-    if (threatType == 'kidnapping' && confidence > 60) {
-      contactsToAlert.add('tier_2_extended');
-    }
-
-    if (threatType == 'assault' && confidence > 65) {
-      contactsToAlert.add('tier_2_extended');
-    }
-
+    print('✅ getContactsToAlert(tier=$currentTier) → ${contactsToAlert.toSet().toList()}');
     return contactsToAlert.toSet().toList(); // Remove duplicates
   }
 
