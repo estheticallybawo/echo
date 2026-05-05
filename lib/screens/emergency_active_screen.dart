@@ -1,12 +1,8 @@
 // ignore_for_file: deprecated_member_use, duplicate_ignore, unused_field
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'dart:async';
 import '../theme.dart';
-import '../providers/user_preferences_provider.dart';
-import '../services/firestore_incident_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   final Map<String, dynamic>? threatAnalysis;
@@ -38,17 +34,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   late String threatType;
   late String threatLevel;
 
-  // Auto-posting state tracking
-  bool _isPostingEnabled = true; // Auto-post if consent/settings allow
-  bool _isPosting = false;
-  bool _postSuccess = false;
-  String? _postError;
-  String? _lastIncidentId;
-  int _postTimestamp = 0;
-  
-  // Configuration
-  static const double AUTO_POST_CONFIDENCE_THRESHOLD = 0.70; // 70% confidence minimum
-  final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
+
 
   double _safeConfidenceValue(dynamic value) {
     if (value is num) {
@@ -90,88 +76,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
 
     // Simulate Gemma 4 AI analysis stream with real data
     _aiAnalysisStream = _generateAIAnalysis();
-
-    // 🚀 **PHASE 3A: AUTO-POSTING TRIGGER**
-    // Wire the validated inference path with auto-posting logic
-    _initializeAutoPosting();
   }
 
-  /// Initialize auto-posting flow
-  /// Triggers Firestore logging; Cloud Function handles communityFeed at T+30s
-  Future<void> _initializeAutoPosting() async {
-    final preferences = context.read<UserPreferencesProvider>();
-    _isPostingEnabled = preferences.allowPublicPosts;
 
-    if (!_isPostingEnabled) {
-      _updatePostingState(false, error: 'Auto-post is disabled by your preferences.');
-      return;
-    }
-
-    // Validate threat assessment exists
-    if (threatData.isEmpty || threatData['confidence'] == null) {
-      _updatePostingState(false, error: 'No threat assessment available');
-      return;
-    }
-
-    final confidencePercent = (confidence / 100);
-
-    // Gate 1: Check confidence threshold
-    if (confidencePercent < AUTO_POST_CONFIDENCE_THRESHOLD) {
-      print('⏭️ Confidence ${(confidencePercent * 100).toStringAsFixed(0)}% below auto-post threshold (${AUTO_POST_CONFIDENCE_THRESHOLD * 100})%');
-      _updatePostingState(false);
-      return;
-    }
-
-    print('✅ Threat confidence ${(confidencePercent * 100).toStringAsFixed(0)}% meets auto-post threshold');
-
-    // Log to Firestore - Cloud Function will create communityFeed at T+30s
-    await _logThreatToFirestore();
-  }
-
-  /// Log threat assessment to Firestore before posting
-  /// This ensures we have an audit trail and incident ID before going public
-  Future<void> _logThreatToFirestore() async {
-    try {
-      setState(() => _isPosting = true);
-
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final threatLevel = (threatData['threatLevel'] ?? 'HIGH').toString().toUpperCase();
-      final threatCategory = (threatData['threat'] ?? 'unknown_threat').toString();
-      final analysisJson = threatData.toString();
-      final location = widget.userLocation ?? 'Location not available';
-
-      // Log incident to Firestore
-      _lastIncidentId = await _firestoreService.logIncident(
-        userId: user.uid,
-        actionType: 'emergency_auto_post',
-        contactId: user.email ?? 'unknown',
-        location: location,
-        threatLevel: threatLevel,
-        threatCategory: threatCategory,
-        gemmaAnalysis: analysisJson,
-      );
-
-      print('✅ Incident logged to Firestore: $_lastIncidentId');
-    } catch (e) {
-      print('❌ Firestore logging failed: $e');
-      _updatePostingState(false, error: 'Failed to log incident: $e');
-    }
-  }
-
-  /// Update posting state and rebuild UI
-  void _updatePostingState(bool success, {String? error}) {
-    if (mounted) {
-      setState(() {
-        _isPosting = false;
-        _postSuccess = success;
-        _postError = error;
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -234,10 +141,6 @@ Social: Queued for amplification
               // Gemma 4 AI Analysis Card
               _buildAIAnalysisCard(),
               const SizedBox(height: 24),
-
-              // Social Media Post Status (Track C)
-              _buildSocialPostStatus(),
-              const SizedBox(height: 32),
 
               // Cancel Button
               _buildCancelButton(),
@@ -770,251 +673,5 @@ Social: Queued for amplification
     );
   }
 
-  /// Social Media Post Status (Track C - Dev 3)
-  /// Shows auto-post confirmation to X/social media
-  /// **PHASE 3: WIRED TO REAL AUTO-POSTING FLOW**
-  /// Shows real status: pending → success/error
-  Widget _buildSocialPostStatus() {
-    // Show pending state while posting
-    if (_isPosting) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: EchoColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: EchoColors.primary.withOpacity(0.3),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(EchoColors.primary),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Publishing Emergency Alert',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: EchoColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Logging incident and posting to social media...',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: EchoColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
-    // Show error state
-    if (_postError != null) {
-      final isPreferenceError = _postError!.contains('disabled by your preferences');
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: EchoColors.warning.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: EchoColors.warning.withOpacity(0.3),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.error_outline, color: EchoColors.warning, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  isPreferenceError ? 'Auto-Post Disabled' : 'Auto-Post Failed',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: EchoColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _postError ?? 'Unknown error',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: EchoColors.warning,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isPreferenceError
-                  ? 'Enable public posting in preferences to allow automatic posting.'
-                  : 'Manual posting may be required. Emergency services have been notified.',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: EchoColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Show success state
-    if (_postSuccess) {
-      final postTime = DateTime.fromMillisecondsSinceEpoch(_postTimestamp);
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: EchoColors.success.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: EchoColors.success.withOpacity(0.3),
-            width: 2,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.check_circle, color: EchoColors.success, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Emergency Alert Posted',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: EchoColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Post preview box
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: EchoColors.textSecondary.withOpacity(0.1),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '🚨 EMERGENCY ALERT',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: EchoColors.warning,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Threat: ${threatType.toUpperCase()} | Confidence: ${(confidence).toStringAsFixed(0)}%',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: EchoColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Posted to X • Emergency services notified • Help needed',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: EchoColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Post metadata
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule,
-                  color: EchoColors.textTertiary,
-                  size: 16,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Posted ${postTime.toString().substring(11, 16)}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: EchoColors.textTertiary,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'Incident: ${_lastIncidentId?.substring(0, 8) ?? "—"}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: EchoColors.success,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Show default state (confidence below threshold)
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: EchoColors.surfaceSecondary,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: EchoColors.textSecondary.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, color: EchoColors.textSecondary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Social Media Status',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: EchoColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Confidence level (${(confidence).toStringAsFixed(0)}%) is below auto-post threshold (70%).',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: EchoColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Emergency services have been notified. You can manually post if needed.',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: EchoColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -53,7 +53,7 @@ class UserProfileService {
         'onboarding_completed': true,
         'created_at': FieldValue.serverTimestamp(),
         'last_updated': FieldValue.serverTimestamp(),
-        'threat_threshold': 'medium', // User's default threat sensitivity
+        'threat_threshold': 'none', // User's default threat sensitivity
         'auto_escalate_enabled': true, // Auto-escalate to Tier 3 if true
         'notification_preferences': {
           'sms_alerts': true,

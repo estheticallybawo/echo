@@ -197,7 +197,7 @@ class _OnboardingScreen extends StatelessWidget {
                               ],
                             ),
                             child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
+                              onPressed: () => Navigator.of(context).pushReplacementNamed('/profile-setup'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,

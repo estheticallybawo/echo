@@ -38,6 +38,7 @@ flutter:
     - assets/icon/
     - assets/onboarding/
     - assets/splash/
+    - .env
   
   fonts:
     - family: Poppins

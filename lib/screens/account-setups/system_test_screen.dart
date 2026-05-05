@@ -102,8 +102,8 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
           'Respond with JSON: {"threat":"test","confidence":50}';
       final warmupResult = await _gemmaService.assessThreat(
         warmupPrompt,
-        maxTokens: 60,
-        timeout: const Duration(seconds: 45),
+        maxTokens: 90,
+        timeout: const Duration(seconds: 90),
       );
       warmupStopwatch.stop();
 
@@ -137,8 +137,8 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
           'Drill: Someone following me. Threat? Respond with JSON only.';
       final drillResult = await _gemmaService.assessThreat(
         drillInput,
-        maxTokens: 80,
-        timeout: const Duration(seconds: 45),
+        maxTokens: 90,
+        timeout: const Duration(seconds: 90),
       );
       inferenceStopwatch.stop();
 

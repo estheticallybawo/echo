@@ -9,7 +9,7 @@ class LlamaThreatService {
       'threat, confidence, threatLevel, action, summary, analyzedSituation. '
       'No markdown, no explanation.';
 
-  static const Duration _requestTimeout = Duration(seconds: 12);
+  static const Duration _requestTimeout = Duration(seconds: 30);
 
   static const List<String> _oneChanceSignals = [
     'one chance',
@@ -227,7 +227,7 @@ class LlamaThreatService {
   /// Calls llama.cpp server for threat assessment
   Future<Map<String, dynamic>> assessThreat(
     String userInput, {
-    int maxTokens = 56,
+    int maxTokens = 30,
     Duration timeout = _requestTimeout,
   }) async {
     try {
@@ -309,7 +309,7 @@ class LlamaThreatService {
     }
   }
 
-  /// Alias for assessThreat - used by SocialMediaPostingService
+  /// Alias for assessThreat - wrapper for threat analysis
   Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
     return assessThreat(audioContext);
   }

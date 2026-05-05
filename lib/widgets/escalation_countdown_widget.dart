@@ -54,7 +54,6 @@ class _EscalationCountdownWidgetState extends State<EscalationCountdownWidget>
       incidentId: widget.incidentId,
       onTier1Activate: widget.onTier1Activate,
       onTier2Escalate: widget.onTier2Escalate,
-      onTier1Nudge: widget.onTier1Nudge,
       onTier3Escalate: widget.onTier3Escalate,
     );
 

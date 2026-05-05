@@ -5,9 +5,9 @@ import 'firestore_incident_service.dart';
 
 /// Track C: Escalation Timer Service
 /// Manages multi-tier escalation countdown (0-120+ seconds)
-/// T+60s → Tier 2 escalation check
-/// T+90s → Follow-up nudge to Tier 1
-/// T+120s → Tier 3 auto-post to X
+/// T+5s → Tier 1 SMS alert to inner circle
+/// T+60s → Tier 2 escalation check (extended network)
+/// T+90s → Tier 3 auto-post to Echo community feed
 class EscalationTimerService {
   static final EscalationTimerService _instance = EscalationTimerService._internal();
 
@@ -25,8 +25,6 @@ class EscalationTimerService {
   bool _isRunning = false;
 
   // Escalation tracking
-  bool _tier1Confirmed = false;
-  bool _tier2Confirmed = false;
   String? _currentIncidentId;
 
   // Public getters
@@ -46,17 +44,15 @@ class EscalationTimerService {
   // Callbacks
   VoidCallback? onTierChanged;
   Function(int seconds)? onTick;
-  Function()? onTier1Activate; // T+5s: Send Tier 1 WhatsApp
-  Function()? onTier2Escalate; // T+30s: Escalate to Tier 2
-  Function()? onTier1Nudge;    // T+60s: Send follow-up nudge
-  Function()? onTier3Escalate; // T+90s: Auto-post to X
+  Function()? onTier1Activate; // T+5s: Send SMS to inner circle
+  Function()? onTier2Escalate; // T+60s: Escalate to Tier 2 (extended network)
+  Function()? onTier3Escalate; // T+90s: Auto-post to Echo community feed
 
   /// Start escalation countdown (called after emergency activation)
   void startEscalation({
     required String incidentId,
     required VoidCallback onTier1Activate,
     required VoidCallback onTier2Escalate,
-    required VoidCallback onTier1Nudge,
     required VoidCallback onTier3Escalate,
     Function(int seconds)? onTickCallback,
   }) {
@@ -67,21 +63,17 @@ class EscalationTimerService {
 
     _currentIncidentId = incidentId;
     _secondsElapsed = 0;
-    _tier1Confirmed = false;
-    _tier2Confirmed = false;
     _isRunning = true;
 
     onTick = onTickCallback;
     this.onTier1Activate = onTier1Activate;
     this.onTier2Escalate = onTier2Escalate;
-    this.onTier1Nudge = onTier1Nudge;
     this.onTier3Escalate = onTier3Escalate;
 
     print('⏱️ Escalation timer started ($_currentIncidentId)');
-    print('   T+5s:  TIER 1 ACTIVATION - Send WhatsApp to inner circle');
-    print('   T+30s: Tier 1 checkpoint - Escalate to Tier 2 if no confirmation');
-    print('   T+60s: Tier 1 follow-up nudge');
-    print('   T+90s: Tier 3 auto-escalation - X auto-post');
+    print('   T+5s:  TIER 1 ACTIVATION - Send SMS to inner circle');
+    print('   T+60s: TIER 2 ESCALATION - Escalate to extended network');
+    print('   T+90s: TIER 3 AUTO-POST - Echo community feed auto-post');
 
     // Start 1-second tick timer
     _escalationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
@@ -90,27 +82,21 @@ class EscalationTimerService {
       // Callback for UI updates
       onTick?.call(_secondsElapsed);
 
-      // Tier 1 activation (T+5s) - Send WhatsApp to inner circle
+      // Tier 1 activation (T+5s) - Send SMS to inner circle
       if (_secondsElapsed == 5) {
-        print('⏰ T+5s: TIER 1 ACTIVATION - Sending WhatsApp to inner circle');
+        print('⏰ T+5s: TIER 1 ACTIVATION - Sending SMS to inner circle');
         this.onTier1Activate?.call();
       }
 
-      // Tier 1 checkpoint (T+30s) - Escalate to Tier 2 if no confirmation
-      if (_secondsElapsed == 30 && !_tier1Confirmed) {
-        print('⏰ T+30s: Tier 1 checkpoint - No confirmation, escalating to Tier 2');
+      // Tier 2 escalation (T+60s) - Escalate to extended network
+      if (_secondsElapsed == 60) {
+        print('⏰ T+60s: TIER 2 ESCALATION - Escalating to extended network');
         this.onTier2Escalate?.call();
       }
 
-      // Tier 1 nudge (T+60s) - Send follow-up message
-      if (_secondsElapsed == 60 && !_tier1Confirmed) {
-        print('⏰ T+60s: Sending follow-up nudge to Tier 1 contacts');
-        this.onTier1Nudge?.call();
-      }
-
-      // Tier 3 checkpoint (T+90s) - Auto-post to X
-      if (_secondsElapsed == 90 && !_tier1Confirmed && !_tier2Confirmed) {
-        print('⏰ T+90s: Tier 3 auto-escalation (no confirmation from Tier 1 or 2)');
+      // Tier 3 auto-post to Echo feed (T+90s)
+      if (_secondsElapsed == 90) {
+        print('⏰ T+90s: TIER 3 AUTO-POST - Posting to Echo community feed');
         await _handleTier3Escalation();
         this.onTier3Escalate?.call();
       }
@@ -123,38 +109,28 @@ class EscalationTimerService {
     });
   }
 
-  /// Mark contact action confirmed (stops escalation)
-  void confirmContactAction() {
+  /// Stop escalation manually (user pressed "I am safe")
+  void confirmSafety() {
     if (!_isRunning) return;
 
-    if (_secondsElapsed < 60) {
-      _tier1Confirmed = true;
-      print('✅ T+${_secondsElapsed}s: Tier 1 contact confirmed - stopping escalation');
-    } else if (_secondsElapsed < 120) {
-      _tier2Confirmed = true;
-      print('✅ T+${_secondsElapsed}s: Tier 2 contact confirmed - stopping escalation');
-    }
-
-    // Stop timer if any contact confirms
-    if (_tier1Confirmed || _tier2Confirmed) {
-      stopEscalation();
-    }
+    print('✅ T+${_secondsElapsed}s: User confirmed safety - stopping escalation');
+    stopEscalation();
   }
 
-  /// Handle Tier 3 escalation (prepare for X auto-post)
+  /// Handle Tier 3 escalation (auto-post to Echo community feed)
   Future<void> _handleTier3Escalation() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // Update incident in Firestore to mark Tier 3 escalation
+      // Update incident in Firestore to mark Tier 3 escalation and auto-post to Echo feed
       if (_currentIncidentId != null) {
         await _firestoreService.updateIncidentStatus(
           userId: user.uid,
           incidentId: _currentIncidentId!,
-          escalationStatus: 'TIER_3_ESCALATION',
+          escalationStatus: 'TIER_3_ECHO_FEED_AUTO_POST',
         );
-        print('✅ Tier 3 marker written to Firestore');
+        print('✅ Tier 3: Auto-posted to Echo community feed');
       }
     } catch (e) {
       print('❌ Error in Tier 3 escalation: $e');
@@ -174,8 +150,6 @@ class EscalationTimerService {
 
     // Reset state
     _secondsElapsed = 0;
-    _tier1Confirmed = false;
-    _tier2Confirmed = false;
     _currentIncidentId = null;
   }
 
@@ -192,11 +166,11 @@ class EscalationTimerService {
 
     switch (currentTier) {
       case 1:
-        return 'Tier 1: Sending to inner circle (${60 - _secondsElapsed}s until escalation)';
+        return 'Tier 1: SMS sent to inner circle (${60 - _secondsElapsed}s until Tier 2)';
       case 2:
-        return 'Tier 2: Extended network alerted (${120 - _secondsElapsed}s until X post)';
+        return 'Tier 2: Extended network alerted (${90 - _secondsElapsed}s until Echo feed post)';
       case 3:
-        return 'Tier 3: ACTIVE - Location now public on X';
+        return 'Tier 3: ACTIVE - Posted to Echo community feed';
       default:
         return 'Unknown tier';
     }
@@ -208,8 +182,6 @@ class EscalationTimerService {
       'isRunning': _isRunning,
       'secondsElapsed': _secondsElapsed,
       'currentTier': currentTier,
-      'tier1Confirmed': _tier1Confirmed,
-      'tier2Confirmed': _tier2Confirmed,
       'progressPercentage': progressPercentage,
       'statusMessage': getStatusMessage(),
       'formattedTime': getFormattedTime(),
