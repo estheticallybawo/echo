@@ -43,6 +43,12 @@
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Echo needs your location to share it with emergency contacts when you are in danger.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Echo needs microphone access to listen for emergency phrases and record evidence.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Echo needs access to your contacts so you can select emergency contacts to notify.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 </dict>

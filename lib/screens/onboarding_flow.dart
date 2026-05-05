@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element_parameter, camel_case_types
 
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../theme.dart';
 
 class OnboardingFlow extends StatefulWidget {
@@ -13,6 +14,15 @@ class OnboardingFlow extends StatefulWidget {
 class _OnboardingFlowState extends State<OnboardingFlow> {
   late PageController _pageController;
   int _currentPage = 0;
+  bool _allPermissionsGranted = false;
+
+  void _updatePermissionStatus(bool granted) {
+    if (_allPermissionsGranted != granted) {
+      setState(() {
+        _allPermissionsGranted = granted;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -84,7 +94,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               },
               children: [
                 _OnboardingPage1_HinyStory(),
-                _OnboardingPage2_Permissions(),
+                _OnboardingPage2_Permissions(onStatusChanged: _updatePermissionStatus),
                 _OnboardingPage3_VoicePhrase(),
                 _OnboardingPage4_InnerCircle(),
                 _OnboardingPage5_AutoPost(),
@@ -109,7 +119,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 if (_currentPage > 0) const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _goToNextPage,
+                    onPressed: (_currentPage == 1 && !_allPermissionsGranted) ? null : _goToNextPage,
                     child: Text(_currentPage == 6 ? 'Complete' : 'Next'),
                   ),
                 ),
@@ -179,7 +189,8 @@ class _OnboardingPage1_HinyStory extends StatelessWidget {
 
 /// Page 2: Permissions
 class _OnboardingPage2_Permissions extends StatefulWidget {
-  const _OnboardingPage2_Permissions({super.key});
+  final Function(bool) onStatusChanged;
+  const _OnboardingPage2_Permissions({super.key, required this.onStatusChanged});
 
   @override
   State<_OnboardingPage2_Permissions> createState() =>
@@ -194,6 +205,57 @@ class _OnboardingPage2_PermissionsState
     'Contacts': false,
     'Notifications': false,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialStatuses();
+  }
+
+  Future<void> _checkInitialStatuses() async {
+    final location = await Permission.location.isGranted;
+    final microphone = await Permission.microphone.isGranted;
+    final contacts = await Permission.contacts.isGranted;
+    final notifications = await Permission.notification.isGranted;
+
+    if (mounted) {
+      setState(() {
+        permissions['Location'] = location;
+        permissions['Microphone'] = microphone;
+        permissions['Contacts'] = contacts;
+        permissions['Notifications'] = notifications;
+      });
+      _notifyParent();
+    }
+  }
+
+  void _notifyParent() {
+    // Check if ALL permissions are true
+    final allGranted = permissions.values.every((v) => v == true);
+    widget.onStatusChanged(allGranted);
+  }
+
+  Future<void> _handlePermissionChange(String key, bool value) async {
+    if (!value) return; // OS doesn't allow un-granting
+
+    Permission? permission;
+    switch (key) {
+      case 'Location': permission = Permission.location; break;
+      case 'Microphone': permission = Permission.microphone; break;
+      case 'Contacts': permission = Permission.contacts; break;
+      case 'Notifications': permission = Permission.notification; break;
+    }
+
+    if (permission != null) {
+      final status = await permission.request();
+      if (mounted) {
+        setState(() {
+          permissions[key] = status.isGranted;
+        });
+        _notifyParent();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -234,11 +296,7 @@ class _OnboardingPage2_PermissionsState
                     ),
                     Switch(
                       value: permissions[entry.key]!,
-                      onChanged: (value) {
-                        setState(() {
-                          permissions[entry.key] = value;
-                        });
-                      },
+                      onChanged: (value) => _handlePermissionChange(entry.key, value),
                       activeThumbColor: EchoColors.primary,
                     ),
                   ],
