@@ -197,7 +197,7 @@ class _OnboardingScreen extends StatelessWidget {
                               ],
                             ),
                             child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).pushReplacementNamed('/profile-setup'),
+                              onPressed: () => _showAuthBottomSheet(context),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,

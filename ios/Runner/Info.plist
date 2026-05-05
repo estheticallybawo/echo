@@ -45,6 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access for voice activation and audio capture.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs speech recognition to detect the safety phrase.</string>
 	<!-- URL Schemes for deep linking -->
 	<key>CFBundleURLTypes</key>
 	<array>
