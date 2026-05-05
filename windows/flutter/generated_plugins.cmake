@@ -3,7 +3,11 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+<<<<<<< HEAD
   firebase_core
+=======
+  permission_handler_windows
+>>>>>>> 6b741f3 (- Resolve git merge conflicts in main.dart and pubspec.yaml)
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

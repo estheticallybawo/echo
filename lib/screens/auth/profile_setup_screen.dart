@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'permissions_setup_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -170,7 +171,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                   child: ElevatedButton(
                     onPressed: () {
-                      
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (ctx) => const PermissionsSetupScreen(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
