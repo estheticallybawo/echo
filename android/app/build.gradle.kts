@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.echo"
+    namespace = "com.echo.hi_gemma"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.echo"
+        applicationId = "com.echo.hi_gemma"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

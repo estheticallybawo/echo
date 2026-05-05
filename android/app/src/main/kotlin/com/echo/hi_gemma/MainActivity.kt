@@ -1,4 +1,4 @@
-package com.example.echo
+package com.echo.hi_gemma
 
 import io.flutter.embedding.android.FlutterActivity
 
