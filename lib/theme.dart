@@ -1,43 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Echo Brand Colors - Light Mode, Soft Blue & Cyan
+
 class EchoColors {
-  // Light mode backgrounds - soft, calm
+  
   static const Color surface = Color(0xFFF8FBFF); // Very soft blue-white
   static const Color surfaceSecondary = Color(0xFFF0F7FF); // Light blue tint
   static const Color surfaceTertiary = Color(0xFFE8F1FF); // Slightly more blue
   
-  // Text colors - dark navy for contrast
+  
   static const Color textPrimary = Color(0xFF1A2332); // Dark navy
   static const Color textSecondary = Color(0xFF4A5F7F); // Medium blue-grey
   static const Color textTertiary = Color(0xFF8A9FB3); // Light blue-grey
   
-  // Primary accent - Teal for calm reassurance with better contrast
+  
   static const Color primary = Color(0xFF0891B2); // Professional teal
   static const Color primaryLight = Color(0xFF06B6D4); // Lighter teal
   static const Color primaryDark = Color(0xFF0D7377); // Darker teal
   
-  // Secondary - Soft purple/lavender
+  
   static const Color secondary = Color(0xFF8B5CF6); // Soft purple
   static const Color secondaryLight = Color(0xFFA78BFA); // Lighter purple
   
-  // Status colors - all soft blue variants (no red)
+  
   static const Color success = Color(0xFF10B981); // Soft emerald
   static const Color warning = Color(0xFFF59E0B); // Soft amber
   static const Color neutral = Color(0xFF6B7280); // Soft grey-blue
   
-  // Custom Toggle Colors (from screenshot)
+  
   static const Color switchOn = Color(0xFF00A3C4); // Bright Cyan
   static const Color switchOff = Color(0xFF334155); // Slate Gray
   
-  // Glassmorphism overlay - light variant
+  
   static const Color glassLight = Color(0x0FFFFFFF);
 }
 
-/// Echo Typography Scale - Funnel Sans across the board
+
 class EchoTypography {
-  // Display - Brand identity with Poppins
+  
   static TextStyle displayLarge = GoogleFonts.poppins(
     fontSize: 32,
     fontWeight: FontWeight.w700,
@@ -52,7 +52,7 @@ class EchoTypography {
     height: 1.3,
   );
   
-  // Headings - Poppins, friendly but strong
+  
   static TextStyle headingLarge = GoogleFonts.poppins(
     fontSize: 20,
     fontWeight: FontWeight.w600,
@@ -67,7 +67,7 @@ class EchoTypography {
     height: 1.5,
   );
   
-  // Body text - Poppins, warm and readable
+  
   static TextStyle bodyLarge = GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w400,
@@ -89,7 +89,7 @@ class EchoTypography {
     letterSpacing: 0.03,
   );
   
-  // Labels - Poppins, clear and accessible
+  
   static TextStyle labelLarge = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.w600,

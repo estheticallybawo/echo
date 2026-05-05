@@ -1,8 +1,4 @@
-import 'package:json_annotation/json_annotation.dart';
 
-part 'contact.g.dart';
-
-@JsonSerializable()
 class Contact {
   final String id;
   final String name;
@@ -16,6 +12,21 @@ class Contact {
     required this.tier,
   });
 
-  factory Contact.fromJson(Map<String, dynamic> json) => _$ContactFromJson(json);
-  Map<String, dynamic> toJson() => _$ContactToJson(this);
+  factory Contact.fromJson(Map<String, dynamic> json) {
+    return Contact(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      phoneNumber: json['phoneNumber'] as String,
+      tier: json['tier'] as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'phoneNumber': phoneNumber,
+      'tier': tier,
+    };
+  }
 }

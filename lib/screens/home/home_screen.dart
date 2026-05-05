@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _elapsed = 0;
   double _voiceLevel = 0.0;
   int _navIndex = 0;
-  bool _showTutorial = true; // Show on first load
+  bool _showTutorial = true; 
   int _tutorialStep = 1;
 
   Timer? _sosTimer;
@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // ── SOS hold (uses Listener — works inside ScrollView) ──
+
   void _onSOSDown(PointerEvent e) {
     if (_mode == _EchoMode.active) return;
     HapticFeedback.heavyImpact();
@@ -107,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() { _mode = _EchoMode.active; _elapsed = 0; });
 
     
-    final result = await Navigator.pushNamed(context, '/emergency-active');
+    final result = await Navigator.pushNamed(context, '/threat-analysis-result');
 
     if (result == true) {
       _cancelSOS();
@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() { _mode = _EchoMode.standby; _elapsed = 0; });
   }
 
-  // ── Voice hold ──
+
   void _startVoice(PointerEvent e) {
     HapticFeedback.mediumImpact();
     setState(() { _mode = _EchoMode.voice; _voiceLevel = 0; });
@@ -141,9 +141,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return '$m:$s';
   }
 
-  // ══════════════════════════════════════════════════════════
-  //  WIDGETS
-  // ══════════════════════════════════════════════════════════
+
 
   Widget _buildSOSButton() {
     final isActive = _mode == _EchoMode.active;
@@ -671,9 +669,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
 
-  // ══════════════════════════════════════════════════════════
-  //  BUILD
-  // ══════════════════════════════════════════════════════════
+
 
   Widget _buildActionCards() {
     return Row(

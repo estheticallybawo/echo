@@ -40,10 +40,10 @@ class _MainScaffoldState extends State<MainScaffold> {
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: const Color(0xFF02091A),
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF2563EB),
-          unselectedItemColor: Colors.white.withOpacity(0.4),
+          selectedItemColor: const Color(0xFF00D4FF),
+          unselectedItemColor: Colors.white,
           selectedLabelStyle: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700),
-          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
+          unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11, color: Colors.white),
           iconSize: 28,
           elevation: 0,
           items: const [

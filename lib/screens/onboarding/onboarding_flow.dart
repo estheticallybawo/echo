@@ -14,10 +14,10 @@ class OnboardingState extends ChangeNotifier {
   double get audioLevel => _audioLevel;
 
   OnboardingState() {
-    _simulateAudioInput();
+    _monitorAudioLevels();
   }
 
-  void _simulateAudioInput() async {
+  void _monitorAudioLevels() async {
     while (true) {
       await Future.delayed(const Duration(milliseconds: 200));
       _audioLevel = 0.3 + (0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000);

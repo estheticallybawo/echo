@@ -15,12 +15,16 @@ import 'screens/home/activity_screen.dart';
 import 'screens/home/settings_screen.dart';
 import 'screens/home/profile_screen.dart';
 import 'screens/home/notification_screen.dart';
+import 'screens/home/threat_analysis_result_screen.dart';
 import 'screens/home/terms_privacy_screen.dart';
+
 import 'screens/onboarding/onboarding_flow.dart';
 
 import 'package:provider/provider.dart';
 import 'providers/escalation_provider.dart';
 import 'providers/theme_provider.dart';
+import 'theme.dart';
+import 'screens/onboarding/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +66,8 @@ class EchoApp extends StatelessWidget {
         '/activity': (context) => const ActivityScreen(),
         '/notifications': (context) => const NotificationScreen(),
         '/terms-privacy': (context) => const TermsPrivacyScreen(),
+        '/threat-analysis-result': (context) => const ThreatAnalysisResultScreen(),
+
         '/settings': (context) => const SettingsScreen(),
         '/profile': (context) => const ProfileScreen(),
       },

@@ -200,7 +200,7 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
                         ),
                         _buildPermissionItem(
                           icon: Icons.vibration_rounded,
-                          title: 'Panic Shake',
+                          title: 'Panic Shake Your Phone',
                           subtitle:
                               'Trigger SOS by aggressively shaking the phone. Lets you activate help without looking.',
                           enabled: shakeEnabled,
@@ -209,7 +209,7 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
                         ),
                         _buildPermissionItem(
                           icon: Icons.volume_up_rounded,
-                          title: 'Volume Long Press',
+                          title: 'Long Press Volume Button',
                           subtitle:
                               'Trigger SOS by holding any volume button. Perfect for discreet activation in your pocket.',
                           enabled: volumeLongPressEnabled,

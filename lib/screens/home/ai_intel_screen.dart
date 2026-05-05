@@ -43,7 +43,7 @@ class _AiIntelScreenState extends State<AiIntelScreen> with SingleTickerProvider
         child: SafeArea(
           child: Column(
             children: [
-              // Standard Header
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
@@ -91,7 +91,7 @@ class _AiIntelScreenState extends State<AiIntelScreen> with SingleTickerProvider
                                 EchoColors.primary.withOpacity(0.1),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(28),
+
                             border: Border.all(color: EchoColors.switchOn.withOpacity(0.4)),
                             boxShadow: [
                               BoxShadow(color: EchoColors.switchOn.withOpacity(0.1), blurRadius: 30, spreadRadius: 2),
