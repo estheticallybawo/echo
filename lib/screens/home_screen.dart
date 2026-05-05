@@ -7,6 +7,9 @@ import '../theme.dart';
 import '../models/community_feed_model.dart';
 import '../widgets/community_feed_section.dart';
 import '../services/llama_threat_service.dart';
+import '../services/audio_record_service.dart';
+import '../services/speech_transcription_service.dart';
+import '../services/voice_recognition_service.dart';
 import 'emergency_active_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,7 +24,15 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _orbController;
   late AnimationController _pulseController;
   bool isListening = true; // Track listening state
+  bool _isAudioStackReady = false;
+  bool _isBusyTogglingListening = false;
+  bool _isHandlingVoiceActivation = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AudioRecorderService _audioRecorder = AudioRecorderService();
+  final SpeechTranscriptionService _speechTranscriber =
+      SpeechTranscriptionService();
+  late VoiceRecognitionService _voiceRecognition;
+  static const String _fallbackSafetyPhrase = 'echo help now';
 
   @override
   void initState() {
@@ -38,6 +49,198 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 2500),
       vsync: this,
     )..repeat(reverse: true);
+
+    _voiceRecognition = VoiceRecognitionService(
+      safetyPhrase: _fallbackSafetyPhrase,
+    );
+
+    _initializeAudioStack();
+  }
+
+  Future<void> _initializeAudioStack() async {
+    final recorderReady = await _audioRecorder.initialize();
+    final recognizerReady = await _voiceRecognition.initialize(
+      onActivation: _handleVoiceActivation,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isAudioStackReady = recorderReady && recognizerReady;
+    });
+
+    if (_isAudioStackReady && isListening) {
+      await _enableBackgroundListening(showFeedback: false);
+    }
+  }
+
+  Future<void> _handleVoiceActivation(VoiceActivationEvent event) async {
+    if (_isHandlingVoiceActivation || !mounted) return;
+    _isHandlingVoiceActivation = true;
+
+    await _voiceRecognition.pauseListening();
+
+    try {
+      final audioData = _audioRecorder.buffer.getAudio(
+        maxDuration: const Duration(seconds: 10),
+      );
+
+      final transcription = await _speechTranscriber.transcribeAndAnalyse(
+        audioData: audioData,
+        sampleRateHz: AudioBuffer.sampleRateHz,
+        context: {'activation_phrase': event.phraseDetected},
+      );
+
+      if (!mounted) return;
+
+      final threatAnalysis = {
+        'threat': transcription.distressLevel.name,
+        'confidence': (transcription.confidence * 100).clamp(0, 100),
+        'threatLevel': transcription.distressLevel.name,
+        'summary': transcription.audioDescription,
+      };
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Safety phrase detected (${event.phraseDetected}). Emergency activated.',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => EmergencyActiveScreen(
+            threatAnalysis: threatAnalysis,
+            emergencyDescription: 'Voice activation trigger',
+            userLocation: 'Current Location',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Voice activation failed: $error')),
+        );
+      }
+    } finally {
+      _isHandlingVoiceActivation = false;
+      if (mounted && isListening) {
+        await _voiceRecognition.resumeListening();
+      }
+    }
+  }
+
+  Future<void> _enableBackgroundListening({bool showFeedback = true}) async {
+    if (!_isAudioStackReady || _isBusyTogglingListening) return;
+
+    setState(() {
+      _isBusyTogglingListening = true;
+    });
+
+    try {
+      await _audioRecorder.startRecording();
+      if (_voiceRecognition.status == VoiceRecognitionStatus.paused) {
+        await _voiceRecognition.resumeListening();
+      } else {
+        await _voiceRecognition.startListening();
+      }
+
+      if (!mounted) return;
+      setState(() {
+        isListening = true;
+      });
+
+      if (showFeedback) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Background listening enabled. Audio monitoring is active.',
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not enable listening: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusyTogglingListening = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _disableBackgroundListening({bool showFeedback = true}) async {
+    if (!_isAudioStackReady || _isBusyTogglingListening) return;
+
+    setState(() {
+      _isBusyTogglingListening = true;
+    });
+
+    try {
+      await _voiceRecognition.pauseListening();
+      await _audioRecorder.stopRecording();
+
+      if (!mounted) return;
+      setState(() {
+        isListening = false;
+      });
+
+      if (showFeedback) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Background listening disabled.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not disable listening: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusyTogglingListening = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleBackgroundListening() async {
+    if (!_isAudioStackReady) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Audio stack is still initializing. Please try again in a moment.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (isListening) {
+      await _disableBackgroundListening();
+    } else {
+      await _enableBackgroundListening();
+    }
+  }
+
+  @override
+  void dispose() {
+    _orbController.dispose();
+    _pulseController.dispose();
+    _voiceRecognition.dispose();
+    _audioRecorder.dispose();
+    _speechTranscriber.dispose();
+    super.dispose();
   }
 
   /// Convert Firestore document to CommunityFeedEntry
@@ -308,20 +511,7 @@ class _HomeScreenState extends State<HomeScreen>
             // Toggle Button - Click to change state
             GestureDetector(
               onTap: () {
-                setState(() {
-                  isListening = !isListening;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isListening 
-                        ? 'Background listening enabled - Gemma is now listening' 
-                        : 'Background listening disabled - Gemma is no longer listening',
-                    ),
-                    duration: const Duration(seconds: 2),
-                    backgroundColor: EchoColors.surface,
-                  ),
-                );
+                _toggleBackgroundListening();
               },
               child: Container(
                 height: 50,
@@ -337,13 +527,21 @@ class _HomeScreenState extends State<HomeScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      isListening ? Icons.mic : Icons.mic_off,
+                      _isBusyTogglingListening
+                          ? Icons.sync
+                          : isListening
+                          ? Icons.mic
+                          : Icons.mic_off,
                       color: Colors.white,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isListening ? 'Turn Off Listening' : 'Enable Background Listening',
+                      _isBusyTogglingListening
+                          ? 'Updating...'
+                          : isListening
+                          ? 'Turn Off Listening'
+                          : 'Enable Background Listening',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -574,15 +772,16 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Show dialog to capture emergency description
   void _showEmergencyDescriptionDialog() {
+    final parentContext = context;
     final TextEditingController descriptionController = TextEditingController();
     final gemmaService = LlamaThreatService();
     bool isAnalyzing = false;
 
     showDialog(
-      context: context,
+      context: parentContext,
       barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, dialogSetState) => AlertDialog(
           title: const Text('Describe Your Emergency'),
           content: SingleChildScrollView(
             child: Column(
@@ -591,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 Text(
                   'What\'s happening? Be specific - this helps Gemma assess the threat accurately.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
                     color: EchoColors.textSecondary,
                   ),
                 ),
@@ -618,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen>
                         const SizedBox(height: 12),
                         Text(
                           'Gemma is analyzing...',
-                          style: Theme.of(context).textTheme.labelSmall,
+                          style: Theme.of(dialogContext).textTheme.labelSmall,
                         ),
                       ],
                     ),
@@ -629,31 +828,36 @@ class _HomeScreenState extends State<HomeScreen>
           actions: [
             if (!isAnalyzing)
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Cancel'),
               ),
             if (!isAnalyzing)
               ElevatedButton(
                 onPressed: () async {
                   if (descriptionController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
                       const SnackBar(content: Text('Please describe the emergency')),
                     );
                     return;
                   }
 
-                  setState(() => isAnalyzing = true);
+                  dialogSetState(() => isAnalyzing = true);
 
                   try {
                     // Call Gemma threat assessment
                     final threatAnalysis =
                         await gemmaService.analyzeThreat(descriptionController.text);
 
-                    if (mounted) {
-                      Navigator.pop(context);
-                      // Navigate to emergency screen with the analysis data
-                      // **PHASE 3A: PASS DESCRIPTION TO EMERGENCY SCREEN FOR AUTO-POSTING**
-                      Navigator.of(context).push(
+                    if (!parentContext.mounted || !dialogContext.mounted) {
+                      return;
+                    }
+
+                    Navigator.pop(dialogContext);
+                    // Navigate to emergency screen with the analysis data
+                    // **PHASE 3A: PASS DESCRIPTION TO EMERGENCY SCREEN FOR AUTO-POSTING**
+                    _voiceRecognition.pauseListening();
+                    Navigator.of(parentContext)
+                        .push(
                         MaterialPageRoute(
                           builder: (context) =>
                               EmergencyActiveScreen(
@@ -662,15 +866,18 @@ class _HomeScreenState extends State<HomeScreen>
                                 userLocation: 'Current Location', // TODO: Get actual GPS location
                               ),
                         ),
-                      );
-                    }
+                      )
+                        .then((_) {
+                      if (parentContext.mounted && isListening) {
+                        _voiceRecognition.resumeListening();
+                      }
+                    });
                   } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                      setState(() => isAnalyzing = false);
-                    }
+                    if (!parentContext.mounted) return;
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                    dialogSetState(() => isAnalyzing = false);
                   }
                 },
                 child: const Text('Send Emergency'),

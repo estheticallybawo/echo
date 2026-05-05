@@ -55,36 +55,6 @@ class LlamaThreatService {
     return false;
   }
 
-  List<String> _matchedTerms(String text, List<String> terms) {
-    final matches = <String>[];
-    for (final term in terms) {
-      if (text.contains(term)) {
-        matches.add(term);
-      }
-    }
-    return matches;
-  }
-
-  Map<String, dynamic> _buildLocalContextSignals(String userInput) {
-    final normalized = userInput.toLowerCase();
-    final oneChanceMatched = _matchedTerms(normalized, _oneChanceSignals);
-    final criticalMatched = _matchedTerms(normalized, _criticalTransitSignals);
-    final isOneChancePattern = oneChanceMatched.isNotEmpty;
-    final isCriticalTransitPattern = criticalMatched.isNotEmpty;
-
-    return {
-      'country_context': 'nigeria',
-      'scenario_context': isOneChancePattern
-          ? 'possible_one_chance'
-          : 'general',
-      'signals_detected': [...oneChanceMatched, ...criticalMatched],
-      'risk_flags': {
-        'possible_coordinated_transit_threat': isOneChancePattern,
-        'possible_abduction_risk': isCriticalTransitPattern,
-      },
-    };
-  }
-
   String _buildJsonUserPayload(String userInput) {
   return 'Emergency report: $userInput';
 }
