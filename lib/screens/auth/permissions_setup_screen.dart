@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../services/permission_service.dart';
-import 'voice_setup_screen.dart';
+// Removed voice_setup_screen import
 
 class PermissionsSetupScreen extends StatefulWidget {
   const PermissionsSetupScreen({super.key});
@@ -87,7 +87,7 @@ class _PermissionsSetupScreenState extends State<PermissionsSetupScreen> with Wi
                     ),
                     Row(
                       children: [
-                        ...List.generate(4, (index) => Container(
+                        ...List.generate(3, (index) => Container(
                           width: index == 1 ? 32 : 6,
                           height: 6,
                           margin: const EdgeInsets.only(left: 4),
@@ -181,11 +181,7 @@ class _PermissionsSetupScreenState extends State<PermissionsSetupScreen> with Wi
                   child: ElevatedButton(
                     onPressed: (_locationGranted && _microphoneGranted)
                         ? () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (ctx) => const VoiceSetupScreen(),
-                              ),
-                            );
+                            Navigator.of(context).pushReplacementNamed('/home');
                           }
                         : null,
                     style: ElevatedButton.styleFrom(

@@ -76,7 +76,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                               ),
                               const SizedBox(width: 4),
                             
-                              ...List.generate(5, (index) => Container(
+                              ...List.generate(2, (index) => Container(
                                 width: 6,
                                 height: 6,
                                 margin: const EdgeInsets.only(left: 4),
