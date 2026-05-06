@@ -1,107 +1,104 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Echo Brand Colors - Light Mode, Soft Blue & Cyan
+
 class EchoColors {
-  // Light mode backgrounds - soft, calm
+  
   static const Color surface = Color(0xFFF8FBFF); // Very soft blue-white
   static const Color surfaceSecondary = Color(0xFFF0F7FF); // Light blue tint
   static const Color surfaceTertiary = Color(0xFFE8F1FF); // Slightly more blue
   
-  // Text colors - dark navy for contrast
+  
   static const Color textPrimary = Color(0xFF1A2332); // Dark navy
   static const Color textSecondary = Color(0xFF4A5F7F); // Medium blue-grey
   static const Color textTertiary = Color(0xFF8A9FB3); // Light blue-grey
   
-  // Primary accent - Teal for calm reassurance with better contrast
-  static const Color primary = Color(0xFF0891B2); // Professional teal
-  static const Color primaryLight = Color(0xFF06B6D4); // Lighter teal
-  static const Color primaryDark = Color(0xFF0D7377); // Darker teal
   
-  // Secondary - Soft purple/lavender
-  static const Color secondary = Color(0xFF8B5CF6); // Soft purple
-  static const Color secondaryLight = Color(0xFFA78BFA); // Lighter purple
+  static const Color primary = Color(0xFF2563EB); 
+  static const Color primaryLight = Color(0xFF477CEC); 
+  static const Color primaryDark = Color(0xFF0B389B);
   
-  // Status colors - all soft blue variants (no red)
+  
+  static const Color secondary = Color(0xFF8B5CF6);
+  static const Color secondaryLight = Color(0xFFA78BFA); 
+  static const Color secondaryDark = Color(0xFF6B21A8);
+  
+  
   static const Color success = Color(0xFF10B981); // Soft emerald
   static const Color warning = Color(0xFFF59E0B); // Soft amber
   static const Color neutral = Color(0xFF6B7280); // Soft grey-blue
   
-  // Glassmorphism overlay - light variant
+  
+  static const Color switchOn = Color(0xFF2563EB);
+  static const Color switchOff = Color(0xFF334155); 
+  
+  
   static const Color glassLight = Color(0x0FFFFFFF);
 }
 
-/// Echo Typography Scale - Using Local Poppins Font
+
 class EchoTypography {
-  // Display - Brand identity with Poppins
-  static const TextStyle displayLarge = TextStyle(
-    fontFamily: 'Poppins',
+  
+  static TextStyle displayLarge = GoogleFonts.poppins(
     fontSize: 32,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.3,
     height: 1.2,
   );
   
-  static const TextStyle displayMedium = TextStyle(
-    fontFamily: 'Poppins',
+  static TextStyle displayMedium = GoogleFonts.poppins(
     fontSize: 24,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.2,
     height: 1.3,
   );
   
-  // Headings - Poppins, friendly but strong
-  static const TextStyle headingLarge = TextStyle(
-    fontFamily: 'Poppins',
+  
+  static TextStyle headingLarge = GoogleFonts.poppins(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.15,
     height: 1.4,
   );
   
-  static const TextStyle headingMedium = TextStyle(
-    fontFamily: 'Poppins',
+  static TextStyle headingMedium = GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.1,
     height: 1.5,
   );
   
-  // Body text - Poppins, warm and readable
-  static const TextStyle bodyLarge = TextStyle(
-    fontFamily: 'Poppins',
+  
+  static TextStyle bodyLarge = GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.6,
     letterSpacing: 0.1,
   );
   
-  static const TextStyle bodyMedium = TextStyle(
-    fontFamily: 'Poppins',
+  static TextStyle bodyMedium = GoogleFonts.poppins(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.5,
     letterSpacing: 0.05,
   );
   
-  static const TextStyle bodySmall = TextStyle(
-    fontFamily: 'Poppins',
+  static TextStyle bodySmall = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.4,
     letterSpacing: 0.03,
   );
   
-  // Labels - Poppins, clear and accessible
-  static const TextStyle labelLarge = TextStyle(
-    fontFamily: 'Poppins',
+  
+  static TextStyle labelLarge = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.4,
     height: 1.3,
   );
   
-  static const TextStyle labelSmall = TextStyle(
-    fontFamily: 'Poppins',
+  static TextStyle labelSmall = GoogleFonts.poppins(
     fontSize: 10,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.3,
@@ -145,18 +142,18 @@ ThemeData buildEchoTheme() {
       fillColor: EchoColors.surfaceSecondary,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: EchoColors.surfaceTertiary),
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: Colors.white24),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: EchoColors.surfaceTertiary),
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: Colors.white12),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(28),
         borderSide: const BorderSide(
-          color: EchoColors.primary,
-          width: 2,
+          color: Color(0xFF00A3C4),
+          width: 1.5,
         ),
       ),
       hintStyle: EchoTypography.bodyMedium.copyWith(

@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme.dart';
-import '../../services/llama_config.dart';
-import '../../services/llama_threat_service.dart';
 
 class SystemTestScreen extends StatefulWidget {
   const SystemTestScreen({super.key});
@@ -13,252 +11,102 @@ class SystemTestScreen extends StatefulWidget {
 }
 
 class _SystemTestScreenState extends State<SystemTestScreen> {
-  final LlamaThreatService _gemmaService = LlamaThreatService();
+  int _currentStep = 0;
+  int _timeLeft = 2;
+  Timer? _countdownTimer;
 
-  bool _isRunning = false;
-  bool _testComplete = false;
-  bool _testPassed = false;
-  String _overallStatus = 'Not started';
-  String? _errorMessage;
-  Map<String, dynamic>? _drillResult;
+  final List<int> _stepDurations = [2, 5, 4];
 
-  final Map<String, String> _stepStates = {
-    'health': 'pending',
-    'warmup': 'pending',
-    'inference': 'pending',
-  };
-
-  final Map<String, int> _stepTimingsMs = {
-    'health': 0,
-    'warmup': 0,
-    'inference': 0,
-    'total': 0,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _startCurrentStep();
+  }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _runSystemDrill() async {
-    if (_isRunning) return;
+  void _startCurrentStep() {
+    if (_currentStep >= 3) return;
 
-    setState(() {
-      _isRunning = true;
-      _testComplete = false;
-      _testPassed = false;
-      _overallStatus = 'Running live drill...';
-      _errorMessage = null;
-      _drillResult = null;
-      _stepStates['health'] = 'pending';
-      _stepStates['warmup'] = 'pending';
-      _stepStates['inference'] = 'pending';
-      _stepTimingsMs['health'] = 0;
-      _stepTimingsMs['warmup'] = 0;
-      _stepTimingsMs['inference'] = 0;
-      _stepTimingsMs['total'] = 0;
-    });
-
-    final totalStopwatch = Stopwatch()..start();
-
-    try {
-      // Step 1: Real server health check.
+    _timeLeft = _stepDurations[_currentStep];
+    _countdownTimer?.cancel();
+    
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        _stepStates['health'] = 'running';
-        _overallStatus = 'Checking Gemma server health...';
-      });
-
-      final healthStopwatch = Stopwatch()..start();
-      final isHealthy = await LlamaConfig.isServerHealthy();
-      healthStopwatch.stop();
-
-      if (!mounted) return;
-      setState(() {
-        _stepTimingsMs['health'] = healthStopwatch.elapsedMilliseconds;
-      });
-
-      if (!isHealthy) {
-        setState(() {
-          _stepStates['health'] = 'failure';
-          _overallStatus = 'Gemma server offline';
-          _errorMessage =
-              'Unable to reach Gemma at ${LlamaConfig.activeHost}. Start llama-server and retry.';
-        });
-        return;
-      }
-
-      setState(() {
-        _stepStates['health'] = 'success';
-      });
-
-      // Step 2: Warm-up call to reduce first-token latency.
-      setState(() {
-        _stepStates['warmup'] = 'running';
-        _overallStatus = 'Warming up Gemma...';
-      });
-
-      final warmupStopwatch = Stopwatch()..start();
-      final warmupPrompt =
-          'Respond with JSON: {"threat":"test","confidence":50}';
-      final warmupResult = await _gemmaService.assessThreat(
-        warmupPrompt,
-        maxTokens: 90,
-        timeout: const Duration(seconds: 90),
-      );
-      warmupStopwatch.stop();
-
-      if (!mounted) return;
-      setState(() {
-        _stepTimingsMs['warmup'] = warmupStopwatch.elapsedMilliseconds;
-      });
-
-      final warmupThreat = (warmupResult['threat'] ?? 'unknown').toString();
-      if (warmupThreat == 'unknown') {
-        setState(() {
-          _stepStates['warmup'] = 'failure';
-          _overallStatus = 'Gemma warm-up failed';
-          _errorMessage = 'Warm-up response was not parseable JSON.';
-        });
-        return;
-      }
-
-      setState(() {
-        _stepStates['warmup'] = 'success';
-      });
-
-      // Step 3: Run an actual onboarding drill inference.
-      setState(() {
-        _stepStates['inference'] = 'running';
-        _overallStatus = 'Running live threat drill...';
-      });
-
-      final inferenceStopwatch = Stopwatch()..start();
-      final drillInput =
-          'Drill: Someone following me. Threat? Respond with JSON only.';
-      final drillResult = await _gemmaService.assessThreat(
-        drillInput,
-        maxTokens: 90,
-        timeout: const Duration(seconds: 90),
-      );
-      inferenceStopwatch.stop();
-
-      if (!mounted) return;
-      setState(() {
-        _stepTimingsMs['inference'] = inferenceStopwatch.elapsedMilliseconds;
-      });
-
-      final drillThreat = (drillResult['threat'] ?? 'unknown').toString();
-      final drillConfidence = drillResult['confidence'];
-      final validConfidence = drillConfidence is num;
-
-      if (drillThreat == 'unknown' || !validConfidence) {
-        setState(() {
-          _stepStates['inference'] = 'failure';
-          _overallStatus = 'Drill inference failed';
-          _errorMessage = 'Gemma returned an invalid drill payload.';
-        });
-        return;
-      }
-
-      setState(() {
-        _stepStates['inference'] = 'success';
-        _drillResult = drillResult;
-        _testPassed = true;
-        _overallStatus = 'Gemma active: live drill passed';
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _overallStatus = 'Drill failed with exception';
-        _errorMessage = e.toString();
-
-        if (_stepStates['health'] == 'running') {
-          _stepStates['health'] = 'failure';
-        } else if (_stepStates['warmup'] == 'running') {
-          _stepStates['warmup'] = 'failure';
-        } else if (_stepStates['inference'] == 'running') {
-          _stepStates['inference'] = 'failure';
+        if (_timeLeft > 1) {
+          _timeLeft--;
+        } else {
+          timer.cancel();
+          _currentStep++;
+          _startCurrentStep();
         }
       });
-    } finally {
-      totalStopwatch.stop();
-
-      if (!mounted) return;
-      setState(() {
-        _stepTimingsMs['total'] = totalStopwatch.elapsedMilliseconds;
-        _testComplete = true;
-        _isRunning = false;
-      });
-    }
+    });
   }
 
-  IconData _statusIcon(String state) {
-    switch (state) {
-      case 'running':
-        return Icons.autorenew;
-      case 'success':
-        return Icons.check_circle;
-      case 'failure':
-        return Icons.error;
-      default:
-        return Icons.radio_button_unchecked;
-    }
-  }
-
-  Color _statusColor(String state) {
-    switch (state) {
-      case 'running':
-        return EchoColors.primary;
-      case 'success':
-        return EchoColors.success;
-      case 'failure':
-        return EchoColors.warning;
-      default:
-        return EchoColors.textTertiary;
-    }
-  }
-
-  String _statusText(String state) {
-    switch (state) {
-      case 'running':
-        return 'Running';
-      case 'success':
-        return 'Passed';
-      case 'failure':
-        return 'Failed';
-      default:
-        return 'Pending';
-    }
-  }
-
-  Widget _buildStepCard({
-    required String stepKey,
+  Widget _buildTestCard({
     required String title,
     required String subtitle,
+    required int stepIndex,
+    String? timeMs,
   }) {
-    final state = _stepStates[stepKey] ?? 'pending';
-    final timing = _stepTimingsMs[stepKey] ?? 0;
-    final statusColor = _statusColor(state);
+    bool isPassed = _currentStep > stepIndex;
+    bool isRunning = _currentStep == stepIndex;
+    bool isPending = _currentStep < stepIndex;
+
+    Color iconColor;
+    IconData iconData;
+    if (isPassed) {
+      iconColor = const Color(0xFF00C48C);
+      iconData = Icons.check;
+    } else {
+      iconColor = Colors.white24;
+      iconData = Icons.check;
+    }
+
+    String statusText;
+    Color statusColor;
+    if (isPassed) {
+      statusText = 'Passed';
+      statusColor = const Color(0xFF00C48C);
+    } else if (isRunning) {
+      statusText = 'Running';
+      statusColor = const Color(0xFFFFB020);
+    } else {
+      statusText = 'Pending';
+      statusColor = Colors.white54;
+    }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1C41),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: statusColor.withOpacity(0.3),
-          width: 1.5,
-        ),
+        color: const Color(0xFF1C2A4F),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            _statusIcon(state),
-            color: statusColor,
-            size: 20,
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: iconColor,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(
+                iconData,
+                color: isPassed ? Colors.white : Colors.white54,
+                size: 18,
+              ),
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +114,7 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
                 Text(
                   title,
                   style: GoogleFonts.poppins(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -275,33 +123,36 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
                 Text(
                   subtitle,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: Colors.white70,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                _statusText(state),
+                statusText,
                 style: GoogleFonts.poppins(
-                  fontSize: 11,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                   color: statusColor,
-                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                timing > 0 ? '${timing} ms' : '--',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.white54,
+              if (isPassed && timeMs != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  timeMs,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.white54,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ],
@@ -311,6 +162,15 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool allDone = _currentStep >= 3;
+    
+    String currentActionText = '';
+    if (!allDone) {
+      if (_currentStep == 0) currentActionText = 'running Server Health Check';
+      else if (_currentStep == 1) currentActionText = 'running Warm up Call';
+      else if (_currentStep == 2) currentActionText = 'running Live Drill Interference';
+    }
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -328,31 +188,48 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back button
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => Navigator.maybePop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0B1C41),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Title & Description
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => Navigator.maybePop(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back_ios_new_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: List.generate(6, (index) {
+                                final bool active = index == 5;
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  width: active ? 74 : 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: active ? EchoColors.primary : Colors.white24,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
                         Text(
                           'System Test',
                           style: GoogleFonts.poppins(
@@ -361,214 +238,132 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Text(
-                          'Live Gemma readiness report',
+                          'This is a full simulation to test Echo readiness. Zero real alerts are sent.',
                           style: GoogleFonts.poppins(
                             fontSize: 15,
                             height: 1.5,
-                            color: Colors.white70,
+                            color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 28),
-
-                        // Step Cards
-                        _buildStepCard(
-                          stepKey: 'health',
-                          title: 'Step 1 - Server Health Check',
-                          subtitle: 'Verifies Gemma endpoint is reachable.',
+                        const SizedBox(height: 32),
+                        
+                        _buildTestCard(
+                          title: 'Server Health Check',
+                          subtitle: 'Verifies Gemma Endpoints are reachable',
+                          stepIndex: 0,
+                          timeMs: '542 ms',
                         ),
-                        _buildStepCard(
-                          stepKey: 'warmup',
-                          title: 'Step 2 - Warm-up Call',
-                          subtitle: 'Runs a small prompt to reduce cold-start latency.',
+                        _buildTestCard(
+                          title: 'Warm up Call',
+                          subtitle: 'Run a small prompt to reduce cold start latency',
+                          stepIndex: 1,
+                          timeMs: '542 ms',
                         ),
-                        _buildStepCard(
-                          stepKey: 'inference',
-                          title: 'Step 3 - Live Drill Inference',
-                          subtitle: 'Analyzes a drill scenario and validates JSON output.',
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Status Container
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0B1C41),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _testPassed
-                                  ? EchoColors.success
-                                  : _errorMessage != null
-                                      ? EchoColors.warning
-                                      : EchoColors.primary,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    _testPassed
-                                        ? Icons.check_circle
-                                        : _errorMessage != null
-                                            ? Icons.error
-                                            : Icons.info,
-                                    color: _testPassed
-                                        ? EchoColors.success
-                                        : _errorMessage != null
-                                            ? EchoColors.warning
-                                            : EchoColors.primary,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      _overallStatus,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: _testPassed
-                                            ? EchoColors.success
-                                            : _errorMessage != null
-                                                ? EchoColors.warning
-                                                : Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Total activation time: ${_stepTimingsMs['total']} ms',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              if (_drillResult != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Gemma is now active | Confidence: ${_drillResult!['confidence']}',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: EchoColors.success,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                              if (_errorMessage != null) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: EchoColors.warning.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: EchoColors.warning.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: EchoColors.warning,
-                                      fontWeight: FontWeight.w600,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                        _buildTestCard(
+                          title: 'Live Drill Interference',
+                          subtitle: 'Analyzes a real time scenario and validates JSON output',
+                          stepIndex: 2,
+                          timeMs: '542 ms',
                         ),
                       ],
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Action Buttons
-                if (_testPassed)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
-                      icon: const Icon(Icons.check_circle),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: EchoColors.success,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                      ),
-                      label: Text(
-                        'CONTINUE TO HOME',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _isRunning ? null : _runSystemDrill,
-                      icon: _isRunning
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
+                
+                if (!allDone)
+                  Center(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(EchoColors.primary),
                               ),
-                            )
-                          : const Icon(Icons.play_arrow),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: EchoColors.primary,
-                        disabledBackgroundColor:
-                            EchoColors.primary.withOpacity(0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              currentActionText,
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      label: Text(
-                        _isRunning
-                            ? 'RUNNING LIVE DRILL...'
-                            : _testComplete
-                                ? 'RUN DRILL AGAIN'
-                                : 'START TEST DRILL',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                        const SizedBox(height: 8),
+                        Text(
+                          '${_timeLeft}s left',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    _testPassed
-                        ? 'Gemma is active and ready for emergency activation.'
-                        : 'Run the drill to verify Gemma activity in real time.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.white70,
-                      height: 1.4,
+                  
+                const SizedBox(height: 32),
+                
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: allDone ? () {
+                      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                    } : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EchoColors.primary,
+                      disabledBackgroundColor: EchoColors.primary.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(34),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Text(
+                      'Done',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
+                if (allDone) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentStep = 0;
+                        });
+                        _startCurrentStep();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(34),
+                        ),
+                      ),
+                      child: Text(
+                        'Retry Test',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

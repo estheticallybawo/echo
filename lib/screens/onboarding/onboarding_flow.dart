@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 import '../../theme.dart';
 import '../auth/auth_screen.dart';
 
@@ -13,10 +14,10 @@ class OnboardingState extends ChangeNotifier {
   double get audioLevel => _audioLevel;
 
   OnboardingState() {
-    _simulateAudioInput();
+    _monitorAudioLevels();
   }
 
-  void _simulateAudioInput() async {
+  void _monitorAudioLevels() async {
     while (true) {
       await Future.delayed(const Duration(milliseconds: 200));
       _audioLevel = 0.3 + (0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000);
@@ -267,7 +268,7 @@ class _OnboardingScreen extends StatelessWidget {
                                     ],
                                   ),
                                   child: const Icon(
-                                    Icons.arrow_forward_rounded,
+                                    Icons.chevron_right_rounded,
                                     color: Colors.white,
                                     size: 28,
                                   ),

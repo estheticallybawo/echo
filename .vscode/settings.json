@@ -1,4 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/Users/DELL/gemma4good/echo/linux"
-
+    "cmake.ignoreCMakeListsMissing": true,
+    "C_Cpp.errorSquiggles": "disabled"
 }

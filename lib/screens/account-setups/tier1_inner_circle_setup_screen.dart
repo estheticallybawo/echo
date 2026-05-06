@@ -195,7 +195,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Your inner circle',
+                  'Your inner circle who\'ll be notified immediately',
                   style: GoogleFonts.poppins(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
