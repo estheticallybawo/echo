@@ -426,10 +426,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   height: 10,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _bgListening ? EchoColors.switchOn : const Color(0xFFFFB020),
+                    color: _bgListening ? EchoColors.switchOn : EchoColors.secondaryLight,
                     boxShadow: [
                       BoxShadow(
-                        color: (_bgListening ? EchoColors.switchOn : const Color(0xFFFFB020)).withOpacity(0.6),
+                        color: (_bgListening ? EchoColors.switchOn : EchoColors.secondaryLight.withOpacity(0.6)),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),
@@ -455,12 +455,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 color: _bgListening
                     ? EchoColors.switchOn.withOpacity(0.15)
-                    : const Color(0xFFFFB020).withOpacity(0.15),
+                    : EchoColors.secondary.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _bgListening
                       ? EchoColors.switchOn.withOpacity(0.4)
-                      : const Color(0xFFFFB020).withOpacity(0.4),
+                      : EchoColors.secondary.withOpacity(0.4),
                 ),
               ),
               child: Row(
@@ -469,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Icon(
                     _bgListening ? Icons.mic_off_rounded : Icons.mic_rounded,
                     size: 18,
-                    color: _bgListening ? const Color.fromARGB(255, 110, 152, 241) : const Color(0xFFFFB020),
+                    color: _bgListening ? const Color.fromARGB(255, 110, 152, 241) : EchoColors.secondary,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -477,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _bgListening ? const Color.fromARGB(255, 91, 135, 230) : const Color(0xFFFFB020),
+                      color: _bgListening ? const Color.fromARGB(255, 210, 223, 250) : const Color.fromARGB(255, 223, 215, 250),
                     ),
                   ),
                 ],
@@ -487,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const SizedBox(height: 10),
               Text(
                 '⚠ You can still trigger SOS manually or via hold.',
-                style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFFFB020).withOpacity(0.8)),
+                style: GoogleFonts.poppins(fontSize: 11, color: EchoColors.secondary),
               ),
             ],
           ],
@@ -756,11 +756,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     child: Row(
                       children: [
-                        const SizedBox(width: 18),
+                        const SizedBox(width: 10),
                         Image.asset(
                           'assets/icon/echosplashicon.png',
-                          width: 32,
-                          height: 32,
+                          width: 70,
+                          height: 70,
                           errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 8),

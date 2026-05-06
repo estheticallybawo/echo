@@ -21,6 +21,7 @@ class EchoColors {
   
   static const Color secondary = Color(0xFF8B5CF6);
   static const Color secondaryLight = Color(0xFFA78BFA); 
+  static const Color secondaryDark = Color(0xFF6B21A8);
   
   
   static const Color success = Color(0xFF10B981); // Soft emerald
