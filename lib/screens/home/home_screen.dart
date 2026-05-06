@@ -409,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           border: Border.all(
             color: _bgListening
                 ? EchoColors.switchOn.withOpacity(0.35)
-                : const Color(0xFFFFB020).withOpacity(0.35),
+                : EchoColors.secondaryLight.withOpacity(0.35),
           ),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
@@ -429,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: _bgListening ? EchoColors.switchOn : EchoColors.secondaryLight,
                     boxShadow: [
                       BoxShadow(
-                        color: (_bgListening ? EchoColors.switchOn : EchoColors.secondaryLight.withOpacity(0.6)),
+                        color: (_bgListening ? EchoColors.switchOn : EchoColors.secondaryLight),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),
@@ -455,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 color: _bgListening
                     ? EchoColors.switchOn.withOpacity(0.15)
-                    : EchoColors.secondary.withOpacity(0.4),
+                    : EchoColors.secondary.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _bgListening
