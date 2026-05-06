@@ -487,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const SizedBox(height: 10),
               Text(
                 '⚠ You can still trigger SOS manually or via hold.',
-                style: GoogleFonts.poppins(fontSize: 11, color: EchoColors.secondary),
+                style: GoogleFonts.poppins(fontSize: 11, color: const Color.fromARGB(255, 208, 191, 247)),
               ),
             ],
           ],
