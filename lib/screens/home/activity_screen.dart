@@ -283,7 +283,7 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _feedRow(Icons.sos, 'Ada Chukwu may be in danger', Colors.orangeAccent),
+                _feedRow(Icons.sos, 'Ada Chukwu may be in danger', Colors.redAccent),
                 const SizedBox(height: 12),
                 _feedRow(Icons.location_on, item['location'], Colors.white70),
                 const SizedBox(height: 12),

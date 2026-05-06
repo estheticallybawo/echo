@@ -113,7 +113,7 @@ class _AiIntelScreenState extends State<AiIntelScreen> with SingleTickerProvider
                                   style: GoogleFonts.poppins(
                                     fontSize: 32,
                                     fontWeight: FontWeight.w700,
-                                    color: EchoColors.switchOn,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),

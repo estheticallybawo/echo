@@ -254,10 +254,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('ACTIVE', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white.withOpacity(0.9), letterSpacing: 2)),
-          Text(_fmtElapsed(), style: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white)),
-          Text('Tap to cancel', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.8))),
-        ],
+      Icon(Icons.mic, color: Colors.white, size: 27, semanticLabel: 'SOS Active',),
+          const SizedBox(height: 18),]
       );
     }
     if (isCountdown) {
@@ -270,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       );
     }
-    return Text('SOS', style: GoogleFonts.poppins(fontSize: 44, fontWeight: FontWeight.w800, color: Colors.white));
+    return Icon(Icons.mic, color: Colors.white, size: 44, semanticLabel: 'Hold to SOS',);
   }
 
   Widget _buildVoiceSOS() {
@@ -471,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Icon(
                     _bgListening ? Icons.mic_off_rounded : Icons.mic_rounded,
                     size: 18,
-                    color: _bgListening ? EchoColors.switchOn : const Color(0xFFFFB020),
+                    color: _bgListening ? const Color.fromARGB(255, 110, 152, 241) : const Color(0xFFFFB020),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -479,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: _bgListening ? EchoColors.switchOn : const Color(0xFFFFB020),
+                      color: _bgListening ? const Color.fromARGB(255, 91, 135, 230) : const Color(0xFFFFB020),
                     ),
                   ),
                 ],
