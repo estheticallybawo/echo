@@ -180,12 +180,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFFF3B30).withOpacity(0.5),
+                    color: EchoColors.switchOn.withOpacity(0.5),
                     width: 2,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF3B30).withOpacity(0.25),
+                      color: EchoColors.switchOff.withOpacity(0.25),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
@@ -201,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   value: _holdAnim.value,
                   strokeWidth: 4,
                   backgroundColor: Colors.white12,
-                  valueColor: const AlwaysStoppedAnimation(Color(0xFFFFB020)),
+                  valueColor: const AlwaysStoppedAnimation(EchoColors.secondaryLight),
                 ),
               ),
             // Main SOS circle — Listener for instant hold detection
@@ -221,16 +221,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: isActive
-                          ? [const Color(0xFFFF3B30), const Color(0xFFCC1500)]
+                          ? [EchoColors.primaryLight, EchoColors.primaryDark]
                           : isCountdown
                               ? [const Color(0xFFFFB020), const Color(0xFFE08000)]
-                              : [const Color(0xFFF37A53), const Color(0xFFD34F2B)],
+                              : [EchoColors.primaryLight, EchoColors.primaryDark],
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: (isActive
-                                ? const Color(0xFFFF3B30)
-                                : const Color(0xFFE85D3F))
+                                ? EchoColors.primaryLight
+                                : EchoColors.secondaryLight)
                             .withOpacity(0.55),
                         blurRadius: 55,
                         spreadRadius: 8,
@@ -334,7 +334,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               width: 7, height: 7,
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFFFF3B30),
+                                color: EchoColors.secondaryLight,
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: const Color(0xFF1E3A8A).withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? const Color(0xFFFF3B30).withOpacity(0.3) : Colors.white12,
+          color: isActive ? EchoColors.primaryLight.withOpacity(0.3) : Colors.white12,
         ),
       ),
       child: Column(
@@ -613,10 +613,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isActive ? const Color(0xFFFF3B30) : EchoColors.switchOn,
+                  color: isActive ? EchoColors.secondaryLight : EchoColors.switchOn,
                   boxShadow: [
                     BoxShadow(
-                      color: (isActive ? const Color(0xFFFF3B30) : EchoColors.switchOn).withOpacity(0.6),
+                      color: (isActive ? EchoColors.secondaryLight : EchoColors.switchOn).withOpacity(0.6),
                       blurRadius: 6,
                       spreadRadius: 1,
                     ),
@@ -629,7 +629,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 style: GoogleFonts.poppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isActive ? const Color(0xFFFF3B30) : EchoColors.switchOn,
+                  color: isActive ? EchoColors.secondaryLight : EchoColors.switchOn,
                 ),
               ),
               const Spacer(),
@@ -758,15 +758,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     child: Row(
                       children: [
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 18),
                         Image.asset(
-                          'assets/icon/echo.png',
+                          'assets/icon/echosplashicon.png',
                           width: 32,
                           height: 32,
                           errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 8),
-                        Text('echo', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
                         const Spacer(),
                         // Listening badge
                         AnimatedContainer(
@@ -903,7 +902,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             step: 1,
                             totalSteps: 5,
                             title: 'Trigger 1: Manual SOS',
-                            imagePath: 'assets/tutorial/manual_sos.png',
                             description: 'Hold the center SOS button for 3 seconds. The countdown gives you a moment to cancel if it was an accident.',
                             onNext: () => setState(() => _tutorialStep = 2),
                             onSkip: () => setState(() => _showTutorial = false),
@@ -919,7 +917,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             step: 2,
                             totalSteps: 5,
                             title: 'Trigger 2: Silent SOS',
-                            imagePath: 'assets/tutorial/silent_sos.png',
                             description: 'Rapidly press the Volume Down button 3 times to trigger a silent SOS. Discreet and effective.',
                             onNext: () => setState(() => _tutorialStep = 3),
                             onSkip: () => setState(() => _showTutorial = false),
@@ -935,7 +932,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             step: 3,
                             totalSteps: 5,
                             title: 'Trigger 3: Gemma AI',
-                            imagePath: 'assets/tutorial/gemma_ai.png',
                             description: 'Gemma triggers automatically if she detects distress sounds or sudden falls while you’re in danger.',
                             onNext: () => setState(() => _tutorialStep = 4),
                             onSkip: () => setState(() => _showTutorial = false),
@@ -951,7 +947,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             step: 4,
                             totalSteps: 5,
                             title: 'The "Ditto" Code',
-                            imagePath: 'assets/tutorial/ditto_code.png',
                             description: 'Enter "DITTO" instead of your PIN to silently signal duress while appearing to disable the app.',
                             onNext: () => setState(() => _tutorialStep = 5),
                             onSkip: () => setState(() => _showTutorial = false),
@@ -967,7 +962,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             step: 5,
                             totalSteps: 5,
                             title: 'Your Network',
-                            icon: Icons.people_outline,
+                      
                             description: 'Check the Feed for nearby alerts. You are now protected by the Echo community.',
                             onNext: () => setState(() => _showTutorial = false),
                             onSkip: () => setState(() => _showTutorial = false),

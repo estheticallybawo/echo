@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/account-setups/permission_setup_screen.dart';
-import 'screens/account-setups/phrase_setup_screen.dart';
 import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
 import 'screens/account-setups/tier2_public_alert_setup_screen.dart';
 import 'screens/account-setups/system_test_screen.dart';
@@ -54,7 +53,6 @@ class EchoApp extends StatelessWidget {
       routes: {
         '/account-setups': (context) => const AccountSetupsScreen(),
         '/permission-setup': (context) => const AccountSetupsScreen(),
-        '/phrase-setup': (context) => const PhraseSetupScreen(),
         '/tier1-inner-circle-setup': (context) => const Tier1InnerCircleSetupScreen(),
         '/tier2-public-alert-setup': (context) => const Tier2PublicAlertSetupScreen(),
         '/onboarding': (context) => const OnboardingFlow(),

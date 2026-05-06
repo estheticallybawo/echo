@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:echo/theme.dart';
 
 class TutorialOverlay extends StatelessWidget {
   final String title;
@@ -8,7 +9,6 @@ class TutorialOverlay extends StatelessWidget {
   final VoidCallback onSkip;
   final int step;
   final int totalSteps;
-
   final String? imagePath;
   final IconData? icon;
 
@@ -19,9 +19,7 @@ class TutorialOverlay extends StatelessWidget {
     required this.onNext,
     required this.onSkip,
     required this.step,
-    required this.totalSteps,
-    this.imagePath,
-    this.icon,
+    required this.totalSteps, this.imagePath, this.icon,
   });
 
   @override
@@ -41,7 +39,7 @@ class TutorialOverlay extends StatelessWidget {
               ],
             ),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0xFF00A3C4).withOpacity(0.4), width: 1.5),
+            border: Border.all(color: EchoColors.primaryLight, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.6),
@@ -81,11 +79,11 @@ class TutorialOverlay extends StatelessWidget {
                   height: 120,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00A3C4).withOpacity(0.1),
+                    color: EchoColors.primaryLight.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF00A3C4).withOpacity(0.2)),
+                    border: Border.all(color: EchoColors.primaryLight.withOpacity(0.2)),
                   ),
-                  child: Icon(icon, color: const Color(0xFF00A3C4), size: 48),
+                  child: Icon(icon, color: EchoColors.primaryLight, size: 48),
                 ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -93,13 +91,13 @@ class TutorialOverlay extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00A3C4).withOpacity(0.2),
+                      color: EchoColors.primaryLight.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       'TIP $step OF $totalSteps',
                       style: GoogleFonts.poppins(
-                        color: const Color(0xFF00A3C4),
+                        color: EchoColors.primaryLight,
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
@@ -146,12 +144,12 @@ class TutorialOverlay extends StatelessWidget {
                   ElevatedButton(
                     onPressed: onNext,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00A3C4),
+                      backgroundColor: EchoColors.primaryLight,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 4,
-                      shadowColor: const Color(0xFF00A3C4).withOpacity(0.3),
+                      shadowColor: EchoColors.primaryLight.withOpacity(0.3),
                     ),
                     child: Text(
                       step == totalSteps ? 'Done' : 'Next',

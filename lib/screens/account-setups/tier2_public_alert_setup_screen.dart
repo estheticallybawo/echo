@@ -42,7 +42,7 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
               value: value,
               onChanged: onChanged,
               activeColor: Colors.white,
-              activeTrackColor: EchoColors.switchOn,
+              activeTrackColor: Colors.green,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: EchoColors.switchOff,
             ),
@@ -150,18 +150,12 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                       const SizedBox(height: 32),
                       Row(
                         children: [
-                          Image.asset(
-                            'assets/onboarding/echo_alert_logo.png',
-                            height: 24,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.wifi_rounded, color: Colors.white70, size: 24),
-                          ),
-                          const SizedBox(width: 12),
+                          
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Echo Alert',
+                                'Alert The Echo Community',
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -186,8 +180,8 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                               shape: BoxShape.circle,
                               border: Border.all(color: EchoColors.primary.withOpacity(0.5), width: 1),
                               image: const DecorationImage(
-                                image: AssetImage('assets/icon/echo.png'),
-                                fit: BoxFit.cover,
+                                image: AssetImage('assets/onboarding/echosplashicon.png'),
+                                fit: BoxFit.contain
                               ),
                             ),
                           ),

@@ -29,7 +29,7 @@ flutter:
     - assets/icon/
     - assets/onboarding/
     - assets/onboarding/x_logo.png
-    - assets/onboarding/echo_alert_logo.png
+    - assets/onboarding/echosplashicon.png
     - assets/tutorial/
     - assets/splash/
 

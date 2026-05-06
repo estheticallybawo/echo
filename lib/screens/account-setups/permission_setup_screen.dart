@@ -94,7 +94,7 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
               child: Switch.adaptive(
                 value: enabled,
                 activeColor: Colors.white,
-                activeTrackColor: EchoColors.switchOn,
+                activeTrackColor: Colors.green,
                 inactiveThumbColor: Colors.white,
                 inactiveTrackColor: EchoColors.switchOff,
                 onChanged: onChanged,
@@ -235,7 +235,7 @@ class _AccountSetupsScreenState extends State<AccountSetupsScreen> {
                   height: 62,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/phrase-setup');
+                      Navigator.pushNamed(context, '/tier1-inner-circle-setup');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EchoColors.primary,

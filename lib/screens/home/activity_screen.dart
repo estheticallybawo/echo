@@ -16,7 +16,7 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
     {
       'id': '1',
       'risk': 'High Risk',
-      'riskColor': Colors.redAccent,
+      'riskColor': Colors.orangeAccent,
       'time': '2 min ago',
       'location': 'D-Line Junction, Port Harcourt',
       'distance': '250m away',
@@ -30,7 +30,7 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
     {
       'id': '2',
       'risk': 'Medium Risk',
-      'riskColor': Colors.orangeAccent,
+      'riskColor': EchoColors.secondaryLight,
       'time': '15 min ago',
       'location': 'Garrison, Port Harcourt',
       'distance': '1.2km away',
@@ -63,7 +63,7 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
       'sub': 'Your emergency alert was shared with 3 contacts.',
       'time': '2 hours ago',
       'icon': Icons.notification_important_rounded,
-      'color': Colors.redAccent,
+      'color': Colors.orangeAccent,
     },
     {
       'title': 'Safety Score Update',
@@ -283,7 +283,7 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _feedRow(Icons.sos, 'Ada Chukwu may be in danger', Colors.redAccent),
+                _feedRow(Icons.sos, 'Ada Chukwu may be in danger', Colors.orangeAccent),
                 const SizedBox(height: 12),
                 _feedRow(Icons.location_on, item['location'], Colors.white70),
                 const SizedBox(height: 12),

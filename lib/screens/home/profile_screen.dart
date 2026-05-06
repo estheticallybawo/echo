@@ -62,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               setState(() => _profileImagePath = null);
               Navigator.pop(context);
               _showEchoSnackBar('Profile photo removed');
-            }, color: Colors.redAccent),
+            }, color: Colors.orangeAccent),
             const SizedBox(height: 24),
           ],
         ),
@@ -350,7 +350,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDC2626).withOpacity(0.9), // Solid red with slight opacity
+                                color:  EchoColors.primaryDark.withOpacity(0.9), 
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: Colors.white.withOpacity(0.1)),
                                 boxShadow: [

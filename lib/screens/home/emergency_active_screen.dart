@@ -222,7 +222,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -524,9 +524,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.notification_important_rounded, color: Colors.redAccent, size: 18),
+                    const Icon(Icons.notification_important_rounded, color: Colors.orangeAccent, size: 18),
                     const SizedBox(width: 8),
-                    Text('EMERGENCY ALERT', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.redAccent)),
+                    Text('EMERGENCY ALERT', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.orangeAccent)),
                   ],
                 ),
                 const SizedBox(height: 8),

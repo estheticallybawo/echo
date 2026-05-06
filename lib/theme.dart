@@ -14,13 +14,13 @@ class EchoColors {
   static const Color textTertiary = Color(0xFF8A9FB3); // Light blue-grey
   
   
-  static const Color primary = Color(0xFF0891B2); // Professional teal
-  static const Color primaryLight = Color(0xFF06B6D4); // Lighter teal
-  static const Color primaryDark = Color(0xFF0D7377); // Darker teal
+  static const Color primary = Color(0xFF2563EB); 
+  static const Color primaryLight = Color(0xFF477CEC); 
+  static const Color primaryDark = Color(0xFF0B389B);
   
   
-  static const Color secondary = Color(0xFF8B5CF6); // Soft purple
-  static const Color secondaryLight = Color(0xFFA78BFA); // Lighter purple
+  static const Color secondary = Color(0xFF8B5CF6);
+  static const Color secondaryLight = Color(0xFFA78BFA); 
   
   
   static const Color success = Color(0xFF10B981); // Soft emerald
@@ -28,8 +28,8 @@ class EchoColors {
   static const Color neutral = Color(0xFF6B7280); // Soft grey-blue
   
   
-  static const Color switchOn = Color(0xFF00A3C4); // Bright Cyan
-  static const Color switchOff = Color(0xFF334155); // Slate Gray
+  static const Color switchOn = Color(0xFF2563EB);
+  static const Color switchOff = Color(0xFF334155); 
   
   
   static const Color glassLight = Color(0x0FFFFFFF);

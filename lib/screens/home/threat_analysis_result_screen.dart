@@ -110,16 +110,16 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF3B30).withOpacity(0.2),
+                  color: EchoColors.secondaryLight.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFF3B30).withOpacity(0.5)),
+                  border: Border.all(color: EchoColors.secondaryLight.withOpacity(0.5)),
                 ),
                 child: Text(
                   'HIGH',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFFFF3B30),
+                    color: EchoColors.secondaryLight,
                   ),
                 ),
               ),
@@ -264,11 +264,11 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF3B30), Color(0xFFCC1500)],
+            colors: [EchoColors.primaryLight, EchoColors.primaryDark],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: const Color(0xFFFF3B30).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(color: EchoColors.primaryLight.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
           ],
         ),
         child: Center(

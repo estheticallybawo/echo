@@ -11,7 +11,7 @@ class NotificationScreen extends StatelessWidget {
       'sub': 'Your SOS alert was broadcast to 5 nearby users.',
       'time': 'Just now',
       'icon': Icons.broadcast_on_personal_rounded,
-      'color': Colors.redAccent,
+      'color': Colors.orangeAccent,
     },
     {
       'title': 'Inner Circle Update',
