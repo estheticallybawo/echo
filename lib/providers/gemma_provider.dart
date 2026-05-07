@@ -1,37 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/llama_threat_service.dart';
+import '../services/gemma/llama_threat_service.dart';
 import '../services/firestore_incident_service.dart';
-import '../services/gemma_decision_engine.dart';
+import '../services/gemma/gemma_decision_engine.dart';
 import '../services/escalation_timer_service.dart';
 
-/// Track C: Gemma 4 Threat Assessment Provider
-/// Week 1: Mocks Google AI Studio
-/// Week 2+: Real Gemma 4 API calls + Ollama fallback
-/// 
-/// Integrates with GemmaDecisionEngine to make dynamic escalation decisions
-/// based on threat assessment + user history + pattern analysis
+/// Provider that exposes all Gemma 4 capabilities to the UI:
+/// - Threat assessment (text/voice)
+/// - Spoken diversion message
+/// - Post‑incident safety report
+/// - Step‑by‑step emergency instructions
+/// - (Optional) translation
 class GemmaProvider extends ChangeNotifier {
   final LlamaThreatService _llamaThreatService;
   final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
   final GemmaDecisionEngine _decisionEngine = GemmaDecisionEngine();
-  
+
   bool isAnalyzing = false;
   Map<String, dynamic>? lastThreatAssessment;
-  Map<String, dynamic>? lastDecision; // Track last escalation decision from engine
+  Map<String, dynamic>? lastDecision;
   String? error;
-  String? lastIncidentId; // Track last logged incident
-  
+  String? lastIncidentId;
+
+  // Cached results for new features
+  String? _cachedDiversionMessage;
+  String? _cachedSafetyReport;
+  List<String>? _cachedSafetyInstructions;
+
   GemmaProvider({required LlamaThreatService llamaThreatService})
       : _llamaThreatService = llamaThreatService;
-  
-  /// Week 1: Mock threat analysis (Days 1-2)
+
+  // ----------------------------------------------------------------------
+  // Location context (injected into threat assessment prompts)
+  // ----------------------------------------------------------------------
+  void setLocationContext(String location) {
+    LlamaThreatService.setLocationContext(location);
+  }
+
+  void clearLocationContext() {
+    LlamaThreatService.clearLocationContext();
+  }
+
+  // ----------------------------------------------------------------------
+  // Threat assessment (original)
+  // ----------------------------------------------------------------------
   Future<Map<String, dynamic>> analyzeThreatMock(String audioContext) async {
     isAnalyzing = true;
     error = null;
     notifyListeners();
-    
+
     try {
+      clearCachedResults();
       final result = await _llamaThreatService.analyzeThreatMock(audioContext);
       lastThreatAssessment = result;
       isAnalyzing = false;
@@ -44,14 +63,14 @@ class GemmaProvider extends ChangeNotifier {
       return {};
     }
   }
-  
-  /// Week 2+: Real Gemma 4 threat analysis
+
   Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
     isAnalyzing = true;
     error = null;
     notifyListeners();
-    
+
     try {
+      clearCachedResults();
       final result = await _llamaThreatService.analyzeThreat(audioContext);
       lastThreatAssessment = result;
       isAnalyzing = false;
@@ -64,21 +83,67 @@ class GemmaProvider extends ChangeNotifier {
       return {};
     }
   }
-  
-  /// 🔥 Log threat assessment to Firestore
-  /// 
-  /// Called after Gemma analyzes threat, persists to real-time database
-  /// Fires confirmation sound listeners when document is created
+
+  // ----------------------------------------------------------------------
+  // Spoken diversion message
+  // ----------------------------------------------------------------------
+  Future<String> getDiversionMessage() async {
+    if (_cachedDiversionMessage != null) return _cachedDiversionMessage!;
+    final message = await _llamaThreatService.generateDiversionMessage();
+    _cachedDiversionMessage = message;
+    return message;
+  }
+
+  // ----------------------------------------------------------------------
+  // Post‑incident safety report
+  // ----------------------------------------------------------------------
+  Future<String> getSafetyReport({
+    required String threatType,
+    required int confidence,
+    required String location,
+    required List<String> actionsTaken,
+  }) async {
+    final report = await _llamaThreatService.generateSafetyReport(
+      threatType: threatType,
+      confidence: confidence,
+      location: location,
+      actionsTaken: actionsTaken,
+    );
+    _cachedSafetyReport = report;
+    return report;
+  }
+
+  // ----------------------------------------------------------------------
+  // Step‑by‑step instructions (based on last threat assessment)
+  // ----------------------------------------------------------------------
+  Future<List<String>> getSafetyInstructions() async {
+    if (lastThreatAssessment == null) return ['Stay calm', 'Share your location'];
+    if (_cachedSafetyInstructions != null) return _cachedSafetyInstructions!;
+    final instructions = await _llamaThreatService.getSafetyInstructions(lastThreatAssessment!);
+    _cachedSafetyInstructions = instructions;
+    return instructions;
+  }
+
+  // ----------------------------------------------------------------------
+  // Translation (optional, for future use)
+  // ----------------------------------------------------------------------
+  Future<String> translate(String text, String targetLanguage) async {
+    return await _llamaThreatService.translate(text, targetLanguage);
+  }
+
+  // ----------------------------------------------------------------------
+  // Firestore logging & escalation (unchanged)
+  // ----------------------------------------------------------------------
   Future<void> logThreatToFirestore({
     required String contactId,
     required String location,
   }) async {
+    // ... (your existing code – unchanged)
     if (lastThreatAssessment == null) {
       error = 'No threat assessment to log';
       notifyListeners();
       return;
     }
-
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -86,12 +151,9 @@ class GemmaProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-
       final threatLevel = (lastThreatAssessment!['threatLevel'] ?? 'HIGH').toString().toUpperCase();
       final threatCategory = (lastThreatAssessment!['threat'] ?? 'unknown_threat').toString();
       final analysisJson = lastThreatAssessment.toString();
-
-      // Log to Firestore
       lastIncidentId = await _firestoreService.logIncident(
         userId: user.uid,
         actionType: 'emergency_press',
@@ -101,7 +163,6 @@ class GemmaProvider extends ChangeNotifier {
         threatCategory: threatCategory,
         gemmaAnalysis: analysisJson,
       );
-
       error = null;
       notifyListeners();
       print('✅ Threat logged to Firestore: $lastIncidentId');
@@ -111,25 +172,18 @@ class GemmaProvider extends ChangeNotifier {
       print('❌ Firestore logging error: $e');
     }
   }
-  
-  /// 🧠 Make escalation decision using Gemma Decision Engine
-  /// 
-  /// Uses threat assessment + user history + patterns to determine
-  /// whether to escalate and which tier to recommend
-  /// Returns decision with reasoning for audit trail
+
   Future<Map<String, dynamic>> makeEscalationDecision({
     required String userThreatThreshold,
     required String location,
   }) async {
+    // ... (your existing code – unchanged)
     if (lastThreatAssessment == null || lastIncidentId == null) {
       return {'decision': 'ERROR', 'reason': 'No threat assessment available'};
     }
-
     try {
       final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
       final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
-
-      // Get decision from engine
       lastDecision = await _decisionEngine.makeEscalationDecision(
         incidentId: lastIncidentId!,
         threatType: threatType,
@@ -137,45 +191,29 @@ class GemmaProvider extends ChangeNotifier {
         location: location,
         userThreatThreshold: userThreatThreshold,
       );
-
-      // Recommend tier based on assessment
       final recommendedTier = await _decisionEngine.recommendTier(
         threatType: threatType,
         confidence: confidence,
-        similarThreatCount: 0, // Will be calculated by decision engine
+        similarThreatCount: 0,
       );
-
       lastDecision!['recommended_tier'] = recommendedTier;
-
       notifyListeners();
       return lastDecision!;
     } catch (e) {
       error = 'Decision engine error: $e';
       notifyListeners();
-      print('❌ Error in makeEscalationDecision: $e');
       return {'decision': 'ERROR', 'reason': e.toString()};
     }
   }
-  
-  /// Get contacts to notify based on current ESCALATION TIER (not threat severity)
-  /// 
-  /// Now integrates with EscalationTimerService to determine which tier is currently active.
-  /// This ensures contacts are only notified at the appropriate escalation level.
-  /// 
-  /// T+5s:  Tier 1 (inner circle) notified
-  /// T+60s: Tier 2 (extended network) notified
-  /// T+90s: Tier 3 (Echo community feed) notified
+
   Future<List<String>> getContactsToNotify() async {
+
     if (lastThreatAssessment == null) return [];
-    
     try {
       final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
       final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
-      
-      // Get current escalation tier from service (singleton)
       final escalationService = EscalationTimerService();
       final currentTier = escalationService.currentTier;
-
       return await _decisionEngine.getContactsToAlert(
         threatType: threatType,
         confidence: confidence,
@@ -186,32 +224,23 @@ class GemmaProvider extends ChangeNotifier {
       return ['tier_1_emergency'];
     }
   }
-  
-  /// Generate custom alert message based on Gemma decision
+
   String generateAlertMessage(String location) {
     if (lastThreatAssessment == null) return '';
-    
     final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
     final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
-
     return _decisionEngine.generateAlertMessage(
       threatType: threatType,
       confidence: confidence,
       location: location,
     );
   }
-  
-  /// Generate post preview from threat assessment
-  /// Note: Requires userName and location
+
   String generatePostPreview(String userName, String location) {
     if (lastThreatAssessment == null) return '';
     return _llamaThreatService.generateEmergencyPost(userName, location, lastThreatAssessment!);
   }
-  
-  /// Get real-time stream of incidents from Firestore
-  /// 
-  /// Used by incident_log_screen to display live incident updates
-  /// Returns stream of incidents ordered by timestamp (newest first)
+
   Stream<List<IncidentModel>> getIncidentsStream() {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -224,5 +253,12 @@ class GemmaProvider extends ChangeNotifier {
       print('❌ Error getting incidents stream: $e');
       return Stream.value([]);
     }
+  }
+
+  // Helper to clear cached results (e.g., after new threat assessment)
+  void clearCachedResults() {
+    _cachedDiversionMessage = null;
+    _cachedSafetyReport = null;
+    _cachedSafetyInstructions = null;
   }
 }

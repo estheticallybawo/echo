@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_incident_service.dart';
+import 'echo feed/echo_feed_service.dart';
 
 /// Track C: Escalation Timer Service
 /// Manages multi-tier escalation countdown (0-120+ seconds)
@@ -26,6 +29,11 @@ class EscalationTimerService {
 
   // Escalation tracking
   String? _currentIncidentId;
+  
+  // Distress-adjustable thresholds
+  int _tier1Threshold = 5;    // T+5s: SMS alert
+  int _tier2Threshold = 60;   // T+60s: Extended network
+  int _tier3Threshold = 90;   // T+90s: Echo feed auto-post
 
   // Public getters
   bool get isRunning => _isRunning;
@@ -36,8 +44,8 @@ class EscalationTimerService {
 
   // Escalation tier status
   int get currentTier {
-    if (_secondsElapsed < 30) return 1;
-    if (_secondsElapsed < 90) return 2;
+    if (_secondsElapsed < _tier2Threshold) return 1;
+    if (_secondsElapsed < _tier3Threshold) return 2;
     return 3;
   }
 
@@ -65,15 +73,20 @@ class EscalationTimerService {
     _secondsElapsed = 0;
     _isRunning = true;
 
+    // Reset thresholds to defaults at the start of each emergency session.
+    _tier1Threshold = 5;
+    _tier2Threshold = 60;
+    _tier3Threshold = 90;
+
     onTick = onTickCallback;
     this.onTier1Activate = onTier1Activate;
     this.onTier2Escalate = onTier2Escalate;
     this.onTier3Escalate = onTier3Escalate;
 
     print('⏱️ Escalation timer started ($_currentIncidentId)');
-    print('   T+5s:  TIER 1 ACTIVATION - Send SMS to inner circle');
-    print('   T+60s: TIER 2 ESCALATION - Escalate to extended network');
-    print('   T+90s: TIER 3 AUTO-POST - Echo community feed auto-post');
+    print('   T+${_tier1Threshold}s:  TIER 1 ACTIVATION - Send SMS to inner circle');
+    print('   T+${_tier2Threshold}s: TIER 2 ESCALATION - Escalate to extended network');
+    print('   T+${_tier3Threshold}s: TIER 3 AUTO-POST - Echo community feed auto-post');
 
     // Start 1-second tick timer
     _escalationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
@@ -82,21 +95,21 @@ class EscalationTimerService {
       // Callback for UI updates
       onTick?.call(_secondsElapsed);
 
-      // Tier 1 activation (T+5s) - Send SMS to inner circle
-      if (_secondsElapsed == 5) {
-        print('⏰ T+5s: TIER 1 ACTIVATION - Sending SMS to inner circle');
+      // Tier 1 activation (T+Xs) - Send SMS to inner circle
+      if (_secondsElapsed == _tier1Threshold) {
+        print('⏰ T+${_tier1Threshold}s: TIER 1 ACTIVATION - Sending SMS to inner circle');
         this.onTier1Activate?.call();
       }
 
-      // Tier 2 escalation (T+60s) - Escalate to extended network
-      if (_secondsElapsed == 60) {
-        print('⏰ T+60s: TIER 2 ESCALATION - Escalating to extended network');
+      // Tier 2 escalation (T+Xs) - Escalate to extended network
+      if (_secondsElapsed == _tier2Threshold) {
+        print('⏰ T+${_tier2Threshold}s: TIER 2 ESCALATION - Escalating to extended network');
         this.onTier2Escalate?.call();
       }
 
-      // Tier 3 auto-post to Echo feed (T+90s)
-      if (_secondsElapsed == 90) {
-        print('⏰ T+90s: TIER 3 AUTO-POST - Posting to Echo community feed');
+      // Tier 3 auto-post to Echo feed (T+Xs)
+      if (_secondsElapsed == _tier3Threshold) {
+        print('⏰ T+${_tier3Threshold}s: TIER 3 AUTO-POST - Posting to Echo community feed');
         await _handleTier3Escalation();
         this.onTier3Escalate?.call();
       }
@@ -119,25 +132,41 @@ class EscalationTimerService {
 
   /// Handle Tier 3 escalation (auto-post to Echo community feed)
   Future<void> _handleTier3Escalation() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-      final firestoreService = _firestoreService ??= FirestoreIncidentService();
+    // Get incident data from Firestore (matches FirestoreIncidentService collection path)
+    final incidentDoc = await _firestore
+        .collection('incidents')
+        .doc(user.uid)
+        .collection('logs')
+        .doc(_currentIncidentId)
+        .get();
+    final data = incidentDoc.data();
+    if (data == null) return;
 
-      // Update incident in Firestore to mark Tier 3 escalation and auto-post to Echo feed
-      if (_currentIncidentId != null) {
-        await firestoreService.updateIncidentStatus(
-          userId: user.uid,
-          incidentId: _currentIncidentId!,
-          escalationStatus: 'TIER_3_ECHO_FEED_AUTO_POST',
-        );
-        print('✅ Tier 3: Auto-posted to Echo community feed');
-      }
-    } catch (e) {
-      print('❌ Error in Tier 3 escalation: $e');
-    }
+    final threatAssessment = jsonDecode(data['gemma_analysis'] ?? '{}');
+    final location = data['location'] ?? 'unknown';
+    // Note: latitude/longitude not stored in IncidentModel; pass null (feed service handles it)
+    final lat = null;
+    final lon = null;
+
+    final feedService = EchoFeedService();
+    await feedService.postEmergencyToFeed(
+      incidentId: _currentIncidentId!,
+      userId: user.uid,
+      victimName: user.displayName ?? 'User',
+      locationText: location,
+      latitude: lat,
+      longitude: lon,
+      threatAssessment: threatAssessment,
+    );
+    print('✅ Tier 3 escalation: Echo Feed post created for incident $_currentIncidentId');
+  } catch (e) {
+    print('❌ Error in Tier 3 escalation: $e');
   }
+}
 
   /// Stop escalation countdown (user pressed "I am safe")
   void stopEscalation() {
@@ -168,9 +197,9 @@ class EscalationTimerService {
 
     switch (currentTier) {
       case 1:
-        return 'Tier 1: SMS sent to inner circle (${60 - _secondsElapsed}s until Tier 2)';
+        return 'Tier 1: SMS sent to inner circle (${_tier2Threshold - _secondsElapsed}s until Tier 2)';
       case 2:
-        return 'Tier 2: Extended network alerted (${90 - _secondsElapsed}s until Echo feed post)';
+        return 'Tier 2: Extended network alerted (${_tier3Threshold - _secondsElapsed}s until Echo feed post)';
       case 3:
         return 'Tier 3: ACTIVE - Posted to Echo community feed';
       default:
@@ -188,5 +217,21 @@ class EscalationTimerService {
       'statusMessage': getStatusMessage(),
       'formattedTime': getFormattedTime(),
     };
+  }
+
+  /// Apply distress-based timer adjustments (speeds up escalation)
+  void applyDistressAdjustment({double speedupMultiplier = 0.33}) {
+    if (!_isRunning) return;
+    
+    // Reduce thresholds by the multiplier (e.g., 0.33 = 1/3 of original time)
+    final originalTier2 = _tier2Threshold;
+    final originalTier3 = _tier3Threshold;
+    
+    _tier2Threshold = (originalTier2 * speedupMultiplier).toInt().clamp(5, originalTier2);
+    _tier3Threshold = (originalTier3 * speedupMultiplier).toInt().clamp(10, originalTier3);
+    
+    print('⚠️ DISTRESS ADJUSTMENT APPLIED');
+    print('   Tier 2: ${originalTier2}s → ${_tier2Threshold}s');
+    print('   Tier 3: ${originalTier3}s → ${_tier3Threshold}s');
   }
 }

@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'firebase_options.dart';
 
 import 'screens/account-setups/permission_setup_screen.dart';
 import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
@@ -21,17 +23,29 @@ import 'screens/onboarding/onboarding_flow.dart';
 
 import 'package:provider/provider.dart';
 import 'providers/escalation_provider.dart';
+import 'providers/gemma_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/user_preferences_provider.dart';
+import 'services/gemma/llama_threat_service.dart';
 import 'theme.dart';
 import 'screens/onboarding/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => UserPreferencesProvider()),
         ChangeNotifierProvider(create: (_) => EscalationProvider()),
+        ChangeNotifierProvider(
+          create: (_) => GemmaProvider(
+            llamaThreatService: LlamaThreatService(),
+          ),
+        ),
       ],
       child: const EchoApp(),
     ),
@@ -65,7 +79,6 @@ class EchoApp extends StatelessWidget {
         '/notifications': (context) => const NotificationScreen(),
         '/terms-privacy': (context) => const TermsPrivacyScreen(),
         '/threat-analysis-result': (context) => const ThreatAnalysisResultScreen(),
-
         '/settings': (context) => const SettingsScreen(),
         '/profile': (context) => const ProfileScreen(),
       },

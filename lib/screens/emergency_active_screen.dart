@@ -5,6 +5,9 @@ import 'dart:async';
 import 'dart:math';
 import '../theme.dart';
 import '../services/escalation_timer_service.dart';
+import '../providers/gemma_provider.dart';
+import '../services/gemma/llama_threat_service.dart';
+import '../services/sound/tts_service.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   final Map<String, dynamic>? threatAnalysis;
@@ -37,8 +40,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
   late double confidence;
   late String threatType;
   late String threatLevel;
-
-
+  
+  // Safety report (generated when user marks safe)
+  String? _safetyReport;
+  bool _isGeneratingReport = false;
 
   double _safeConfidenceValue(dynamic value) {
     if (value is num) {
@@ -106,6 +111,81 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
 
     // Simulate Gemma 4 AI analysis stream with real data
     _aiAnalysisStream = _generateAIAnalysis();
+    
+    // Detect distress in the threat summary
+    final threatSummary = threatData['summary']?.toString() ?? '';
+    final isHighDistress = _detectHighDistress(threatSummary);
+    if (isHighDistress) {
+      _applyDistressAdjustment(true);
+    }
+    
+    // Fetch and speak diversion message
+    _speakDiversionMessage();
+  }
+
+  /// Detect high distress from transcript keywords
+  bool _detectHighDistress(String transcript) {
+    if (transcript.isEmpty) return false;
+    
+    final lowerTranscript = transcript.toLowerCase();
+    final distressKeywords = [
+      'help', 'please', 'scared', 'afraid', 'don\'t', 'stop',
+      'no', 'wait', 'pain', 'hurt', 'emergency', 'call', 'police'
+    ];
+    
+    // Count keyword occurrences
+    int distressCount = 0;
+    for (final keyword in distressKeywords) {
+      if (lowerTranscript.contains(keyword)) {
+        distressCount++;
+      }
+    }
+    
+    // High distress: 3+ keywords or specific urgent phrases
+    final isHighDistress = distressCount >= 3 ||
+        lowerTranscript.contains('help me') ||
+        lowerTranscript.contains('please help') ||
+        lowerTranscript.contains('i\'m scared') ||
+        lowerTranscript.contains('don\'t come');
+    
+    if (isHighDistress) {
+      print('⚠️ HIGH DISTRESS DETECTED: $distressCount keywords, adjusting timers');
+    }
+    
+    return isHighDistress;
+  }
+
+  /// Adjust escalation delays if high distress detected
+  void _applyDistressAdjustment(bool isHighDistress) {
+    if (!isHighDistress) return;
+    
+    try {
+      // Apply distress adjustment to the escalation service
+      _escalationService.applyDistressAdjustment(speedupMultiplier: 0.33);
+      print('✅ Distress adjustment applied to escalation timers');
+    } catch (e) {
+      print('❌ Error applying distress adjustment: $e');
+    }
+  }
+
+  /// Speak the diversion message once when emergency starts
+  Future<void> _speakDiversionMessage() async {
+    try {
+      final gemmaProvider = GemmaProvider(
+        llamaThreatService: LlamaThreatService(),
+      );
+      final diversionMessage = await gemmaProvider.getDiversionMessage();
+
+      if (mounted && diversionMessage.isNotEmpty) {
+        final ttsService = TTSService();
+        await ttsService.initialize();
+        await ttsService.speak(diversionMessage);
+        print('🔊 Diversion message spoken: "$diversionMessage"');
+      }
+    } catch (e) {
+      print('❌ Error speaking diversion message: $e');
+      // Fail silently; emergency flow continues
+    }
   }
 
 
@@ -117,6 +197,76 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
     _elapsedTimer.cancel();
     _escalationService.stopEscalation();
     super.dispose();
+  }
+
+  /// Generate safety report using Gemma
+  Future<String> _generateSafetyReport() async {
+    try {
+      // Use GemmaProvider to generate the report
+      // In a real app, you'd pass actual threat data; for now, use what we have
+      final reportText = await GemmaProvider(
+        llamaThreatService: LlamaThreatService(),
+      ).getSafetyReport(
+        threatType: threatType,
+        confidence: confidence.toInt(),
+        location: widget.userLocation ?? 'Unknown Location',
+        actionsTaken: ['Tier 1 SMS sent', 'Location shared', 'Emergency services alerted'],
+      );
+      return reportText;
+    } catch (e) {
+      print('❌ Error generating safety report: $e');
+      return 'Safety report temporarily unavailable. Please contact emergency services for a complete incident report.';
+    }
+  }
+
+  /// Show the safety report in a dialog
+  void _showSafetyReportDialog(String reportText) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: EchoColors.surfaceSecondary,
+        title: Text(
+          'Safety Report',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: EchoColors.textPrimary,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            reportText,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: EchoColors.textSecondary,
+              height: 1.6,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/home',
+                (route) => false,
+              );
+            },
+            child: const Text('Done'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Share report functionality (optional)
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Report sharing feature coming soon'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text('Share'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Generate AI analysis text from real Gemma data
@@ -413,13 +563,30 @@ Social: Queued for amplification
                   child: const Text('Keep Recording'),
                 ),
                 TextButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.pop(context);
                     _escalationService.confirmSafety();
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/home',
-                      (route) => false,
-                    );
+                    
+                    // Generate safety report
+                    if (mounted && !_isGeneratingReport) {
+                      setState(() => _isGeneratingReport = true);
+                      try {
+                        final reportText = await _generateSafetyReport();
+                        if (mounted) {
+                          setState(() => _isGeneratingReport = false);
+                          _showSafetyReportDialog(reportText);
+                        }
+                      } catch (e) {
+                        print('❌ Error generating safety report: $e');
+                        if (mounted) {
+                          setState(() => _isGeneratingReport = false);
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/home',
+                            (route) => false,
+                          );
+                        }
+                      }
+                    }
                   },
                   child: Text(
                     'Cancel Emergency',

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/user_profile_service.dart';
-import '../services/gemma_decision_engine.dart';
+import '../services/gemma/gemma_decision_engine.dart';
 
 /// Track C: User Preferences Provider
 /// Manages user-specific settings and profile data

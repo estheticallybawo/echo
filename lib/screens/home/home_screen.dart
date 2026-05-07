@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme.dart';
 import '../../widgets/tutorial_overlay.dart';
+import '../../services/sound/voice_recognition_service.dart';
 
 enum _EchoMode { standby, countdown, active, voice }
 
@@ -40,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _pulseAnim;
   late Animation<double> _holdAnim;
 
+  late VoiceRecognitionService _voiceRecognition;
+  static const String _safetyPhrase = 'echo help now';
+
   final List<_Contact> _contacts = [
     _Contact('Mom', 1),
     _Contact('Sister', 2),
@@ -63,6 +67,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _holdAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _holdCtrl, curve: Curves.linear),
     );
+
+    // Initialize voice recognition with hotword detection
+    _voiceRecognition = VoiceRecognitionService(
+      safetyPhrase: _safetyPhrase,
+      minConfidence: 0.75,
+    );
+    _initializeVoiceRecognition();
+  }
+
+  /// Initialize voice recognition and start listening
+  Future<void> _initializeVoiceRecognition() async {
+    final initialized = await _voiceRecognition.initialize(
+      onActivation: _handleVoiceActivation,
+    );
+    if (initialized && _bgListening && mounted) {
+      await _voiceRecognition.startListening();
+      print('✅ Voice recognition initialized and listening for "$_safetyPhrase"');
+    } else if (!initialized && mounted) {
+      print('⚠️ Voice recognition initialization failed; hotword will be unavailable');
+    }
+  }
+
+  /// Handle voice hotword activation (same flow as manual SOS)
+  Future<void> _handleVoiceActivation(VoiceActivationEvent event) async {
+    print('🎤 Voice hotword detected: "${event.phraseDetected}" (confidence: ${(event.confidence * 100).toStringAsFixed(0)}%)');
+    // Trigger the same SOS flow as the manual button
+    if (mounted) {
+      _triggerSOS();
+    }
   }
 
 
@@ -74,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _sosTimer?.cancel();
     _elapsedTimer?.cancel();
     _voiceTimer?.cancel();
+    _voiceRecognition.dispose();
     super.dispose();
   }
 

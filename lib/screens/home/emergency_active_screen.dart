@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../providers/escalation_provider.dart';
+import '../../providers/gemma_provider.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   const EmergencyActiveScreen({super.key});
@@ -21,6 +22,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   Timer? _fluctuationTimer;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
+  
+  List<String> _safetyInstructions = [];
+  bool _instructionsLoaded = false;
 
   @override
   void initState() {
@@ -35,6 +39,30 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     
     _startTypewriter();
     _startFluctuation();
+    _loadSafetyInstructions();
+  }
+
+  /// Load safety instructions from Gemma provider
+  Future<void> _loadSafetyInstructions() async {
+    try {
+      final gemmaProvider = context.read<GemmaProvider>();
+      final instructions = await gemmaProvider.getSafetyInstructions();
+      if (mounted) {
+        setState(() {
+          _safetyInstructions = instructions;
+          _instructionsLoaded = true;
+        });
+        print('✅ Safety instructions loaded: ${instructions.length} items');
+      }
+    } catch (e) {
+      print('⚠️ Failed to load safety instructions: $e');
+      if (mounted) {
+        setState(() {
+          _safetyInstructions = ['Stay calm', 'Share your location with a trusted contact'];
+          _instructionsLoaded = true;
+        });
+      }
+    }
   }
 
   void _startFluctuation() {
@@ -117,6 +145,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
                             
 
                             _buildEmotionCard(),
+                            const SizedBox(height: 24),
+                            
+                            // Safety instructions
+                            _buildSafetyInstructionsCard(),
                             const SizedBox(height: 24),
                             
 
@@ -322,6 +354,108 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
               letterSpacing: 0.5,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Build safety instructions card
+  Widget _buildSafetyInstructionsCard() {
+    if (!_instructionsLoaded) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E3A8A).withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.5)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            EchoColors.primary.withOpacity(0.2),
+            EchoColors.primary.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: EchoColors.primary.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lightbulb_outlined, color: EchoColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Safety Instructions',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._safetyInstructions.asMap().entries.map((entry) {
+            final index = entry.key + 1;
+            final instruction = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: EchoColors.primary.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$index',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: EchoColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      instruction,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white70,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ],
       ),
     );

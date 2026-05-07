@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../theme.dart';
+import '../../providers/user_preferences_provider.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -29,6 +31,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
     super.initState();
     _filteredContacts = _allContacts;
     _searchController.addListener(_filterContacts);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<UserPreferencesProvider>().loadEmergencyContacts();
+      }
+    });
   }
 
   void _filterContacts() {
@@ -144,6 +151,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   void _showAddContactDialog({String? initialName}) {
     final nameController = TextEditingController(text: initialName);
+    final phoneController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -176,7 +184,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               const SizedBox(height: 24),
               _buildDialogField('Name', controller: nameController),
               const SizedBox(height: 16),
-              _buildDialogField('Phone number'),
+              _buildDialogField('Phone number', controller: phoneController),
               const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -187,7 +195,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () async {
+                      if (nameController.text.isEmpty || phoneController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please fill in all fields')),
+                        );
+                        return;
+                      }
+                      await context.read<UserPreferencesProvider>().addEmergencyContact(
+                        contactName: nameController.text,
+                        phone: phoneController.text,
+                        relationship: 'Emergency Contact',
+                      );
+                      if (mounted) Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EchoColors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -206,6 +227,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildDialogField(String hint, {TextEditingController? controller}) {
+    final ctrl = controller ?? TextEditingController();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -214,7 +236,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: TextField(
-        controller: controller,
+        controller: ctrl,
         style: GoogleFonts.poppins(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,

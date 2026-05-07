@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme.dart';
 
@@ -191,150 +192,229 @@ class _ActivityScreenState extends State<ActivityScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildLiveFeed() {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
-      itemCount: _feedItems.length,
-      itemBuilder: (context, index) {
-        return _buildFeedCard(index);
-      },
-    );
-  }
 
-  Widget _buildFeedCard(int index) {
-    final item = _feedItems[index];
-    final isAmplified = item['isAmplified'] as bool;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E3A8A).withOpacity(0.2),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: item['riskColor']),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(item['risk'], style: GoogleFonts.poppins(color: item['riskColor'], fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00A3C4).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFF00A3C4).withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.auto_awesome, color: Color(0xFF00A3C4), size: 10),
-                        const SizedBox(width: 4),
-                        Text('Gemma Intel', style: GoogleFonts.poppins(color: const Color(0xFF00A3C4), fontSize: 9, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Text(item['time'], style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
-            ],
+Widget _buildLiveFeed() {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('echo_feed')
+        .orderBy('timestamp', descending: true)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Center(
+          child: Text(
+            'Error loading feed: ${snapshot.error}',
+            style: const TextStyle(color: Colors.red),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                item['proximityLabel'],
-                style: GoogleFonts.poppins(
-                  color: item['riskColor'].withOpacity(0.8),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '• ${item['distance']}',
-                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ],
+        );
+      }
+
+      if (!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final entries = snapshot.data!.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+        return {
+          'id': doc.id,
+          'risk': data['threatLevel'] == 'critical' 
+              ? 'Critical Risk' 
+              : data['threatLevel'] == 'high' 
+                  ? 'High Risk' 
+                  : 'Medium Risk',
+          'riskColor': data['threatLevel'] == 'critical' 
+              ? Colors.redAccent 
+              : data['threatLevel'] == 'high' 
+                  ? Colors.orangeAccent 
+                  : EchoColors.secondaryLight,
+          'time': _formatTimeAgo(timestamp),
+          'location': data['location'] ?? 'Unknown',
+          'distance': 'Nearby', // You can calculate real distance if you have user location
+          'proximityLabel': 'ACTIVE',
+          'date': _formatDate(timestamp),
+          'desc': data['postText'] ?? 'Emergency reported',
+          'amplifiedCount': data['shareCount'] ?? 0,
+          'retweets': '0', // Not using X anymore
+          'isAmplified': false,
+          'victimName': data['victimName'] ?? 'Someone',
+          'policeHandle': data['policeHandle'],
+          'hotline': data['hotline'],
+        };
+      }).toList();
+
+      if (entries.isEmpty) {
+        return const Center(
+          child: Text(
+            'No active cases at the moment',
+            style: TextStyle(color: Colors.white54),
           ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF02091A).withOpacity(0.5),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          return _buildFeedCardFromData(entries[index], index);
+        },
+      );
+    },
+  );
+}
+
+String _formatTimeAgo(DateTime date) {
+  final diff = DateTime.now().difference(date);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  return '${diff.inDays}d ago';
+}
+
+String _formatDate(DateTime date) {
+  return '${date.hour}:${date.minute.toString().padLeft(2, '0')} · ${date.month}/${date.day}/${date.year}';
+}
+
+  Widget _buildFeedCardFromData(Map<String, dynamic> item, int index) {
+  final isAmplified = item['isAmplified'] as bool;
+  
+  return Container(
+    margin: const EdgeInsets.only(bottom: 24),
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: const Color(0xFF1E3A8A).withOpacity(0.2),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: Colors.white.withOpacity(0.05)),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
               children: [
-                _feedRow(Icons.sos, 'Ada Chukwu may be in danger', Colors.redAccent),
-                const SizedBox(height: 12),
-                _feedRow(Icons.location_on, item['location'], Colors.white70),
-                const SizedBox(height: 12),
-                _feedRow(Icons.access_time_filled, item['date'], Colors.white70),
-                const SizedBox(height: 16),
-                Text('#Echoemergency #findadachukwu', style: GoogleFonts.poppins(color: const Color(0xFF2563EB), fontSize: 13, fontWeight: FontWeight.w500)),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: item['riskColor']),
+                ),
+                const SizedBox(width: 8),
+                Text(item['risk'], style: GoogleFonts.poppins(color: item['riskColor'], fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00A3C4).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFF00A3C4).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.auto_awesome, color: Color(0xFF00A3C4), size: 10),
+                      const SizedBox(width: 4),
+                      Text('Gemma Intel', style: GoogleFonts.poppins(color: const Color(0xFF00A3C4), fontSize: 9, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.only(left: 12),
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: Color(0xFF2563EB), width: 2)),
-            ),
-            child: Text(
-              item['desc'],
-              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14, height: 1.5),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Icon(Icons.ios_share, color: isAmplified ? const Color(0xFF00A3C4) : Colors.white38, size: 18),
-              const SizedBox(width: 6),
-              Text('${item['amplifiedCount']} Amplified', style: GoogleFonts.poppins(color: isAmplified ? const Color(0xFF00A3C4) : Colors.white38, fontSize: 12, fontWeight: isAmplified ? FontWeight.w600 : FontWeight.normal)),
-              const SizedBox(width: 20),
-              Icon(Icons.sync, color: const Color(0xFF2563EB).withOpacity(0.5), size: 18),
-              const SizedBox(width: 6),
-              Text('${item['retweets']} retweets', style: GoogleFonts.poppins(color: const Color(0xFF2563EB).withOpacity(0.5), fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => _toggleAmplify(index),
-                child: _buildFeedAction(
-                  isAmplified ? Icons.check_box_rounded : Icons.check_box_outline_blank, 
-                  'Amplify', 
-                  isAmplified ? const Color(0xFF00A3C4) : Colors.white70,
-                ),
+            Text(item['time'], style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Text(
+              item['proximityLabel'],
+              style: GoogleFonts.poppins(
+                color: item['riskColor'].withOpacity(0.8),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
               ),
-              const Spacer(),
-              _buildFeedAction(Icons.share_outlined, 'Share', Colors.white, isPrimary: true),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '• ${item['distance']}',
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF02091A).withOpacity(0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _feedRow(Icons.sos, '${item['victimName']} may be in danger', Colors.redAccent),
+              const SizedBox(height: 12),
+              _feedRow(Icons.location_on, item['location'], Colors.white70),
+              const SizedBox(height: 12),
+              _feedRow(Icons.access_time_filled, item['date'], Colors.white70),
+              const SizedBox(height: 16),
+              Text('#EchoEmergency', style: GoogleFonts.poppins(color: const Color(0xFF2563EB), fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.only(left: 12),
+          decoration: const BoxDecoration(
+            border: Border(left: BorderSide(color: Color(0xFF2563EB), width: 2)),
+          ),
+          child: Text(
+            item['desc'],
+            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14, height: 1.5),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Icon(Icons.ios_share, color: isAmplified ? const Color(0xFF00A3C4) : Colors.white38, size: 18),
+            const SizedBox(width: 6),
+            Text('${item['amplifiedCount']} Amplified', style: GoogleFonts.poppins(color: isAmplified ? const Color(0xFF00A3C4) : Colors.white38, fontSize: 12, fontWeight: isAmplified ? FontWeight.w600 : FontWeight.normal)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () => _toggleAmplifyFromData(index, item, context),
+              child: _buildFeedAction(
+                Icons.auto_awesome, 
+                'Amplify', 
+                isAmplified ? const Color(0xFF00A3C4) : Colors.white70,
+              ),
+            ),
+            const Spacer(),
+            _buildFeedAction(Icons.share_outlined, 'Share', Colors.white, isPrimary: true),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+void _toggleAmplifyFromData(int index, Map<String, dynamic> item, BuildContext context) {
+  // Update Firestore shareCount
+  final docRef = FirebaseFirestore.instance.collection('echo_feed').doc(item['id']);
+  docRef.update({
+    'shareCount': FieldValue.increment(item['isAmplified'] ? -1 : 1),
+  });
+  setState(() {
+    item['isAmplified'] = !item['isAmplified'];
+  });
+}
 
   Widget _feedRow(IconData icon, String text, Color color) {
     return Row(

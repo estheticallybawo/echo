@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'user_profile_service.dart';
+import '../user_profile_service.dart';
 
 /// Track C: Gemma Decision Engine
 /// Uses Gemma threat assessments to dynamically drive escalation behavior

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/user_preferences_provider.dart';
 import '../../theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,6 +20,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userPrefs = context.watch<UserPreferencesProvider>();
+    final displayName = userPrefs.fullName ?? 'Ada Chukwu';
+    final displayPhone = userPrefs.phone ?? '+234 812 345 6789';
+
     return Scaffold(
       backgroundColor: const Color(0xFF02091A),
       body: Container(
@@ -47,7 +54,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: Colors.white.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
@@ -62,36 +73,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
-
                 _buildSectionHeader('Account'),
                 const SizedBox(height: 16),
-                _buildProfileCard(),
+                _buildProfileCard(displayName, displayPhone),
                 const SizedBox(height: 40),
-                
                 _buildSectionHeader('Updates'),
                 const SizedBox(height: 16),
                 _buildAiUpdateCard(),
-                
                 const SizedBox(height: 40),
                 _buildSectionHeader('Background Protection'),
                 const SizedBox(height: 16),
-                _buildToggleCard(Icons.mic_none_rounded, 'Microphone', 'Used for background listening only when Echo is active to detect distress.', micEnabled, (v) => setState(() => micEnabled = v)),
-                _buildToggleCard(Icons.location_on_outlined, 'Location', 'So your contacts know exactly where to find you in an emergency.', locationEnabled, (v) => setState(() => locationEnabled = v)),
-                _buildToggleCard(Icons.contacts_outlined, 'Contacts', 'Lets you choose people who should be alerted when you need help.', contactsEnabled, (v) => setState(() => contactsEnabled = v)),
-                _buildToggleCard(Icons.notifications_none_rounded, 'Notifications', 'So you receive updates when someone responds to your alert.', notificationsEnabled, (v) => setState(() => notificationsEnabled = v)),
-                
+                _buildToggleCard(
+                  Icons.mic_none_rounded,
+                  'Microphone',
+                  'Used for background listening only when Echo is active to detect distress.',
+                  micEnabled,
+                  (v) => setState(() => micEnabled = v),
+                ),
+                _buildToggleCard(
+                  Icons.location_on_outlined,
+                  'Location',
+                  'So your contacts know exactly where to find you in an emergency.',
+                  locationEnabled,
+                  (v) => setState(() => locationEnabled = v),
+                ),
+                _buildToggleCard(
+                  Icons.contacts_outlined,
+                  'Contacts',
+                  'Lets you choose people who should be alerted when you need help.',
+                  contactsEnabled,
+                  (v) => setState(() => contactsEnabled = v),
+                ),
+                _buildToggleCard(
+                  Icons.notifications_none_rounded,
+                  'Notifications',
+                  'So you receive updates when someone responds to your alert.',
+                  notificationsEnabled,
+                  (v) => setState(() => notificationsEnabled = v),
+                ),
                 const SizedBox(height: 40),
                 _buildSectionHeader('Emergency Phase'),
                 const SizedBox(height: 16),
                 _buildPhaseCard(),
-
                 const SizedBox(height: 40),
                 _buildSectionHeader('Legal'),
                 const SizedBox(height: 16),
-                _buildActionCard(Icons.privacy_tip_outlined, 'Terms & Privacy', 'Read our commitment to your security.', () {
-                  Navigator.pushNamed(context, '/terms-privacy');
-                }),
-                
+                _buildActionCard(
+                  Icons.privacy_tip_outlined,
+                  'Terms & Privacy',
+                  'Read our commitment to your security.',
+                  () {
+                    Navigator.pushNamed(context, '/terms-privacy');
+                  },
+                ),
                 const SizedBox(height: 100),
               ],
             ),
@@ -125,7 +159,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(
             'Why Download Latest AI Model?',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 12),
           _bulletPoint('Faster threat detection (offline = no network required).'),
@@ -144,16 +182,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Enhanced AI (E4B)', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700)),
-                    Text('3.5 GB', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+                    Text(
+                      'Enhanced AI (E4B)',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '3.5 GB',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white38,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('Version: Not Installed', style: GoogleFonts.poppins(color: Colors.white38, fontSize: 12)),
+                Text(
+                  'Version: Not Installed',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white38,
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 12),
-                Text('Better Pattern Recognition (Requires 12GB RAM)', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
+                Text(
+                  'Better Pattern Recognition (Requires 12GB RAM)',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('May impact battery life', style: GoogleFonts.poppins(color: Colors.amber.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w500)),
+                Text(
+                  'May impact battery life',
+                  style: GoogleFonts.poppins(
+                    color: Colors.amber.withOpacity(0.7),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -161,10 +230,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: Text('Download Now', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                    child: Text(
+                      'Download Now',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -182,13 +259,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('• ', style: TextStyle(color: Colors.white, fontSize: 16)),
-          Expanded(child: Text(text, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13))),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(
+                color: Colors.white70,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildToggleCard(IconData icon, String title, String sub, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildToggleCard(
+    IconData icon,
+    String title,
+    String sub,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return GestureDetector(
       onTap: () => onChanged(!value),
       child: Container(
@@ -204,7 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(icon, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 16),
@@ -212,9 +306,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(sub, style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38, height: 1.4)),
+                  Text(
+                    sub,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.white38,
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -233,7 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(String displayName, String displayPhone) {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/profile'),
       child: Container(
@@ -255,8 +363,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ada Chukwu', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-                  Text('Edit profile & preferences', style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38)),
+                  Text(
+                    displayName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    displayPhone,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.white38,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -282,9 +403,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('"Ditto"', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+              Text(
+                '"Ditto"',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
               IconButton(
-                onPressed: () => _showDittoInfo(),
+                onPressed: _showDittoInfo,
                 icon: const Icon(Icons.info_outline_rounded, color: Colors.white38, size: 20),
               ),
             ],
@@ -292,7 +420,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             'Your active emergency duress code. Enter this if you are forced to deactivate Echo.',
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white54, height: 1.4),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.white54,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -304,7 +436,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              child: Text('Change Phase', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+              child: Text(
+                'Change Phase',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],
@@ -318,22 +456,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF0F3169),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('What is Ditto?', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: Text(
+          'What is Ditto?',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         content: Text(
           'Ditto is your secret duress code. If an attacker forces you to turn off Echo, enter "Ditto" instead of your real code. The app will look like it turned off, but it will silently alert your Inner Circle and the police that you are acting under pressure.',
-          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14, height: 1.5),
+          style: GoogleFonts.poppins(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Got it', style: GoogleFonts.poppins(color: const Color(0xFF2563EB), fontWeight: FontWeight.w600)),
+            child: Text(
+              'Got it',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF2563EB),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionCard(IconData icon, String title, String sub, VoidCallback onTap) {
+  Widget _buildActionCard(
+    IconData icon,
+    String title,
+    String sub,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -348,7 +507,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(icon, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 16),
@@ -356,9 +518,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(sub, style: GoogleFonts.poppins(fontSize: 12, color: Colors.white38, height: 1.4)),
+                  Text(
+                    sub,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.white38,
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
             ),

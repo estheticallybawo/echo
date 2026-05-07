@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../providers/user_preferences_provider.dart';
 import '../../theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -28,6 +30,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
     );
     _ctrl.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<UserPreferencesProvider>().initializeUserProfile();
+      }
+    });
   }
 
   @override
@@ -194,6 +201,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final userPrefs = context.watch<UserPreferencesProvider>();
+    final displayName = userPrefs.fullName ?? _userName;
+    final displayPhone = userPrefs.phone ?? _userPhone;
+    final contactCount = userPrefs.emergencyContacts.length;
+
     return Scaffold(
       backgroundColor: const Color(0xFF02091A),
       body: Container(
@@ -284,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            _userName,
+                            displayName,
                             style: GoogleFonts.poppins(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
@@ -292,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             ),
                           ),
                           Text(
-                            _userPhone,
+                            displayPhone,
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               color: Colors.white54,
@@ -331,7 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           _buildProfileItem(
                             Icons.group_outlined, 
                             'Inner Circle', 
-                            '3 active members', 
+                            '$contactCount active members', 
                             const Color(0xFF8B5CF6),
                             () => Navigator.pushNamed(context, '/contacts'),
                           ),
