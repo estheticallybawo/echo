@@ -34,24 +34,25 @@ class GemmaProvider extends ChangeNotifier {
   // Location context (injected into threat assessment prompts)
   // ----------------------------------------------------------------------
   void setLocationContext(String location) {
-    LlamaThreatService.setLocationContext(location);
+    _llamaThreatService.setLocationContext(location);
   }
 
   void clearLocationContext() {
-    LlamaThreatService.clearLocationContext();
+    _llamaThreatService.clearLocationContext();
   }
 
-  // ----------------------------------------------------------------------
-  // Threat assessment (original)
-  // ----------------------------------------------------------------------
-  Future<Map<String, dynamic>> analyzeThreatMock(String audioContext) async {
+  // ------- Threat assessment (VOICE-TRIGGERED ONLY) -------
+  /// Analyze threat from voice transcript (internal use only).
+  /// IMPORTANT: Only call this with transcripts from speech recognition service.
+  /// Do NOT expose to UI for manual text input.
+  Future<Map<String, dynamic>> _analyzeVoiceTranscript(String voiceTranscript) async {
     isAnalyzing = true;
     error = null;
     notifyListeners();
 
     try {
       clearCachedResults();
-      final result = await _llamaThreatService.analyzeThreatMock(audioContext);
+      final result = await _llamaThreatService.analyzeThreat(voiceTranscript);
       lastThreatAssessment = result;
       isAnalyzing = false;
       notifyListeners();
@@ -64,14 +65,17 @@ class GemmaProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
+  /// FOR DEVELOPMENT/TESTING ONLY: Analyze threat using mock data.
+  /// Never expose this in production UI - marked as deprecated.
+  @Deprecated('Use voice transcription service only. This is for testing.')
+  Future<Map<String, dynamic>> analyzeThreatMock(String mockInput) async {
     isAnalyzing = true;
     error = null;
     notifyListeners();
 
     try {
       clearCachedResults();
-      final result = await _llamaThreatService.analyzeThreat(audioContext);
+      final result = await _llamaThreatService.analyzeThreatMock(mockInput);
       lastThreatAssessment = result;
       isAnalyzing = false;
       notifyListeners();

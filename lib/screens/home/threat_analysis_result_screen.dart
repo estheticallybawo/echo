@@ -4,14 +4,134 @@ import 'package:provider/provider.dart';
 import '../../providers/escalation_provider.dart';
 import '../../theme.dart';
 
-class ThreatAnalysisResultScreen extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/escalation_provider.dart';
+import '../../providers/gemma_provider.dart';
+import '../../services/sound/confirmation_sound_service.dart';
+import '../../services/sound/tts_service.dart';
+import '../../theme.dart';
+
+class ThreatAnalysisResultScreen extends StatefulWidget {
   const ThreatAnalysisResultScreen({super.key});
 
   @override
+  State<ThreatAnalysisResultScreen> createState() => _ThreatAnalysisResultScreenState();
+}
+
+class _ThreatAnalysisResultScreenState extends State<ThreatAnalysisResultScreen> {
+  final TTSService _ttsService = TTSService();
+  final ConfirmationSoundService _confirmationSoundService = ConfirmationSoundService();
+  Map<String, dynamic>? _voiceAnalysis;
+  bool _hasAnnouncedSummary = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (_voiceAnalysis == null && args is Map) {
+      _voiceAnalysis = Map<String, dynamic>.from(args as Map);
+    }
+
+    if (!_hasAnnouncedSummary) {
+      _hasAnnouncedSummary = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _announceSummary();
+      });
+    }
+  }
+
+  Future<void> _announceSummary() async {
+    final summary = _buildSpokenSummary();
+    if (summary.isNotEmpty) {
+      await _ttsService.speak(summary);
+    }
+  }
+
+  Map<String, dynamic> _analysisFor(GemmaProvider gemma) {
+    if (gemma.lastThreatAssessment != null) {
+      return gemma.lastThreatAssessment!;
+    }
+    if (_voiceAnalysis != null) {
+      return _voiceAnalysis!;
+    }
+    return const {
+      'threat': 'Voice distress',
+      'confidence': 0.75,
+      'threatLevel': 'HIGH',
+      'summary': 'Voice input suggests distress. Continue with emergency flow.',
+    };
+  }
+
+  String _analysisLabel(Map<String, dynamic> analysis) {
+    return (analysis['threat'] ?? analysis['emotional_state'] ?? 'Voice distress').toString();
+  }
+
+  String _analysisLevel(Map<String, dynamic> analysis) {
+    final level = analysis['threatLevel'] ?? analysis['distress_level'] ?? 'HIGH';
+    return level.toString().toUpperCase();
+  }
+
+  int _analysisConfidence(Map<String, dynamic> analysis) {
+    final confidence = (analysis['confidence'] as num?)?.toDouble() ?? 0.0;
+    if (confidence <= 1.0) {
+      return (confidence * 100).round();
+    }
+    return confidence.round();
+  }
+
+  String _analysisSummary(Map<String, dynamic> analysis) {
+    return (analysis['summary'] ?? analysis['audio_description'] ?? 'Emergency response flow ready.').toString();
+  }
+
+  String _buildSpokenSummary() {
+    final analysis = _voiceAnalysis;
+    if (analysis == null) {
+      return 'Threat analysis screen opened. No voice analysis data was attached.';
+    }
+
+    final label = _analysisLabel(analysis);
+    final level = _analysisLevel(analysis);
+    final confidence = _analysisConfidence(analysis);
+    return 'Voice analysis complete. $label detected with $confidence percent confidence. Threat level $level. ${_analysisSummary(analysis)}';
+  }
+
+  Future<void> _startEscalation(BuildContext context, Map<String, dynamic> analysis) async {
+    await _confirmationSoundService.confirmTierCompletion(1);
+
+    final escalation = Provider.of<EscalationProvider>(context, listen: false);
+    escalation.startEscalation(
+      userId: 'user_123',
+      threatType: _analysisLabel(analysis),
+      confidence: (_analysisConfidence(analysis) / 100).clamp(0.0, 1.0),
+    );
+
+    if (!context.mounted) return;
+    Navigator.pushReplacementNamed(context, '/emergency-active');
+  }
+
+  @override
+  void dispose() {
+    _ttsService.stop();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF02091A),
-      body: Container(
+    return Consumer<GemmaProvider>(
+      builder: (context, gemma, child) {
+        final analysis = _analysisFor(gemma);
+        final label = _analysisLabel(analysis);
+        final level = _analysisLevel(analysis);
+        final confidence = _analysisConfidence(analysis);
+        final summary = _analysisSummary(analysis);
+
+        return Scaffold(
+          backgroundColor: const Color(0xFF02091A),
+          body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
             center: Alignment(0, -0.5),
@@ -19,7 +139,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
             colors: [Color(0xFF0F3169), Color(0xFF02091A)],
           ),
         ),
-        child: SafeArea(
+          child: SafeArea(
           child: Column(
             children: [
               const SizedBox(height: 20),
@@ -45,7 +165,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildAnalysisCard(),
+                      _buildAnalysisCard(label, level, confidence, summary),
                       const SizedBox(height: 32),
                       Text(
                         'Escalation Timeline',
@@ -58,7 +178,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildTimeline(),
                       const SizedBox(height: 40),
-                      _buildConfirmButton(context),
+                      _buildConfirmButton(context, analysis),
                       const SizedBox(height: 16),
                       _buildCancelButton(context),
                     ],
@@ -69,10 +189,12 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
           ),
         ),
       ),
+        );
+      },
     );
   }
 
-  Widget _buildAnalysisCard() {
+  Widget _buildAnalysisCard(String label, String level, int confidence, String summary) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -99,7 +221,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
               const Icon(Icons.psychology_outlined, color: Color(0xFF2563EB), size: 24),
               const SizedBox(width: 12),
               Text(
-                'Threat Detected',
+                label,
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -115,7 +237,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
                   border: Border.all(color: EchoColors.secondaryLight.withOpacity(0.5)),
                 ),
                 child: Text(
-                  'HIGH',
+                  level,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -127,7 +249,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Llama AI has analyzed the audio input and identified a high-confidence threat pattern matching "Physical Assault".',
+            summary,
             style: GoogleFonts.poppins(
               fontSize: 14,
               color: Colors.white.withOpacity(0.9),
@@ -139,10 +261,7 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
             children: [
               const Icon(Icons.check_circle, color: Color(0xFF00C48C), size: 16),
               const SizedBox(width: 8),
-              Text(
-                'Confidence: 94%',
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
-              ),
+              Text('Confidence: $confidence%', style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70)),
             ],
           ),
         ],
@@ -248,16 +367,10 @@ class ThreatAnalysisResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildConfirmButton(BuildContext context) {
+  Widget _buildConfirmButton(BuildContext context, Map<String, dynamic> analysis) {
     return GestureDetector(
-      onTap: () {
-        final escalation = Provider.of<EscalationProvider>(context, listen: false);
-        escalation.startEscalation(
-          userId: 'user_123',
-          threatType: 'Physical Assault',
-          confidence: 0.94,
-        );
-        Navigator.pushReplacementNamed(context, '/emergency-active');
+      onTap: () async {
+        await _startEscalation(context, analysis);
       },
       child: Container(
         width: double.infinity,

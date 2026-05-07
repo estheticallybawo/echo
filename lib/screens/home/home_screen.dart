@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme.dart';
 import '../../widgets/tutorial_overlay.dart';
+import '../../services/sound/audio_record_service.dart';
+import '../../services/sound/speech_transcription_service.dart';
 import '../../services/sound/voice_recognition_service.dart';
+import '../../services/sound/tts_service.dart';
 
 enum _EchoMode { standby, countdown, active, voice }
 
@@ -42,6 +45,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _holdAnim;
 
   late VoiceRecognitionService _voiceRecognition;
+  late final AudioRecorderService _audioRecorderService;
+  late final SpeechTranscriptionService _speechTranscriptionService;
+  final TTSService _ttsService = TTSService();
   static const String _safetyPhrase = 'echo help now';
 
   final List<_Contact> _contacts = [
@@ -67,6 +73,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _holdAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _holdCtrl, curve: Curves.linear),
     );
+    _audioRecorderService = AudioRecorderService();
+    _speechTranscriptionService = SpeechTranscriptionService();
 
     // Initialize voice recognition with hotword detection
     _voiceRecognition = VoiceRecognitionService(
@@ -74,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       minConfidence: 0.75,
     );
     _initializeVoiceRecognition();
+    _initializeVoiceCapture();
   }
 
   /// Initialize voice recognition and start listening
@@ -89,9 +98,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _initializeVoiceCapture() async {
+    final recorderReady = await _audioRecorderService.initialize();
+    await _speechTranscriptionService.initialize();
+    if (!recorderReady && mounted) {
+      print('⚠️ Voice capture unavailable; voice SOS will fall back to direct SOS flow');
+    }
+  }
+
   /// Handle voice hotword activation (same flow as manual SOS)
   Future<void> _handleVoiceActivation(VoiceActivationEvent event) async {
     print('🎤 Voice hotword detected: "${event.phraseDetected}" (confidence: ${(event.confidence * 100).toStringAsFixed(0)}%)');
+    unawaited(_ttsService.speak('Emergency phrase detected. Starting emergency flow.'));
     // Trigger the same SOS flow as the manual button
     if (mounted) {
       _triggerSOS();
@@ -107,6 +125,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _sosTimer?.cancel();
     _elapsedTimer?.cancel();
     _voiceTimer?.cancel();
+    unawaited(_audioRecorderService.dispose());
+    _speechTranscriptionService.dispose();
+    unawaited(_ttsService.stop());
     _voiceRecognition.dispose();
     super.dispose();
   }
@@ -134,14 +155,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() { _mode = _EchoMode.standby; _sosCountdown = 1; });
   }
 
-  void _triggerSOS() async {
+  void _triggerSOS({Map<String, dynamic>? voiceAnalysis}) async {
     HapticFeedback.heavyImpact();
     _holdCtrl.reset();
     
     setState(() { _mode = _EchoMode.active; _elapsed = 0; });
 
     
-    final result = await Navigator.pushNamed(context, '/threat-analysis-result');
+    final result = await Navigator.pushNamed(
+      context,
+      '/threat-analysis-result',
+      arguments: voiceAnalysis,
+    );
 
     if (result == true) {
       _cancelSOS();
@@ -155,17 +180,55 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
 
-  void _startVoice(PointerEvent e) {
+  Future<void> _startVoice(PointerEvent e) async {
     HapticFeedback.mediumImpact();
     setState(() { _mode = _EchoMode.voice; _voiceLevel = 0; });
     _voiceTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) setState(() => _voiceLevel = 0.15 + Random().nextDouble() * 0.85);
     });
+
+    try {
+      final recorderReady = await _audioRecorderService.initialize();
+      if (!recorderReady) {
+        print('⚠️ Voice recorder is not ready; proceeding without audio capture');
+        return;
+      }
+
+      await _audioRecorderService.startRecording();
+      print('🎙️ Voice recording started');
+    } catch (e) {
+      print('⚠️ Unable to start voice recording: $e');
+    }
   }
 
-  void _endVoice(PointerEvent e) {
+  Future<void> _endVoice(PointerEvent e) async {
     _voiceTimer?.cancel();
-    if (_mode == _EchoMode.voice) _triggerSOS();
+
+    if (_mode == _EchoMode.voice) {
+      Map<String, dynamic>? voiceAnalysis;
+
+      try {
+        await _audioRecorderService.stopRecording();
+        final audio = _audioRecorderService.buffer.getAudio(
+          maxDuration: const Duration(seconds: 5),
+        );
+
+        if (audio.isNotEmpty) {
+          final analysis = await _speechTranscriptionService.transcribeAndAnalyse(
+            audioData: audio,
+            sampleRateHz: AudioBuffer.sampleRateHz,
+            context: const {'source': 'home_voice_sos'},
+          );
+          voiceAnalysis = analysis.toMap();
+          print('📊 Voice audio analysis: ${analysis.toString()}');
+        }
+      } catch (e) {
+        print('⚠️ Voice analysis failed, continuing SOS flow: $e');
+      }
+
+      _triggerSOS(voiceAnalysis: voiceAnalysis);
+    }
+
     setState(() => _voiceLevel = 0);
   }
 

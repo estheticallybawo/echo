@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../providers/escalation_provider.dart';
 import '../../providers/gemma_provider.dart';
+import '../../services/sound/confirmation_sound_service.dart';
+import '../../services/sound/tts_service.dart';
 
 class EmergencyActiveScreen extends StatefulWidget {
   const EmergencyActiveScreen({super.key});
@@ -25,6 +27,8 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   
   List<String> _safetyInstructions = [];
   bool _instructionsLoaded = false;
+  final ConfirmationSoundService _confirmationSoundService = ConfirmationSoundService();
+  final TTSService _ttsService = TTSService();
 
   @override
   void initState() {
@@ -53,6 +57,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           _instructionsLoaded = true;
         });
         print('✅ Safety instructions loaded: ${instructions.length} items');
+        if (instructions.isNotEmpty) {
+          unawaited(_ttsService.speak('Safety instructions ready. ${instructions.join('. ')}'));
+        }
       }
     } catch (e) {
       print('⚠️ Failed to load safety instructions: $e');
@@ -92,6 +99,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     _typewriterTimer?.cancel();
     _fluctuationTimer?.cancel();
     _pulseCtrl.dispose();
+    unawaited(_ttsService.stop());
     super.dispose();
   }
 
@@ -796,6 +804,8 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           TextButton(
             onPressed: () {
               Navigator.pop(context); 
+              unawaited(_confirmationSoundService.confirmContactAction());
+              unawaited(_ttsService.speak('Emergency resolved.'));
               escalation.stopEscalation();
               Navigator.pop(context, true); 
             },
@@ -823,6 +833,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           TextButton(
             onPressed: () {
               Navigator.pop(context); // close dialog
+              unawaited(_ttsService.speak('Emergency cancelled.'));
               escalation.stopEscalation();
               Navigator.pop(context, true); // return to home
             },

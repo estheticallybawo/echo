@@ -1,300 +1,159 @@
-import 'dart:convert';
-import 'dart:async';
-import 'package:http/http.dart' as http;
-import 'llama_config.dart';
+import 'capabilities/threat_analyzer.dart';
+import 'capabilities/diversion_generation.dart';
+import 'capabilities/instruction_engine.dart';
+import 'capabilities/trigger_report.dart';
+import 'capabilities/geolocation_enrichment_service.dart';
 
-/// Gemma 4 powered threat analysis + advanced safety features.
+/// Gemma 4 powered threat analysis + advanced safety features (Facade).
+/// Orchestrates multiple capability services for comprehensive emergency response.
 /// All prompts are kept short and focused for fast inference (<3s).
 class LlamaThreatService {
-  // Base system prompt for threat analysis (used only when not overridden)
-  static const String _defaultSystemPrompt =
-      'You are Echo a first responder emergency assistant. '
-      'you analyze threats and provide safety recommendations. '
-      'Return ONLY a single-line JSON with keys: threat, confidence, threatLevel, action, summary, analyzedSituation. '
-      'No markdown, no explanation.';
+  final ThreatAnalyzer _threatAnalyzer = ThreatAnalyzer();
+  final DiversionGeneration _diversionGeneration = DiversionGeneration();
+  final InstructionEngine _instructionEngine = InstructionEngine();
+  final TriggerReport _triggerReport = TriggerReport();
+  final GeolocationEnrichmentService _geolocationService = GeolocationEnrichmentService();
 
-  // Optional location context (set before calling assessThreat)
-  static String? _locationContext;
+  /// Set the location context to be included in threat analysis prompts.
+  void setLocationContext(String location) =>
+      GeolocationEnrichmentService.setLocationContext(location);
 
-  static void setLocationContext(String location) =>
-      _locationContext = location;
-  static void clearLocationContext() => _locationContext = null;
+  /// Clear the location context.
+  void clearLocationContext() =>
+      GeolocationEnrichmentService.clearLocationContext();
 
-  // ----------------------------------------------------------------------
-  // Core threat assessment
-  // ----------------------------------------------------------------------
+  // ------- Core threat assessment -------
+  /// Assess threat level from user input.
   Future<Map<String, dynamic>> assessThreat(
     String userInput, {
     int maxTokens = 30,
     Duration timeout = const Duration(seconds: 30),
-  }) async {
-    try {
-      final prompt = _buildGemmaPrompt(
-        systemPrompt: _defaultSystemPrompt,
-        userPrompt: 'Emergency report: $userInput',
+  }) async =>
+      _threatAnalyzer.assessThreat(
+        userInput,
+        maxTokens: maxTokens,
+        timeout: timeout,
+        locationContext: GeolocationEnrichmentService.getLocationContext(),
       );
 
-      final responseText = await _sendCompletion(prompt, maxTokens, timeout);
-      final extracted = _extractJson(responseText);
-      if (extracted != null) {
-        return _normalize(extracted, userInput);
-      }
-      return _fallbackResponse('unknown');
-    } catch (e) {
-      print('❌ assessThreat error: $e');
-      return _fallbackResponse('unknown');
-    }
-  }
-
-  /// Lightweight warm-up helper that sends a raw prompt and attempts to
-  /// extract JSON from the model response. Used by system tests to expect
-  /// arbitrary JSON (e.g. {"status":"ready"}).
+  /// Lightweight warm-up check that tests actual connection to llama.cpp.
+  /// Returns JSON response from server to verify it's ready.
   Future<Map<String, dynamic>> warmupCheck(
     String rawPrompt, {
     int maxTokens = 20,
     Duration timeout = const Duration(seconds: 15),
   }) async {
     try {
-      final responseText = await _sendCompletion(rawPrompt, maxTokens, timeout);
-      final extracted = _extractJson(responseText);
-      if (extracted != null) return extracted;
-      // If no JSON returned, provide a fallback map with raw text for debugging
-      return {'status': 'unexpected', 'raw': responseText};
+      // Test connection via threat analyzer's warmup capability
+      final response = await _threatAnalyzer.performWarmupCheck(
+        rawPrompt: rawPrompt,
+        maxTokens: maxTokens,
+        timeout: timeout,
+      );
+      return response;
     } catch (e) {
       print('❌ warmupCheck error: $e');
       return {'status': 'error', 'error': e.toString()};
     }
   }
 
-  // ----------------------------------------------------------------------
-  // Spoken diversion message (≤15 words)
-  // ----------------------------------------------------------------------
-  Future<String> generateDiversionMessage() async {
-    const prompt =
-        'Generate a short authoritative warning (max 15 words) to deter an attacker, '
-        'saying help is on the way and location is tracked. Speak directly. No markdown.';
-    final response = await _sendCompletion(
-      prompt,
-      30,
-      const Duration(seconds: 10),
-    );
-    return response.trim();
-  }
+  /// High-level threat analysis wrapper.
+  Future<Map<String, dynamic>> analyzeThreat(String audioContext) async =>
+      _threatAnalyzer.analyzeThreat(
+        audioContext,
+        locationContext: GeolocationEnrichmentService.getLocationContext(),
+      );
 
-  // ----------------------------------------------------------------------
-  // Post‑incident safety report
-  // ----------------------------------------------------------------------
+  /// Mock threat analysis for development/offline testing.
+  Future<Map<String, dynamic>> analyzeThreatMock(String input) async =>
+      _threatAnalyzer.analyzeThreatMock(input);
+
+  // ------- Spoken diversion message -------
+  /// Generate a spoken diversion message (≤15 words).
+  Future<String> generateDiversionMessage() async =>
+      _diversionGeneration.generateDiversionMessage();
+
+  /// Mock diversion message for development/offline testing.
+  String generateDiversionMessageMock() =>
+      _diversionGeneration.generateDiversionMessageMock();
+
+  // ------- Post-incident safety report -------
+  /// Generate a post-incident safety report.
   Future<String> generateSafetyReport({
     required String threatType,
     required int confidence,
     required String location,
-    required List<String> actionsTaken, // e.g. ['Tier 1 notified', 'Echo Feed posted']
-  }) async {
-    final actions = actionsTaken.join(', ');
-    final prompt =
-        'Generate a short safety report (max 80 words) based on this incident:\n'
-        '- Threat: $threatType\n'
-        '- Confidence: $confidence%\n'
-        '- Location: $location\n'
-        '- Actions taken: $actions\n'
-        'Give 2 practical recommendations for future safety.';
-    final response = await _sendCompletion(
-      prompt,
-      120,
-      const Duration(seconds: 15),
-    );
-    return response.trim();
-  }
+    required List<String> actionsTaken,
+  }) async =>
+      _triggerReport.generateSafetyReport(
+        threatType: threatType,
+        confidence: confidence,
+        location: location,
+        actionsTaken: actionsTaken,
+      );
 
-  // ----------------------------------------------------------------------
-  // Step‑by‑step emergency instructions (2‑3 bullet points)
-  // ----------------------------------------------------------------------
+  // ------- Step-by-step emergency instructions -------
+  /// Get safety instructions for user (2-3 bullet points).
   Future<List<String>> getSafetyInstructions(
-    Map<String, dynamic> threat,
+    Map<String, dynamic> threat = const {},
   ) async {
-    final threatType = threat['threat'] ?? 'unknown';
-    final confidence = threat['confidence'] ?? 0;
-    final prompt =
-        'Based on a $threatType threat (confidence $confidence%), '
-        'give 2 or 3 short, calm instructions for the user. '
-        'Example: "Stay near a well‑lit area", "Share live location with your mother". '
-        'Return ONLY a JSON array of strings.';
-    final response = await _sendCompletion(
-      prompt,
-      60,
-      const Duration(seconds: 10),
-    );
-    try {
-      final List<dynamic> list = jsonDecode(response);
-      return list.map((e) => e.toString()).toList();
-    } catch (e) {
-      return ['Stay calm', 'Share your location with a trusted contact'];
+    if (threat.isEmpty) {
+      return _instructionEngine.getDefaultSafetyInstructions();
     }
+    return _instructionEngine.getSafetyInstructions(threat);
   }
 
-  // ----------------------------------------------------------------------
-  // Translation placeholder (Gemma 4 multilingual)
-  // ----------------------------------------------------------------------
-  Future<String> translate(String text, String targetLanguage) async {
-    
-    final prompt = 'Translate the following to $targetLanguage:\n\n$text';
-    final response = await _sendCompletion(
-      prompt,
-      200,
-      const Duration(seconds: 10),
-    );
-    return response.trim();
-  }
-
-  // ----------------------------------------------------------------------
-  // Mock versions for development / offline testing
-  // ----------------------------------------------------------------------
-  Future<Map<String, dynamic>> analyzeThreatMock(String input) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (input.toLowerCase().contains('follow') ||
-        input.toLowerCase().contains('car')) {
-      return {
-        'threat': 'Stalking',
-        'confidence': 88,
-        'threatLevel': 'high',
-        'action': 'Call trusted contacts and share location',
-        'summary': 'Person reporting being followed.',
-        'analyzedSituation': 'being followed by unknown person',
-      };
-    }
-
-    return {
-      'threat': 'unknown',
-      'confidence': 42,
-      'threatLevel': 'medium',
-      'action': 'Monitor the situation and keep trusted contacts informed',
-      'summary': 'Unable to confirm a specific threat from the mock input.',
-      'analyzedSituation': input,
-    };
-  }
-
-  Future<String> generateDiversionMessageMock() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return 'Alert: Police have been notified. Your location is being tracked.';
-  }
-
-  // ----------------------------------------------------------------------
-  // Echo feed post generation
-  // ----------------------------------------------------------------------
-
+  // ------- Echo feed post generation -------
+  /// Generate an Echo Feed post for community alert.
   Future<String> generateEchoFeedPost({
     required String userInput,
     required Map<String, dynamic> threat,
     required String location,
     required String policeHandle,
     required String hotline,
-  }) async {
-    final prompt = '''
-      Generate a short, urgent Echo Feed post (max 120 characters) for this emergency:
-      User report: $userInput
-      Location: $location
-      Threat: ${threat['threat']} (confidence ${threat['confidence']}%)
-      Include the police handle $policeHandle and emergency hotline $hotline.
-      Add relevant hashtags like #EchoAlert.
-      No explanations, just the post.
-      ''';
-    final response = await _sendCompletion(
-      prompt,
-      60,
-      const Duration(seconds: 10),
-    );
-    return response.trim();
-  }
+  }) async =>
+      _triggerReport.generateEchoFeedPost(
+        userInput: userInput,
+        threat: threat,
+        location: location,
+        policeHandle: policeHandle,
+        hotline: hotline,
+      );
 
-  // ----------------------------------------------------------------------
-  // Private helpers
-  // ----------------------------------------------------------------------
-  Future<String> _sendCompletion(
-    String prompt,
-    int maxTokens,
-    Duration timeout,
-  ) async {
-    final requestBody = LlamaConfig.buildCompletionBody(
-      prompt,
-      maxTokens: maxTokens,
-    );
-    final response = await http
-        .post(
-          Uri.parse('${LlamaConfig.activeHost}/completion'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(requestBody),
-        )
-        .timeout(timeout);
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data['content'] ?? '').toString().trim();
-    }
-    return '';
-  }
-
-  String _buildGemmaPrompt({
-    required String systemPrompt,
-    required String userPrompt,
-  }) {
-    final locationPart =
-        (_locationContext != null && _locationContext!.isNotEmpty)
-        ? '\n\nLOCATION CONTEXT: $_locationContext'
-        : '';
-    return '<|turn>system\n$systemPrompt$locationPart<turn|>\n'
-        '<|turn>user\n$userPrompt<turn|>\n'
-        '<|turn>model\n';
-  }
-
-  Map<String, dynamic>? _extractJson(String raw) {
-    var cleaned = raw.replaceAll('```json', '').replaceAll('```', '').trim();
-    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-      cleaned = cleaned
-          .substring(1, cleaned.length - 1)
-          .replaceAll('\\"', '"')
-          .replaceAll('\\n', '\n');
-    }
-    final start = cleaned.indexOf('{');
-    final end = cleaned.lastIndexOf('}');
-    if (start == -1 || end == -1) return null;
-    try {
-      return jsonDecode(cleaned.substring(start, end + 1));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Map<String, dynamic> _normalize(Map<String, dynamic> raw, String input) {
-    // Ensure required fields exist, trust Gemma's output
-    raw.putIfAbsent('threat', () => 'unknown');
-    raw.putIfAbsent('confidence', () => 0);
-    raw.putIfAbsent('threatLevel', () => 'medium');
-    raw.putIfAbsent('action', () => 'Monitor situation');
-    raw.putIfAbsent('summary', () => 'Potential emergency reported');
-    raw.putIfAbsent('analyzedSituation', () => input);
-    return raw;
-  }
-
-  Map<String, dynamic> _fallbackResponse(String reason) {
-    return {
-      'threat': 'unknown',
-      'confidence': 0,
-      'threatLevel': 'medium',
-      'action': 'Check manual emergency options',
-      'summary': 'AI temporarily unavailable',
-      'analyzedSituation': 'fallback mode',
-    };
-  }
-
-  Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
-    return assessThreat(audioContext);
-  }
-
+  /// Generate an emergency post for community notification.
   String generateEmergencyPost(
     String userName,
     String location,
-    Map<String, dynamic> map,
-  ) {
-    final situation = map['analyzedSituation'] ?? map['summary'] ?? 'emergency situation';
-    return '$userName needs urgent help, they are in a $situation. Last live location is $location. If you can help, contact emergency services immediately.';
+    Map<String, dynamic> threatData,
+  ) =>
+      _triggerReport.generateEmergencyPost(userName, location, threatData);
+
+  // ------- Translation (placeholder) -------
+  /// Translate text to target language using Gemma 4 multilingual capabilities.
+  Future<String> translate(String text, String targetLanguage) async {
+    // TODO: Implement translation capability module
+    print('⚠️  Translation not yet implemented');
+    return text;
+  }
+
+  // ------- Geolocation enrichment -------
+  /// Get enriched context with local emergency contacts based on location.
+  Future<Map<String, String>> getEnrichedContext({
+    required String locationText,
+    double? lat,
+    double? lon,
+  }) async =>
+      _geolocationService.getEnrichedContext(
+        locationText: locationText,
+        lat: lat,
+        lon: lon,
+      );
+
+  /// Dispose all services.
+  void dispose() {
+    _threatAnalyzer.dispose();
+    _diversionGeneration.dispose();
+    _instructionEngine.dispose();
+    _triggerReport.dispose();
   }
 }

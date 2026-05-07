@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_incident_service.dart';
-import 'echo feed/echo_feed_service.dart';
+import './gemma/echo_feed_service.dart';
 
 /// Track C: Escalation Timer Service
 /// Manages multi-tier escalation countdown (0-120+ seconds)

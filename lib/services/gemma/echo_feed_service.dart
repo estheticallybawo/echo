@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'geolocation_enrichment_service.dart';
+import 'capabilities/geolocation_enrichment_service.dart';
 import 'package:echo/services/gemma/llama_threat_service.dart';
 
 class EchoFeedService {

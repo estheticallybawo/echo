@@ -333,7 +333,7 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                       height: 60,
                       child: ElevatedButton(
                         onPressed: consented ? () {
-                          Navigator.pushNamed(context, '/system-test');
+                          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
                         } : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: EchoColors.primary,
