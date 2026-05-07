@@ -16,7 +16,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   late Animation<double> _fade;
   late Animation<Offset> _slide;
   
-  bool _isVerified = true;
+  final bool _isVerified = true;
   String? _profileImagePath; // Mock path
   String _userName = 'Ada Chukwu';
   String _userPhone = '+234 812 345 6789';

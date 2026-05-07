@@ -20,6 +20,7 @@ class EscalationTimerService {
 
   EscalationTimerService._internal();
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   FirestoreIncidentService? _firestoreService;
 
   // Timer state
@@ -135,13 +136,15 @@ class EscalationTimerService {
   try {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    final incidentId = _currentIncidentId;
+    if (incidentId == null) return;
 
     // Get incident data from Firestore (matches FirestoreIncidentService collection path)
     final incidentDoc = await _firestore
         .collection('incidents')
         .doc(user.uid)
         .collection('logs')
-        .doc(_currentIncidentId)
+      .doc(incidentId)
         .get();
     final data = incidentDoc.data();
     if (data == null) return;
@@ -154,7 +157,7 @@ class EscalationTimerService {
 
     final feedService = EchoFeedService();
     await feedService.postEmergencyToFeed(
-      incidentId: _currentIncidentId!,
+      incidentId: incidentId,
       userId: user.uid,
       victimName: user.displayName ?? 'User',
       locationText: location,
@@ -162,7 +165,7 @@ class EscalationTimerService {
       longitude: lon,
       threatAssessment: threatAssessment,
     );
-    print('✅ Tier 3 escalation: Echo Feed post created for incident $_currentIncidentId');
+    print('✅ Tier 3 escalation: Echo Feed post created for incident $incidentId');
   } catch (e) {
     print('❌ Error in Tier 3 escalation: $e');
   }

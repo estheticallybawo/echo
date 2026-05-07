@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/incident.dart';
-import '../models/contact.dart';
 
 class EscalationProvider with ChangeNotifier {
   Incident? _currentIncident;

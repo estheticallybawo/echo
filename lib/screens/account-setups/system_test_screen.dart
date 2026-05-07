@@ -93,10 +93,10 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
     });
 
     final warmupStopwatch = Stopwatch()..start();
-    final warmupResult = await _gemmaService.assessThreat(
-      'Respond with JSON: {"status":"ready"}',
+    final warmupResult = await _gemmaService.warmupCheck(
+      'Respond ONLY with JSON: {"status":"ready"}',
       maxTokens: 20,
-      timeout: const Duration(seconds: 15),
+      timeout: const Duration(seconds: 40),
     );
     warmupStopwatch.stop();
 
@@ -123,12 +123,12 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
     final inferenceStopwatch = Stopwatch()..start();
     
     //  SIMPLIFIED PROMPT - exactly what's  needed for the demo
-    final drillInput = 'Threat assessment: Kiddnapping. Return JSON only with keys: threat, confidence.';
+    final drillInput = 'You are Echo an AI assistant fro em. Return JSON only with keys: threat, confidence.';
     
     final drillResult = await _gemmaService.assessThreat(
       drillInput,
       maxTokens: 30,
-      timeout: const Duration(seconds: 15),
+      timeout: const Duration(seconds: 40),
     );
     inferenceStopwatch.stop();
 
@@ -168,8 +168,8 @@ class _SystemTestScreenState extends State<SystemTestScreen> {
         _testComplete = true;
         _isRunning = false;
       });
-    };
-  };
+    }
+  }
 }
 
   IconData _statusIcon(String state) {

@@ -455,7 +455,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

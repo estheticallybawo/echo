@@ -21,7 +21,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
       if (_nextContactIndex <= names.length) {
         _contacts.add(names[_nextContactIndex - 1]);
       } else {
-        _contacts.add('Contact-${_nextContactIndex}');
+        _contacts.add('Contact-$_nextContactIndex');
       }
       _nextContactIndex++;
     });

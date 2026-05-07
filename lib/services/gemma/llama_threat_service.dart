@@ -8,7 +8,8 @@ import 'llama_config.dart';
 class LlamaThreatService {
   // Base system prompt for threat analysis (used only when not overridden)
   static const String _defaultSystemPrompt =
-      'You are Echo emergency threat analyzer. '
+      'You are Echo a first responder emergency assistant. '
+      'you analyze threats and provide safety recommendations. '
       'Return ONLY a single-line JSON with keys: threat, confidence, threatLevel, action, summary, analyzedSituation. '
       'No markdown, no explanation.';
 
@@ -45,6 +46,26 @@ class LlamaThreatService {
     }
   }
 
+  /// Lightweight warm-up helper that sends a raw prompt and attempts to
+  /// extract JSON from the model response. Used by system tests to expect
+  /// arbitrary JSON (e.g. {"status":"ready"}).
+  Future<Map<String, dynamic>> warmupCheck(
+    String rawPrompt, {
+    int maxTokens = 20,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    try {
+      final responseText = await _sendCompletion(rawPrompt, maxTokens, timeout);
+      final extracted = _extractJson(responseText);
+      if (extracted != null) return extracted;
+      // If no JSON returned, provide a fallback map with raw text for debugging
+      return {'status': 'unexpected', 'raw': responseText};
+    } catch (e) {
+      print('❌ warmupCheck error: $e');
+      return {'status': 'error', 'error': e.toString()};
+    }
+  }
+
   // ----------------------------------------------------------------------
   // Spoken diversion message (≤15 words)
   // ----------------------------------------------------------------------
@@ -67,8 +88,7 @@ class LlamaThreatService {
     required String threatType,
     required int confidence,
     required String location,
-    required List<String>
-    actionsTaken, // e.g. ['Tier 1 notified', 'Echo Feed posted']
+    required List<String> actionsTaken, // e.g. ['Tier 1 notified', 'Echo Feed posted']
   }) async {
     final actions = actionsTaken.join(', ');
     final prompt =
@@ -116,9 +136,8 @@ class LlamaThreatService {
   // Translation placeholder (Gemma 4 multilingual)
   // ----------------------------------------------------------------------
   Future<String> translate(String text, String targetLanguage) async {
-    // For hackathon, you can either implement or just return original text
-    // with a note that this feature is ready.
-    const prompt = 'Translate the following to $targetLanguage:\n\n$text';
+    
+    final prompt = 'Translate the following to $targetLanguage:\n\n$text';
     final response = await _sendCompletion(
       prompt,
       200,
@@ -163,29 +182,29 @@ class LlamaThreatService {
   // Echo feed post generation
   // ----------------------------------------------------------------------
 
-          Future<String> generateEchoFeedPost({
-            required String userInput,
-            required Map<String, dynamic> threat,
-            required String location,
-            required String policeHandle,
-            required String hotline,
-          }) async {
-            final prompt =
-                '''
-        Generate a short, urgent Echo Feed post (max 120 characters) for this emergency:
-        Location: $location
-        Threat: ${threat['threat']} (confidence ${threat['confidence']}%)
-        Include the police handle $policeHandle and emergency hotline $hotline.
-        Add relevant hashtags like #EchoAlert.
-        No explanations, just the post.
-        ''';
-            final response = await _sendCompletion(
-              prompt,
-              60,
-              const Duration(seconds: 10),
-            );
-            return response.trim();
-          }
+  Future<String> generateEchoFeedPost({
+    required String userInput,
+    required Map<String, dynamic> threat,
+    required String location,
+    required String policeHandle,
+    required String hotline,
+  }) async {
+    final prompt = '''
+      Generate a short, urgent Echo Feed post (max 120 characters) for this emergency:
+      User report: $userInput
+      Location: $location
+      Threat: ${threat['threat']} (confidence ${threat['confidence']}%)
+      Include the police handle $policeHandle and emergency hotline $hotline.
+      Add relevant hashtags like #EchoAlert.
+      No explanations, just the post.
+      ''';
+    final response = await _sendCompletion(
+      prompt,
+      60,
+      const Duration(seconds: 10),
+    );
+    return response.trim();
+  }
 
   // ----------------------------------------------------------------------
   // Private helpers
@@ -264,5 +283,18 @@ class LlamaThreatService {
       'summary': 'AI temporarily unavailable',
       'analyzedSituation': 'fallback mode',
     };
+  }
+
+  Future<Map<String, dynamic>> analyzeThreat(String audioContext) async {
+    return assessThreat(audioContext);
+  }
+
+  String generateEmergencyPost(
+    String userName,
+    String location,
+    Map<String, dynamic> map,
+  ) {
+    final situation = map['analyzedSituation'] ?? map['summary'] ?? 'emergency situation';
+    return '$userName needs urgent help, they are in a $situation. Last live location is $location. If you can help, contact emergency services immediately.';
   }
 }

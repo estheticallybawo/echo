@@ -103,6 +103,8 @@ class GemmaProvider extends ChangeNotifier {
     required String location,
     required List<String> actionsTaken,
   }) async {
+    if (_cachedSafetyReport != null) return _cachedSafetyReport!;
+
     final report = await _llamaThreatService.generateSafetyReport(
       threatType: threatType,
       confidence: confidence,

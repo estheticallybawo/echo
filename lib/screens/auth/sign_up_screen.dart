@@ -11,7 +11,7 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  bool _agreed = false;
+  final bool _agreed = false;
 
   @override
   Widget build(BuildContext context) {

@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _sosCountdown = 1;
   int _elapsed = 0;
   double _voiceLevel = 0.0;
-  int _navIndex = 0;
+  final int _navIndex = 0;
   bool _showTutorial = true; 
   int _tutorialStep = 1;
 
@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     return AnimatedBuilder(
       animation: Listenable.merge([_pulseAnim, _holdAnim]),
-      builder: (_, __) {
+      builder: (_, _) {
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -795,7 +795,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           'assets/icon/echosplashicon.png',
                           width: 70,
                           height: 70,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
+                          errorBuilder: (_, _, _) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 8),
                         const Spacer(),

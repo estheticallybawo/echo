@@ -7,7 +7,6 @@ import 'screens/account-setups/permission_setup_screen.dart';
 import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
 import 'screens/account-setups/tier2_public_alert_setup_screen.dart';
 import 'screens/account-setups/system_test_screen.dart';
-import 'screens/home/home_screen.dart';
 import 'screens/home/main_scaffold.dart';
 import 'screens/home/ai_intel_screen.dart';
 import 'screens/home/contacts_screen.dart';
@@ -18,7 +17,6 @@ import 'screens/home/profile_screen.dart';
 import 'screens/home/notification_screen.dart';
 import 'screens/home/threat_analysis_result_screen.dart';
 import 'screens/home/terms_privacy_screen.dart';
-
 import 'screens/onboarding/onboarding_flow.dart';
 
 import 'package:provider/provider.dart';
