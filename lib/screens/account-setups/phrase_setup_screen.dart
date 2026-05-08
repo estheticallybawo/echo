@@ -13,21 +13,16 @@ class PhraseSetupScreen extends StatefulWidget {
 
 class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
   bool _isListening = false;
+  bool _phraseRecognized = false;
   double _level = 0.0;
-  int _currentStep = 0;
   Timer? _timer;
 
-  final List<String> _statusMessages = [
-    'Tap the mic to begin',
-    'Good, say it again',
-    'Great, Echo recognizes your voice',
-  ];
-
-  final List<String> _buttonLabels = ['Record phrase or sound', 'Continue', 'Finish'];
+  static const String echoPhrase = 'Echo Help Now';
 
   void _toggleListening() {
     setState(() {
       _isListening = !_isListening;
+      _phraseRecognized = false;
     });
 
     if (_isListening) {
@@ -36,6 +31,18 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
         setState(() {
           _level = 0.15 + Random().nextDouble() * 0.7;
         });
+      });
+      
+      // Simulate phrase recognition after 2 seconds
+      Future.delayed(const Duration(seconds: 2), () {
+        if (_isListening && mounted) {
+          setState(() {
+            _phraseRecognized = true;
+            _isListening = false;
+            _timer?.cancel();
+            _level = 0.0;
+          });
+        }
       });
     } else {
       _timer?.cancel();
@@ -55,8 +62,7 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(7, (index) {
-        // Map _currentStep (0, 1, 2) to progress indices (2, 3, 4)
-        final bool active = index == (_currentStep + 2);
+        final bool active = index == 2;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
           width: active ? 74 : 8,
@@ -134,7 +140,7 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Choose a secret phrase or sound only you would make',
+                  'Your Emergency Activation Phrase',
                   style: GoogleFonts.poppins(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
@@ -143,8 +149,27 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: EchoColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: EchoColors.primary, width: 1),
+                  ),
+                  child: Text(
+                    echoPhrase,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: EchoColors.primary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Text(
-                  'When Echo hears this phrase or a unique sound like a whistle, it sends help immediately. Say or make the sound three times to train the AI.',
+                  'Say "$echoPhrase" clearly to activate the emergency system. Test it below to make sure your voice is recognized.',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     height: 1.7,
@@ -162,14 +187,13 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: EchoColors.primary,
+                          color: _phraseRecognized ? Colors.greenAccent : EchoColors.primary,
                           width: 2.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: EchoColors.primary.withOpacity(
-                              _isListening ? 0.25 : 0.0,
-                            ),
+                            color: (_phraseRecognized ? Colors.greenAccent : EchoColors.primary)
+                                .withOpacity(_isListening ? 0.25 : 0.0),
                             blurRadius: 20,
                             spreadRadius: 4,
                           ),
@@ -183,9 +207,9 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                             shape: BoxShape.circle,
                             color: const Color(0xFF0D1F45),
                           ),
-                          child: const Icon(
-                            Icons.mic_rounded,
-                            color: Colors.white,
+                          child: Icon(
+                            _phraseRecognized ? Icons.check_rounded : Icons.mic_rounded,
+                            color: _phraseRecognized ? Colors.greenAccent : Colors.white,
                             size: 36,
                           ),
                         ),
@@ -198,11 +222,16 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                 const SizedBox(height: 18),
                 Center(
                   child: Text(
-                    _statusMessages[_currentStep],
+                    _isListening
+                        ? 'Listening...'
+                        : _phraseRecognized
+                            ? '✓ Phrase recognized!'
+                            : 'Tap mic to test',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
-                      color: Colors.white70,
+                      color: _phraseRecognized ? Colors.greenAccent : Colors.white70,
+                      fontWeight: _phraseRecognized ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ),
@@ -212,13 +241,7 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                   height: 58,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (_currentStep < 2) {
-                        setState(() {
-                          _currentStep += 1;
-                        });
-                      } else {
-                        Navigator.pushNamed(context, '/tier1-inner-circle-setup');
-                      }
+                      Navigator.pushNamed(context, '/tier1-inner-circle-setup');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E4CC8),
@@ -229,7 +252,7 @@ class _PhraseSetupScreenState extends State<PhraseSetupScreen> {
                       shadowColor: const Color(0xFF1E4CC8).withOpacity(0.35),
                     ),
                     child: Text(
-                      _buttonLabels[_currentStep],
+                      'Continue',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

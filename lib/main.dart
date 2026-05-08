@@ -24,11 +24,16 @@ import 'providers/gemma_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_preferences_provider.dart';
 import 'services/gemma/llama_threat_service.dart';
+import 'services/local_storage_service.dart';
 import 'theme.dart';
 import 'screens/onboarding/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize local storage (must be before Firebase)
+  await LocalStorageService().initialize();
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

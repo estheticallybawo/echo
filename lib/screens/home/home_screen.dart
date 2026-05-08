@@ -161,10 +161,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     
     setState(() { _mode = _EchoMode.active; _elapsed = 0; });
 
-    
+    // Phase 1 Update: Skip threat analysis result screen
+    // Go directly to emergency-active screen
+    // Voice analysis will be processed post-incident, not before escalation
     final result = await Navigator.pushNamed(
       context,
-      '/threat-analysis-result',
+      '/emergency-active',
       arguments: voiceAnalysis,
     );
 

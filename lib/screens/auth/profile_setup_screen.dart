@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/local_storage_service.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -12,7 +14,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final LocalStorageService _localStorage = LocalStorageService();
+  
   bool _agreed = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -260,9 +266,52 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: ElevatedButton(
-                    onPressed: _agreed ? () {
+                    onPressed: _agreed && !_isLoading ? () async {
                       if (_formKey.currentState?.validate() ?? false) {
-                        Navigator.pushNamed(context, '/permission-setup');
+                        setState(() => _isLoading = true);
+                        
+                        try {
+                          final user = _auth.currentUser;
+                          if (user != null) {
+                            final firstName = _firstNameController.text.trim();
+                            final lastName = _lastNameController.text.trim();
+                            final displayName = '$firstName $lastName';
+                            
+                            print('✅ Saving user profile: $displayName for UID: ${user.uid}');
+                            
+                            // Update display name in LocalStorageService
+                            await _localStorage.setCurrentUser(
+                              uid: user.uid,
+                              email: user.phoneNumber ?? '',
+                              displayName: displayName,
+                            );
+                            
+                            // Also update Firebase profile
+                            await user.updateDisplayName(displayName);
+                            print('✅ Profile saved: $displayName');
+                            
+                            if (mounted) {
+                              Navigator.pushNamed(context, '/permission-setup');
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Error: Not authenticated. Please sign in again.')),
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          print('❌ Profile save error: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error saving profile: $e')),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isLoading = false);
+                          }
+                        }
                       }
                     } : () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -276,14 +325,25 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         borderRadius: BorderRadius.circular(28),
                       ),
                     ),
-                    child: Text(
-                      "Continue",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            "Continue",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),

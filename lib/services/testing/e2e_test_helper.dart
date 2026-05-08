@@ -66,7 +66,7 @@ class E2ETestHelper {
     );
 
     // Get safety instructions
-    final instructions = await _gemmaService.getSafetyInstructions(threat);
+    final instructions = await _gemmaService.getSafetyInstructions(threat: threat);
     EchoLogger.safetyInstructions(instructions);
 
     // Verify threat data
@@ -101,6 +101,9 @@ class E2ETestHelper {
     if (confidence >= 85) {
       EchoLogger.warning('HIGH CONFIDENCE THREAT - Distress adjustment applied');
       EchoLogger.analysis('Expected', 'Escalation timers should be 33% faster');
+      // Get safety instructions for critical threat
+      final instructions = await _gemmaService.getSafetyInstructions(threat: threat);
+      EchoLogger.safetyInstructions(instructions);
     }
 
     EchoLogger.featureComplete('High Confidence Threat');
@@ -151,7 +154,7 @@ class E2ETestHelper {
 
     for (final threat in testThreats) {
       EchoLogger.analysis('Threat Type', threat['threat']);
-      final instructions = await _gemmaService.getSafetyInstructions(threat);
+      final instructions = await _gemmaService.getSafetyInstructions(threat: threat);
       EchoLogger.safetyInstructions(instructions);
       assert(instructions.isNotEmpty, 'No instructions for ${threat['threat']}');
     }
@@ -179,7 +182,7 @@ class E2ETestHelper {
     );
 
     EchoLogger.analysis('PHASE', '3. Safety Instructions');
-    final instructions = await _gemmaService.getSafetyInstructions(threat);
+    final instructions = await _gemmaService.getSafetyInstructions(threat: threat);
     EchoLogger.safetyInstructions(instructions);
 
     EchoLogger.analysis('PHASE', '4. Escalation Timeline');

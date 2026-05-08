@@ -94,9 +94,9 @@ class LlamaThreatService {
 
   // ------- Step-by-step emergency instructions -------
   /// Get safety instructions for user (2-3 bullet points).
-  Future<List<String>> getSafetyInstructions(
+  Future<List<String>> getSafetyInstructions({
     Map<String, dynamic> threat = const {},
-  ) async {
+  }) async {
     if (threat.isEmpty) {
       return _instructionEngine.getDefaultSafetyInstructions();
     }

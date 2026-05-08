@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme.dart';
+import '../../services/local_storage_service.dart';
 
 class Tier1InnerCircleSetupScreen extends StatefulWidget {
   const Tier1InnerCircleSetupScreen({super.key});
@@ -10,25 +12,156 @@ class Tier1InnerCircleSetupScreen extends StatefulWidget {
 }
 
 class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScreen> {
-  final List<String> _contacts = [];
-  int _nextContactIndex = 1;
+  final LocalStorageService _localStorage = LocalStorageService();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  
+  List<Map<String, dynamic>> _contacts = [];
   int _selectedPreviewIndex = 0;
+  bool _isSaving = false;
 
-  void _addContact() {
-    if (_contacts.length >= 10) return;
-    setState(() {
-      final names = ['Ade', 'Daddy', 'Funke', 'Tobi', 'Sarah', 'Kola', 'Ngozi', 'Bisi', 'Zainab', 'David'];
-      if (_nextContactIndex <= names.length) {
-        _contacts.add(names[_nextContactIndex - 1]);
-      } else {
-        _contacts.add('Contact-$_nextContactIndex');
-      }
-      _nextContactIndex++;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadContacts();
   }
 
-  Widget _buildContactItem(String name, int index) {
+  Future<void> _loadContacts() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final contacts = _localStorage.getContacts(user.uid);
+      setState(() {
+        _contacts = contacts;
+      });
+    }
+  }
+
+  void _showAddContactDialog() {
+    _nameController.clear();
+    _phoneController.clear();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color.fromARGB(255, 12, 37, 88),
+        title: Text(
+          'Add Emergency Contact',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: EchoColors.primaryLight
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              style: GoogleFonts.poppins(color: EchoColors.primaryLight),
+              decoration: InputDecoration(
+                hintText: 'Contact name',
+                hintStyle: GoogleFonts.poppins(color: EchoColors.primaryLight.withOpacity(0.5)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: EchoColors.primaryDark),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: EchoColors.primaryDark, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              style: GoogleFonts.poppins(color: EchoColors.primaryLight),
+              decoration: InputDecoration(
+                hintText: 'Phone number',
+                hintStyle: GoogleFonts.poppins(color: EchoColors.primaryLight.withOpacity(0.5)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: EchoColors.primaryDark),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: EchoColors.primaryDark, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: EchoColors.primaryLight.withOpacity(0.7)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = _nameController.text.trim();
+              final phoneNumber = _phoneController.text.trim();
+
+              if (name.isEmpty || phoneNumber.isEmpty) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter both a name and phone number')),
+                );
+                return;
+              }
+
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please sign in before adding contacts')),
+                );
+                return;
+              }
+
+              try {
+                await _localStorage.addContact(
+                  user.uid,
+                  name: name,
+                  phoneNumber: phoneNumber,
+                );
+                await _loadContacts();
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('✓ $name added to inner circle')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                );
+                print('❌ Error adding contact: $e');
+              }
+            },
+            child: Text(
+              'Add contact',
+              style: GoogleFonts.poppins(color: EchoColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeContact(int contactId) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _localStorage.removeContact(user.uid, contactId).then((_) {
+        _loadContacts();
+      });
+    }
+  }
+
+  Widget _buildContactItem(Map<String, dynamic> contact, int index) {
     final isSelected = _selectedPreviewIndex == index;
+    final name = contact['name'] as String? ?? '';
+    
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -65,22 +198,20 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: EchoColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF081023), width: 1.5),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${index + 1}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                child: GestureDetector(
+                  onTap: () => _removeContact(contact['id'] as int),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 196, 117, 15),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF081023), width: 1.5),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 14,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -95,6 +226,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               color: isSelected ? Colors.white : Colors.white70,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -103,7 +235,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
 
   Widget _buildAddButton({bool large = false}) {
     return GestureDetector(
-      onTap: _addContact,
+      onTap: _showAddContactDialog,
       child: Column(
         children: [
           Container(
@@ -121,7 +253,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               child: Icon(
                 Icons.add,
                 size: large ? 32 : 28,
-                color: Colors.white70,
+                color: const Color.fromARGB(255, 148, 90, 2)
               ),
             ),
           ),
@@ -136,6 +268,49 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
         ],
       ),
     );
+  }
+
+  Future<void> _savesAndProceed() async {
+    if (_contacts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one emergency contact'),
+          backgroundColor: Color.fromARGB(200, 248, 187, 20),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (mounted) {
+        Navigator.pushNamed(context, '/tier2-public-alert-setup');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving contacts: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 
   @override
@@ -179,7 +354,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: List.generate(7, (index) {
-                        final bool active = index == 5;
+                        final bool active = index == 1;
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           width: active ? 74 : 8,
@@ -205,7 +380,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Select up to 10 contacts. Drag to rank priority — the first 3 are Tier 1.',
+                  'Add up to 10 emergency contacts. They\'ll receive alerts in order of priority.',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     height: 1.7,
@@ -226,7 +401,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                 _buildAddButton(large: true),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Add your first contact',
+                                  'Add your first emergency contact',
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
                                     color: Colors.white70,
@@ -254,17 +429,6 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 24),
-                              Center(
-                                child: Text(
-                                  'Click to customize alert message',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.white54,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                         const SizedBox(height: 32),
@@ -288,7 +452,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Selected',
+                                          'Emergency Contacts',
                                           style: GoogleFonts.poppins(
                                             fontSize: 14,
                                             color: Colors.white54,
@@ -296,7 +460,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Tier 1 (immediate)',
+                                          'Ready to notify',
                                           style: GoogleFonts.poppins(
                                             fontSize: 14,
                                             color: Colors.white54,
@@ -308,7 +472,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          '${_contacts.length} contacts',
+                                          '${_contacts.length}',
                                           style: GoogleFonts.poppins(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
@@ -317,7 +481,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _contacts.isEmpty ? 'None' : '${_contacts.length >= 3 ? 3 : _contacts.length} added',
+                                          _contacts.isEmpty ? 'None added' : 'contacts added',
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             color: Colors.white70,
@@ -364,8 +528,8 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                     const SizedBox(height: 12),
                                     Text(
                                       _contacts.isEmpty
-                                          ? 'Add contacts to see the alert preview update automatically.'
-                                          : '"${_contacts[_selectedPreviewIndex % _contacts.length]}, your contact may be in danger near D-Line Junction. Raised voices detected. Tap to act now."',
+                                          ? 'Add contacts to see the alert preview.'
+                                          : '"${_contacts[_selectedPreviewIndex % _contacts.length]['name']}, your contact may be in danger. Tap to act now."',
                                       style: GoogleFonts.poppins(
                                         fontSize: 14,
                                         height: 1.6,
@@ -387,9 +551,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/tier2-public-alert-setup');
-                    },
+                    onPressed: _isSaving ? null : _savesAndProceed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EchoColors.primary,
                       shape: RoundedRectangleBorder(
@@ -397,7 +559,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                       ),
                     ),
                     child: Text(
-                      'Set my inner circle',
+                      _isSaving ? 'Saving...' : 'Set my inner circle',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

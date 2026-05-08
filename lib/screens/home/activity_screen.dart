@@ -224,7 +224,7 @@ Widget _buildLiveFeed() {
                   ? 'High Risk' 
                   : 'Medium Risk',
           'riskColor': data['threatLevel'] == 'critical' 
-              ? Colors.redAccent 
+              ? const Color.fromARGB(255, 255, 186, 82) 
               : data['threatLevel'] == 'high' 
                   ? Colors.orangeAccent 
                   : EchoColors.secondaryLight,
@@ -356,7 +356,7 @@ String _formatDate(DateTime date) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _feedRow(Icons.sos, '${item['victimName']} may be in danger', Colors.redAccent),
+              _feedRow(Icons.sos, '${item['victimName']} may be in danger', const Color.fromARGB(255, 255, 194, 82)),
               const SizedBox(height: 12),
               _feedRow(Icons.location_on, item['location'], Colors.white70),
               const SizedBox(height: 12),

@@ -125,7 +125,7 @@ class GemmaProvider extends ChangeNotifier {
   Future<List<String>> getSafetyInstructions() async {
     if (lastThreatAssessment == null) return ['Stay calm', 'Share your location'];
     if (_cachedSafetyInstructions != null) return _cachedSafetyInstructions!;
-    final instructions = await _llamaThreatService.getSafetyInstructions(lastThreatAssessment!);
+    final instructions = await _llamaThreatService.getSafetyInstructions(threat: lastThreatAssessment!);
     _cachedSafetyInstructions = instructions;
     return instructions;
   }

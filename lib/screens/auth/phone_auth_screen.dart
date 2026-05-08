@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'profile_setup_screen.dart';
+import 'otp_verification_screen.dart';
+import '../../services/local_storage_service.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({super.key});
@@ -12,11 +15,103 @@ class PhoneAuthScreen extends StatefulWidget {
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _phoneController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final LocalStorageService _localStorage = LocalStorageService();
+  
+  String? _verificationId;
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handlePhoneAuth() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      try {
+        final phone = _phoneController.text.trim();
+        print('🔐 Starting Firebase phone auth for: $phone');
+
+        await _auth.verifyPhoneNumber(
+          phoneNumber: phone,
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            print('✅ Phone auto-verified: $phone');
+            // Auto sign-in for instant verification (rare, mostly for testing)
+            try {
+              final userCredential = await _auth.signInWithCredential(credential);
+              final user = userCredential.user;
+              if (user != null && mounted) {
+                // Save UID locally
+                await _localStorage.setCurrentUser(
+                  uid: user.uid,
+                  email: user.phoneNumber ?? '',
+                  displayName: null,
+                );
+                print('✅ UID saved locally: ${user.uid}');
+                
+                if (mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (ctx) => const ProfileSetupScreen(),
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              print('❌ Auto-sign-in failed: $e');
+              setState(() {
+                _error = 'Authentication failed. Please try again.';
+                _isLoading = false;
+              });
+            }
+          },
+          verificationFailed: (FirebaseAuthException e) {
+            print('❌ Phone verification failed: ${e.message}');
+            setState(() {
+              _error = 'Verification failed: ${e.message}';
+              _isLoading = false;
+            });
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            print('📱 OTP sent to: $phone');
+            _verificationId = verificationId;
+            setState(() {
+              _isLoading = false;
+            });
+            
+            // Navigate to OTP verification screen
+            if (mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => OTPVerificationScreen(
+                    phoneNumber: phone,
+                    verificationId: verificationId,
+                  ),
+                ),
+              );
+            }
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {
+            print('⏱️ Auto-retrieval timeout for: $phone');
+            _verificationId = verificationId;
+          },
+          timeout: const Duration(minutes: 2),
+        );
+      } catch (e) {
+        print('❌ Phone auth error: $e');
+        setState(() {
+          _error = 'Failed to send code: $e';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -158,6 +253,25 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                           ),
                         ),
                       ),
+
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.withOpacity(0.5)),
+                          ),
+                          child: Text(
+                            _error!,
+                            style: GoogleFonts.poppins(
+                              color: Colors.red.shade300,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -173,15 +287,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState?.validate() ?? false) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (ctx) => const ProfileSetupScreen(),
-                          ),
-                        );
-                      }
-                    },
+                    onPressed: _isLoading ? null : _handlePhoneAuth,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -189,14 +295,25 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                         borderRadius: BorderRadius.circular(28),
                       ),
                     ),
-                    child: Text(
-                      "Continue",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            "Continue",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
