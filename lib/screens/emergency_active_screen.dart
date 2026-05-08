@@ -53,6 +53,19 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     _startFluctuation();
     _loadSafetyInstructions();
     _loadContacts();
+
+    // Play diversion message immediately on emergency start
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final gemmaProvider = Provider.of<GemmaProvider>(context, listen: false);
+      try {
+        final diversion = await gemmaProvider.getDiversionMessage();
+        await _ttsService.speak(diversion);
+      } catch (e) {
+        debugPrint('❌ Failed to generate diversion message: $e');
+        // Fallback message
+        await _ttsService.speak('Alert: Authorities have been notified. This location is being tracked.');
+      }
+    });
   }
 
   Future<void> _loadContacts() async {
@@ -269,14 +282,14 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         });
         print('✅ Safety instructions loaded: ${instructions.length} items');
         if (instructions.isNotEmpty) {
-          unawaited(_ttsService.speak('Safety instructions ready. ${instructions.join('. ')}'));
+          unawaited(_ttsService.speak('Echo is active. Your location locked. Audio is being recorded. Offline mode fully enabled ${instructions.join('. ')}'));
         }
       }
     } catch (e) {
       print('⚠️ Failed to load safety instructions: $e');
       if (mounted) {
         setState(() {
-          _safetyInstructions = ['Stay calm', 'Share your location with a trusted contact'];
+          _safetyInstructions = ['Stay calm', 'Help is on the way'];
           _instructionsLoaded = true;
         });
       }
@@ -1034,9 +1047,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); 
+              Navigator.pop(context);
+              unawaited(_ttsService.stop());  // Stop any ongoing TTS first
               unawaited(_confirmationSoundService.confirmContactAction());
-              unawaited(_ttsService.speak('Emergency resolved.'));
+              unawaited(_ttsService.speak('Emergency situation resolved. Stay safe and contact support if needed.'));
               escalation.resolveEmergency();
               setState(() {
                 _summaryVisible = true;
@@ -1067,7 +1081,8 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           TextButton(
             onPressed: () {
               Navigator.pop(context); // close dialog
-              unawaited(_ttsService.speak('Emergency cancelled.'));
+              unawaited(_ttsService.stop());  // Stop any ongoing TTS first
+              unawaited(_ttsService.speak('Emergency alert cancelled. If you need help, trigger Echo again.'));
               escalation.stopEscalation();
               Navigator.pop(context, true); // return to home
             },

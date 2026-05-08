@@ -50,8 +50,9 @@ class TTSService {
 
     try {
       await _flutterTts.setLanguage('en-US');
-      await _flutterTts.setPitch(1.0);
-      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setPitch(0.8);  // Deeper, more authoritative voice
+      await _flutterTts.setSpeechRate(0.4);  // Slower, clearer speech
+      await _flutterTts.setVolume(1.0);  // Full volume
 
       // Listen for completion
       _flutterTts.setCompletionHandler(() {

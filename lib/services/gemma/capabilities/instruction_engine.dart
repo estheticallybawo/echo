@@ -43,7 +43,7 @@ class InstructionEngine {
   List<String> getDefaultSafetyInstructions() {
     return [
       'Stay calm and find a safe location',
-      'Share your live location with a trusted contact',
+      'Sharing your live location with a trusted contact',
       'Call emergency services if in immediate danger',
     ];
   }

@@ -41,17 +41,15 @@ class GemmaProvider extends ChangeNotifier {
     _llamaThreatService.clearLocationContext();
   }
 
-  /// FOR DEVELOPMENT/TESTING ONLY: Analyze threat using mock data.
-  /// Never expose this in production UI - marked as deprecated.
-  @Deprecated('Use voice transcription service only. This is for testing.')
-  Future<Map<String, dynamic>> analyzeThreatMock(String mockInput) async {
+  /// Analyze threat from voice transcription text
+  Future<Map<String, dynamic>> assessThreat(String transcribedText) async {
     isAnalyzing = true;
     error = null;
     notifyListeners();
 
     try {
       clearCachedResults();
-      final result = await _llamaThreatService.analyzeThreatMock(mockInput);
+      final result = await _llamaThreatService.assessThreat(transcribedText);
       lastThreatAssessment = result;
       isAnalyzing = false;
       notifyListeners();
@@ -99,7 +97,7 @@ class GemmaProvider extends ChangeNotifier {
   // Step‑by‑step instructions (based on last threat assessment)
   // ----------------------------------------------------------------------
   Future<List<String>> getSafetyInstructions() async {
-    if (lastThreatAssessment == null) return ['Stay calm', 'Share your location'];
+    if (lastThreatAssessment == null) return ['Stay calm',  'Echo is Listening and Sharing your location'];
     if (_cachedSafetyInstructions != null) return _cachedSafetyInstructions!;
     final instructions = await _llamaThreatService.getSafetyInstructions(threat: lastThreatAssessment!);
     _cachedSafetyInstructions = instructions;

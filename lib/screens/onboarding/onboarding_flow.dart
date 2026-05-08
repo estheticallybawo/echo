@@ -46,10 +46,9 @@ class _OnboardingScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 38),
                 Image.asset(
-      
-                  'assets/onboarding/echologo.png/',
-                  width: 120,
-                  height: 120,
+                  'assets/onboarding/echologo.png',
+                  width: 160,
+                  height: 50,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 10),

@@ -123,19 +123,23 @@ class VoiceRecognitionService {
 
   Future<void> _startBurst() async {
     if (_isDisposed || _status != VoiceRecognitionStatus.listening) return;
+    if (_speech.isListening) {
+      debugPrint('[VoiceRecognition] Already listening, skipping start');
+      return;
+    }
 
     try {
       await _speech.listen(
         onResult: _onResult,
         listenFor: _listenDuration,
-        pauseFor: const Duration(seconds: 4),
+        pauseFor: const Duration(seconds: 9),
         partialResults: true,
         localeId: null,
         listenMode: ListenMode.dictation,
       );
 
       _restartTimer?.cancel();
-      final restartDelay = _listenDuration - const Duration(milliseconds: 500);
+      final restartDelay = _listenDuration - const Duration(seconds: 3000);
       _restartTimer = Timer(
         restartDelay.isNegative ? Duration.zero : restartDelay,
         _restartBurst,
@@ -153,7 +157,7 @@ class VoiceRecognitionService {
     }
 
     await _speech.stop();
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 3000));
     await _startBurst();
   }
 
@@ -193,7 +197,7 @@ class VoiceRecognitionService {
         _status == VoiceRecognitionStatus.listening &&
         !_isPaused) {
       _restartTimer?.cancel();
-      _restartTimer = Timer(const Duration(milliseconds: 200), _restartBurst);
+      _restartTimer = Timer(const Duration(seconds: 300), _restartBurst);
     }
   }
 
@@ -210,7 +214,7 @@ class VoiceRecognitionService {
 
     if (_status == VoiceRecognitionStatus.listening && !_isPaused) {
       _restartTimer?.cancel();
-      _restartTimer = Timer(const Duration(seconds: 1), _restartBurst);
+      _restartTimer = Timer(const Duration(seconds: 6), _restartBurst);
     }
   }
 }
