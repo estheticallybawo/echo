@@ -126,6 +126,24 @@ class EscalationProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void resolveEmergency() {
+    if (_currentIncident == null) return;
+
+    _currentIncident = Incident(
+      id: _currentIncident!.id,
+      userId: _currentIncident!.userId,
+      threatType: _currentIncident!.threatType,
+      confidence: _currentIncident!.confidence,
+      startTime: _currentIncident!.startTime,
+      tier1Time: _currentIncident!.tier1Time,
+      tier2Time: _currentIncident!.tier2Time,
+      tier3Time: _currentIncident!.tier3Time,
+      isResolved: true,
+    );
+    _timer?.cancel();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _timer?.cancel();

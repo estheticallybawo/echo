@@ -1,5 +1,5 @@
 name: echo
-description: "A new Flutter project."
+description: "your safety companion"
 publish_to: 'none'
 version: 0.1.0
 
@@ -41,7 +41,6 @@ flutter:
     - assets/icon/
     - assets/onboarding/
     - assets/onboarding/x_logo.png
-    - assets/onboarding/echosplashicon.png
     - assets/tutorial/
     - assets/splash/
 
@@ -51,19 +50,11 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   web:
     generate: true
-    background_color: "#000000"
   image_path: "assets/icon/echo.png"
   adaptive_icon_background: "assets/icon/echo_background.png"  # For Android adaptive icons
   adaptive_icon_foreground: "assets/icon/echo_foreground.png"  # For Android adaptive icons
 
 
-flutter_native_splash:
-  # Platform enable/disable
-  android: true
-  ios: true
-  web: true
-  image: assets/splash/echosplashicon.png
-  color: "#02091A"
 
 
   # Web specific

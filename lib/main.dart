@@ -2,21 +2,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
-
-import 'screens/account-setups/permission_setup_screen.dart';
-import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
-import 'screens/account-setups/tier2_public_alert_setup_screen.dart';
-import 'screens/home/main_scaffold.dart';
-import 'screens/home/ai_intel_screen.dart';
-import 'screens/home/contacts_screen.dart';
-import 'screens/home/emergency_active_screen.dart';
-import 'screens/home/activity_screen.dart';
-import 'screens/home/settings_screen.dart';
-import 'screens/home/profile_screen.dart';
-import 'screens/home/notification_screen.dart';
-import 'screens/home/threat_analysis_result_screen.dart';
-import 'screens/home/terms_privacy_screen.dart';
+import 'screens/emergency_active_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/onboarding/onboarding_flow.dart';
+import 'screens/threat_analysis_result_screen.dart';
 
 import 'package:provider/provider.dart';
 import 'providers/escalation_provider.dart';
@@ -37,6 +26,27 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  final localStorage = LocalStorageService();
+  await localStorage.setCurrentUser(
+    uid: 'demo-hiny',
+    email: 'hiny@demo.echo',
+    displayName: 'Hiny',
+  );
+
+  if (localStorage.getContacts('demo-hiny').isEmpty) {
+    await localStorage.addContact(
+      'demo-hiny',
+      name: 'Mom',
+      phoneNumber: '+12345678901',
+    );
+    await localStorage.addContact(
+      'demo-hiny',
+      name: 'Sister',
+      phoneNumber: '+12345678902',
+    );
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -67,22 +77,56 @@ class EchoApp extends StatelessWidget {
       theme: buildEchoTheme(),
       home: const SplashScreen(),
       routes: {
-        '/account-setups': (context) => const AccountSetupsScreen(),
-        '/permission-setup': (context) => const AccountSetupsScreen(),
-        '/tier1-inner-circle-setup': (context) => const Tier1InnerCircleSetupScreen(),
-        '/tier2-public-alert-setup': (context) => const Tier2PublicAlertSetupScreen(),
         '/onboarding': (context) => const OnboardingFlow(),
-        '/home': (context) => const MainScaffold(),
-        '/ai-intel': (context) => const AiIntelScreen(),
-        '/contacts': (context) => const ContactsScreen(),
+        '/home': (context) => const HomeScreen(),
         '/emergency-active': (context) => const EmergencyActiveScreen(),
-        '/activity': (context) => const ActivityScreen(),
-        '/notifications': (context) => const NotificationScreen(),
-        '/terms-privacy': (context) => const TermsPrivacyScreen(),
         '/threat-analysis-result': (context) => const ThreatAnalysisResultScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/profile': (context) => const ProfileScreen(),
+  
+        '/contacts': (context) => const _PlaceholderScreen(
+          title: 'Contacts',
+          message: 'Contacts are shown directly on the Home screen for the demo.',
+        ),
+        '/activity': (context) => const _PlaceholderScreen(
+          title: 'Activity',
+          message: 'Demo placeholder for the mobile build.',
+        ),
+        '/ai-intel': (context) => const _PlaceholderScreen(
+          title: 'AI Intel',
+          message: 'Gemma features are shown in the emergency flow for the demo.',
+        )
       },
+    );
+  }
+}
+
+class _PlaceholderScreen extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _PlaceholderScreen({
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF02091A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF02091A),
+        foregroundColor: Colors.white,
+        title: Text(title),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        ),
+      ),
     );
   }
 }

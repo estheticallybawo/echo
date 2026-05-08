@@ -1,7 +1,7 @@
 
 
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 /// Llama.cpp Server Configuration (for llama-server.exe)
 /// 
@@ -13,7 +13,7 @@ class LlamaConfig {
   // ignore: constant_identifier_names
   static const String LOCAL_HOST = 'http://localhost:8080';
   
-  static const String completionEndpoint = '/completion';
+  static const String chatCompletionEndpoint = '/v1/chat/completions';
   /// Production Ngrok tunnel URL (set dynamically after   //  tunnel created)
   static String ngrokHost = '';
 
@@ -46,13 +46,18 @@ class LlamaConfig {
     try {
       final timeout = HEALTH_CHECK_TIMEOUT_LOCAL;
 
-      // First try llama.cpp native completion format on /completion.
+      // First try the OpenAI-compatible chat completions endpoint.
       final nativeResponse = await http
           .post(
-            Uri.parse('$endpoint/completion'),
+            Uri.parse('$endpoint/v1/chat/completions'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode(
-              buildCompletionBody('Respond with ONLY: OK', maxTokens: 8),
+              buildChatCompletionBody(
+                messages: const [
+                  {'role': 'user', 'content': 'Respond with ONLY: OK'},
+                ],
+                maxTokens: 8,
+              ),
             ),
           )
           .timeout(timeout);
@@ -68,11 +73,14 @@ class LlamaConfig {
   }
 
  
-  /// Build completion request body (llama.cpp format)
-  static Map<String, dynamic> buildCompletionBody(String prompt, {int? maxTokens}) {
+  /// Build chat completion request body (OpenAI-compatible format).
+  static Map<String, dynamic> buildChatCompletionBody({
+    required List<Map<String, String>> messages,
+    int? maxTokens,
+  }) {
     return {
-      'prompt': prompt,
-      'n_predict': maxTokens ?? MAX_TOKENS,
+      'messages': messages,
+      'max_tokens': maxTokens ?? MAX_TOKENS,
       'temperature': TEMPERATURE,
       'top_k': TOP_K,
       'repeat_penalty': REPEAT_PENALTY,
@@ -80,9 +88,16 @@ class LlamaConfig {
     };
   }
 
-  /// Parse llama.cpp completion response
-  static String parseCompletionResponse(String responseBody) {
+  /// Parse chat completion response
+  static String parseChatCompletionResponse(String responseBody) {
     final data = jsonDecode(responseBody);
-    return data['content']?.trim() ?? '';
+    final choices = data['choices'];
+    if (choices is List && choices.isNotEmpty) {
+      final message = choices.first['message'];
+      if (message is Map) {
+        return message['content']?.toString().trim() ?? '';
+      }
+    }
+    return data['content']?.toString().trim() ?? '';
   }
 }

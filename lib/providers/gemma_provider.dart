@@ -41,30 +41,6 @@ class GemmaProvider extends ChangeNotifier {
     _llamaThreatService.clearLocationContext();
   }
 
-  // ------- Threat assessment (VOICE-TRIGGERED ONLY) -------
-  /// Analyze threat from voice transcript (internal use only).
-  /// IMPORTANT: Only call this with transcripts from speech recognition service.
-  /// Do NOT expose to UI for manual text input.
-  Future<Map<String, dynamic>> _analyzeVoiceTranscript(String voiceTranscript) async {
-    isAnalyzing = true;
-    error = null;
-    notifyListeners();
-
-    try {
-      clearCachedResults();
-      final result = await _llamaThreatService.analyzeThreat(voiceTranscript);
-      lastThreatAssessment = result;
-      isAnalyzing = false;
-      notifyListeners();
-      return result;
-    } catch (e) {
-      error = e.toString();
-      isAnalyzing = false;
-      notifyListeners();
-      return {};
-    }
-  }
-
   /// FOR DEVELOPMENT/TESTING ONLY: Analyze threat using mock data.
   /// Never expose this in production UI - marked as deprecated.
   @Deprecated('Use voice transcription service only. This is for testing.')

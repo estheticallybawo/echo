@@ -87,7 +87,10 @@ class LocalStorageService {
     final key = 'contacts_$userId';
     final data = _contactsBox.get(key);
     if (data is List) {
-      return data.cast<Map<String, dynamic>>();
+      return data
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList();
     }
     return [];
   }
@@ -142,7 +145,10 @@ class LocalStorageService {
     final key = 'incidents_$userId';
     final data = _incidentsBox.get(key);
     if (data is List) {
-      return data.cast<Map<String, dynamic>>();
+      return data
+          .whereType<Map>()
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList();
     }
     return [];
   }

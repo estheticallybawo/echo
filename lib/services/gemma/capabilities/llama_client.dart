@@ -7,7 +7,7 @@ import '../llama_config.dart';
 class LlamaClient {
   final http.Client _http = http.Client();
 
-  /// Send a completion request to llama.cpp server.
+  /// Send a chat completion request to the model server.
   /// Returns the raw content string.
   Future<String> complete({
     required String prompt,
@@ -19,11 +19,13 @@ class LlamaClient {
   }) async {
     try {
       final response = await _http.post(
-        Uri.parse('${LlamaConfig.activeHost}/completion'),
+        Uri.parse('${LlamaConfig.activeHost}${LlamaConfig.chatCompletionEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'prompt': prompt,
-          'n_predict': maxTokens,
+          'messages': [
+            {'role': 'user', 'content': prompt},
+          ],
+          'max_tokens': maxTokens,
           'temperature': temperature,
           'top_k': topK,
           'repeat_penalty': repeatPenalty,
@@ -32,8 +34,7 @@ class LlamaClient {
       ).timeout(timeout);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return (data['content'] ?? '').toString().trim();
+        return LlamaConfig.parseChatCompletionResponse(response.body);
       }
       return '';
     } catch (e) {
@@ -42,36 +43,52 @@ class LlamaClient {
     }
   }
 
-  /// Send a completion request with system prompt (Gemma 4 turn format).
+  /// Send a chat completion request with system and user prompts.
   Future<String> completeWithSystem({
     required String systemPrompt,
     required String userPrompt,
     int maxTokens = 30,
     double temperature = 0.0,
+    int topK = 10,
+    double repeatPenalty = 1.0,
     String? locationContext,
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    final fullPrompt = buildGemmaPrompt(
-      systemPrompt: systemPrompt,
-      userPrompt: userPrompt,
-      locationContext: locationContext,
-    );
-    return await complete(prompt: fullPrompt, maxTokens: maxTokens, temperature: temperature, timeout: timeout);
-  }
+    final messages = <Map<String, String>>[
+      {
+        'role': 'system',
+        'content': locationContext != null && locationContext.isNotEmpty
+            ? '$systemPrompt\n\nLOCATION CONTEXT: $locationContext'
+            : systemPrompt,
+      },
+      {
+        'role': 'user',
+        'content': userPrompt,
+      },
+    ];
 
-  /// Build a properly formatted Gemma 4 prompt with optional location context.
-  String buildGemmaPrompt({
-    required String systemPrompt,
-    required String userPrompt,
-    String? locationContext,
-  }) {
-    final locationPart =
-        (locationContext != null && locationContext.isNotEmpty)
-        ? '\n\nLOCATION CONTEXT: $locationContext'
-        : '';
-    return '<|turn>system\n$systemPrompt$locationPart<turn|>\n'
-        '<|turn>user\n$userPrompt<turn|>\n'
-        '<|turn>model\n';
+    try {
+      final response = await _http.post(
+        Uri.parse('${LlamaConfig.activeHost}${LlamaConfig.chatCompletionEndpoint}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'messages': messages,
+          'max_tokens': maxTokens,
+          'temperature': temperature,
+          'top_k': topK,
+          'repeat_penalty': repeatPenalty,
+          'stream': false,
+        }),
+      ).timeout(timeout);
+
+      if (response.statusCode == 200) {
+        return LlamaConfig.parseChatCompletionResponse(response.body);
+      }
+      return '';
+    } catch (e) {
+      print('❌ LlamaClient.completeWithSystem error: $e');
+      return '';
+    }
   }
 
   /// Extract JSON from a potentially messy response string.
