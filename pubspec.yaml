@@ -25,6 +25,7 @@ dependencies:
   flutter_tts: 4.2.5
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  flutter_app_icons: ^0.1.1
 
 dev_dependencies:
   flutter_test:
@@ -44,18 +45,15 @@ flutter:
     - assets/tutorial/
     - assets/splash/
 
-flutter_launcher_icons:
+flutter_icons:
   android: true
   ios: true
   remove_alpha_ios: true
   web:
     generate: true
-  image_path: "assets/icon/echo.png"
-  adaptive_icon_background: "assets/icon/echo_background.png"  # For Android adaptive icons
-  adaptive_icon_foreground: "assets/icon/echo_foreground.png"  # For Android adaptive icons
-
-
-
-
-  # Web specific
+  background_color: "#030A5C"  
+  image_path: "assets/icon/echo_ic_launcher.png"  # Base image for the app icon
+  adaptive_icon_background: "assets/icon/echo_echo_ic_launcher_background.png"  # For Android adaptive icons
+  adaptive_icon_foreground: "assets/icon/echo_ic_launcher_foreground.png"  # For Android adaptive icons
+  adaptive_icon_monochrome: "assets/icon/echo_ic_launcher_monochrome.png"  # For Android monochrome icons
   web_image_mode: center  # Options: center, contain, cover, stretch

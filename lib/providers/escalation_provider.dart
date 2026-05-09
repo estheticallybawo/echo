@@ -18,8 +18,8 @@ class EscalationProvider with ChangeNotifier {
   
   int get currentTier {
     if (_elapsedSeconds < 5) return 0;
-    if (_elapsedSeconds < 60) return 1;
-    if (_elapsedSeconds < 90) return 2;
+    if (_elapsedSeconds < 30) return 1;
+    if (_elapsedSeconds < 45) return 2;
     return 3;
   }
 
@@ -50,11 +50,11 @@ class EscalationProvider with ChangeNotifier {
       
       if (_elapsedSeconds == 5) {
         _activateTier1();
-      } else if (_elapsedSeconds == 60) {
+      } else if (_elapsedSeconds == 30) {
         _activateTier2();
-      } else if (_elapsedSeconds == 90) {
+      } else if (_elapsedSeconds == 45) {
         _activateTier3();
-      } else if (_elapsedSeconds >= 180) {
+      } else if (_elapsedSeconds >= 90) {
         _resolveEmergency();
       }
       

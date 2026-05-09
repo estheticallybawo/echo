@@ -27,6 +27,8 @@ enum VoiceRecognitionStatus {
   error,
 }
 
+typedef VoiceStatusCallback = void Function(VoiceRecognitionStatus status);
+
 class VoiceRecognitionService {
   final String _safetyPhrase;
   final double _minConfidence;
@@ -36,6 +38,7 @@ class VoiceRecognitionService {
 
   VoiceRecognitionStatus _status = VoiceRecognitionStatus.uninitialized;
   VoiceActivationCallback? _onActivation;
+  VoiceStatusCallback? _onStatusChange;
   Timer? _restartTimer;
   bool _isDisposed = false;
   bool _isPaused = false;
@@ -55,8 +58,10 @@ class VoiceRecognitionService {
 
   Future<bool> initialize({
     required VoiceActivationCallback onActivation,
+    VoiceStatusCallback? onStatusChange,
   }) async {
     _onActivation = onActivation;
+    _onStatusChange = onStatusChange;
     _status = VoiceRecognitionStatus.initializing;
 
     final available = await _speech.initialize(
@@ -67,11 +72,13 @@ class VoiceRecognitionService {
     if (!available) {
       _status = VoiceRecognitionStatus.error;
       _lastError = 'Speech recognition not available on this device';
+      _onStatusChange?.call(_status);
       debugPrint('[VoiceRecognition] Not available on this device');
       return false;
     }
 
     _status = VoiceRecognitionStatus.paused;
+    _onStatusChange?.call(_status);
     debugPrint('[VoiceRecognition] Initialised. Safety phrase: "$_safetyPhrase"');
     return true;
   }
@@ -85,6 +92,7 @@ class VoiceRecognitionService {
 
     _isPaused = false;
     _status = VoiceRecognitionStatus.listening;
+    _onStatusChange?.call(_status);
     await _startBurst();
   }
 
@@ -94,6 +102,7 @@ class VoiceRecognitionService {
     _isPaused = true;
     await _speech.stop();
     _status = VoiceRecognitionStatus.paused;
+    _onStatusChange?.call(_status);
     debugPrint('[VoiceRecognition] Paused');
   }
 
@@ -101,6 +110,7 @@ class VoiceRecognitionService {
     if (_isDisposed || _status != VoiceRecognitionStatus.paused) return;
     _isPaused = false;
     _status = VoiceRecognitionStatus.listening;
+    _onStatusChange?.call(_status);
     await _startBurst();
     debugPrint('[VoiceRecognition] Resumed');
   }
@@ -132,14 +142,13 @@ class VoiceRecognitionService {
       await _speech.listen(
         onResult: _onResult,
         listenFor: _listenDuration,
-        pauseFor: const Duration(seconds: 9),
         partialResults: true,
         localeId: null,
         listenMode: ListenMode.dictation,
       );
 
       _restartTimer?.cancel();
-      final restartDelay = _listenDuration - const Duration(seconds: 3000);
+      final restartDelay = _listenDuration - const Duration(seconds: 3);
       _restartTimer = Timer(
         restartDelay.isNegative ? Duration.zero : restartDelay,
         _restartBurst,
@@ -193,11 +202,21 @@ class VoiceRecognitionService {
     if (_isDisposed) return;
     debugPrint('[VoiceRecognition] Status: $status');
 
-    if (status == 'notListening' &&
-        _status == VoiceRecognitionStatus.listening &&
-        !_isPaused) {
+    if (status == 'listening') {
+      if (_status != VoiceRecognitionStatus.listening) {
+        _status = VoiceRecognitionStatus.listening;
+        _onStatusChange?.call(_status);
+      }
+      return;
+    }
+
+    if (status == 'notListening' || status == 'done') {
+      if (_status == VoiceRecognitionStatus.listening && !_isPaused) {
+        _status = VoiceRecognitionStatus.paused;
+        _onStatusChange?.call(_status);
+      }
       _restartTimer?.cancel();
-      _restartTimer = Timer(const Duration(seconds: 300), _restartBurst);
+      _restartTimer = Timer(const Duration(seconds: 3), _restartBurst);
     }
   }
 

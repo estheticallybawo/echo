@@ -10,7 +10,7 @@ class InstructionEngine {
   /// Returns a list of actionable safety steps.
   Future<List<String>> getSafetyInstructions(
     Map<String, dynamic> threat, {
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 30),
   }) async {
     try {
       final threatType = threat['threat'] ?? 'unknown';
@@ -44,7 +44,7 @@ class InstructionEngine {
     return [
       'Stay calm and find a safe location',
       'Sharing your live location with a trusted contact',
-      'Call emergency services if in immediate danger',
+      'Staying calm helps you think clearly and stay grounded',
     ];
   }
 

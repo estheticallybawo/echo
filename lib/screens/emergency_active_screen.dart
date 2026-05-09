@@ -20,6 +20,9 @@ class EmergencyActiveScreen extends StatefulWidget {
 class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with SingleTickerProviderStateMixin {
   String _displayText = '';
   final String _fullText = 'User location: Confirmed.\nRecording: Active (audio + metadata).\nProximity alerts: 3 contacts notified.\nPolice dispatch: Queued for operator.\nReal-time analysis: Assessing environment audio for threat patterns...';
+  bool _analysisLoading = false;
+  Map<String, dynamic>? _initialVoiceAnalysis;
+  bool _voiceAnalysisLoaded = false;
   Timer? _typewriterTimer;
   double _emotionLevel = 0.45;
   Timer? _fluctuationTimer;
@@ -38,6 +41,20 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   final ConfirmationSoundService _confirmationSoundService = ConfirmationSoundService();
   final TTSService _ttsService = TTSService();
 
+  int _lastRecordedTier = 0;  // Track tier changes for reporting
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_voiceAnalysisLoaded) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        _initialVoiceAnalysis = Map<String, dynamic>.from(args);
+      }
+      _voiceAnalysisLoaded = true;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,14 +71,35 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     _loadSafetyInstructions();
     _loadContacts();
 
-    // Play diversion message immediately on emergency start
+    // Play diversion message and start escalation immediately on emergency start
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final gemmaProvider = Provider.of<GemmaProvider>(context, listen: false);
+      final escalationProvider = Provider.of<EscalationProvider>(context, listen: false);
+      final userId = _localStorage.getCurrentUserUid() ?? 'demo-hiny';
+      final threatAssessment = gemmaProvider.lastThreatAssessment;
+      final threatType = threatAssessment?['threat']?.toString() ?? 'unknown';
+      final confidence = double.tryParse(threatAssessment?['confidence']?.toString() ?? '') ?? 0.0;
+
       try {
+        // Start emergency session tracking
+        gemmaProvider.startEmergencySession();
+
+        // Start real Gemma analysis for the emergency.
+        unawaited(_loadGemmaEmergencyAnalysis());
+
+        escalationProvider.startEscalation(
+          userId: userId,
+          threatType: threatType,
+          confidence: confidence,
+          onTier1: () => debugPrint('⏱️ Tier 1 activated'),
+          onTier2: () => debugPrint('⏱️ Tier 2 activated'),
+          onTier3: () => debugPrint('⏱️ Tier 3 activated'),
+        );
+
         final diversion = await gemmaProvider.getDiversionMessage();
         await _ttsService.speak(diversion);
       } catch (e) {
-        debugPrint('❌ Failed to generate diversion message: $e');
+        debugPrint('❌ Failed to start emergency escalation or generate diversion message: $e');
         // Fallback message
         await _ttsService.speak('Alert: Authorities have been notified. This location is being tracked.');
       }
@@ -77,6 +115,88 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         _contactsLoaded = true;
       });
     }
+  }
+
+  Future<void> _loadGemmaEmergencyAnalysis() async {
+    if (_analysisLoading) return;
+    _analysisLoading = true;
+
+    final gemmaProvider = Provider.of<GemmaProvider>(context, listen: false);
+    final existingAnalysis = gemmaProvider.lastThreatAssessment;
+    String prompt = 'Immediate danger detected. Provide a brief threat assessment for possible assault, break-in, or urgent help request.';
+
+    try {
+      if (_initialVoiceAnalysis != null) {
+        if ((_initialVoiceAnalysis!['summary'] ?? '').toString().isNotEmpty || (_initialVoiceAnalysis!['threat'] ?? '').toString().isNotEmpty) {
+          gemmaProvider.lastThreatAssessment = _initialVoiceAnalysis;
+          final formatted = _formatGemmaAnalysis(_initialVoiceAnalysis!);
+          if (mounted) {
+            setState(() {
+              _displayText = formatted;
+            });
+          }
+          await _refreshSafetyInstructions();
+          return;
+        }
+
+        final transcript = _initialVoiceAnalysis!['transcript']?.toString().trim();
+        if (transcript != null && transcript.isNotEmpty) {
+          prompt = transcript;
+        } else {
+          prompt = _initialVoiceAnalysis!['audio_description']?.toString() ?? prompt;
+        }
+      } else if (existingAnalysis != null) {
+        prompt = existingAnalysis['summary']?.toString() ?? existingAnalysis['threat']?.toString() ?? prompt;
+      }
+
+      final analysis = existingAnalysis ?? await gemmaProvider.assessThreat(prompt);
+      final formattedText = _formatGemmaAnalysis(analysis);
+      if (mounted) {
+        setState(() {
+          _displayText = formattedText;
+        });
+      }
+      await _refreshSafetyInstructions();
+    } catch (e) {
+      debugPrint('❌ Failed to load Gemma emergency analysis: $e');
+      if (mounted) {
+        setState(() {
+          _displayText = 'Gemma analysis temporarily unavailable. Showing latest local audio assessment.';
+        });
+      }
+    } finally {
+      _analysisLoading = false;
+    }
+  }
+
+  int _analysisConfidence(Map<String, dynamic> analysis) {
+    final confidenceValue = analysis['confidence'];
+    if (confidenceValue is double) {
+      return (confidenceValue <= 1.0 ? confidenceValue * 100 : confidenceValue).round();
+    }
+    if (confidenceValue is int) {
+      return confidenceValue;
+    }
+    final parsed = double.tryParse(confidenceValue?.toString() ?? '0') ?? 0;
+    return (parsed <= 1.0 ? parsed * 100 : parsed).round();
+  }
+
+  String _formatGemmaAnalysis(Map<String, dynamic> analysis) {
+    final threat = analysis['threat']?.toString() ?? 'Unknown threat';
+    final level = analysis['threatLevel']?.toString().toUpperCase() ?? 'UNKNOWN';
+    final confidence = _analysisConfidence(analysis);
+    final summary = analysis['summary']?.toString() ?? analysis['audio_description']?.toString() ?? 'Gemma is reviewing the situation.';
+    final action = analysis['action']?.toString();
+
+    final buffer = StringBuffer();
+    buffer.writeln('Threat: $threat');
+    buffer.writeln('Level: $level');
+    buffer.writeln('Confidence: $confidence%');
+    buffer.writeln('Summary: $summary');
+    if (action != null && action.isNotEmpty) {
+      buffer.writeln('Action: $action');
+    }
+    return buffer.toString().trim();
   }
 
   void _buildSummary(EscalationProvider escalation) {
@@ -221,11 +341,11 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       return 'queued';
     }
 
-    if (seconds < 60) {
+    if (seconds < 30) {
       return 'sent';
     }
 
-    if (seconds < 90) {
+    if (seconds < 45) {
       return 'no response';
     }
 
@@ -296,6 +416,22 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     }
   }
 
+  Future<void> _refreshSafetyInstructions() async {
+    try {
+      final gemmaProvider = context.read<GemmaProvider>();
+      final instructions = await gemmaProvider.getSafetyInstructions();
+      if (mounted) {
+        setState(() {
+          _safetyInstructions = instructions;
+          _instructionsLoaded = true;
+        });
+        print('✅ Refreshed safety instructions: ${instructions.length} items');
+      }
+    } catch (e) {
+      print('⚠️ Failed to refresh safety instructions: $e');
+    }
+  }
+
   void _startFluctuation() {
     _fluctuationTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
       if (mounted) {
@@ -344,6 +480,13 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         final attemptedContacts = _contacts.isEmpty
             ? const <Map<String, dynamic>>[]
             : _contacts.take((seconds / 10).ceil().clamp(0, _contacts.length)).toList();
+
+        // Track tier activation for post-incident reporting
+        if (escalation.currentTier > _lastRecordedTier && escalation.currentTier > 0) {
+          _lastRecordedTier = escalation.currentTier;
+          final gemmaProvider = Provider.of<GemmaProvider>(context, listen: false);
+          gemmaProvider.recordTierActivation(escalation.currentTier);
+        }
 
         if (_contactAttemptsShown != attemptedContacts.length) {
           _contactAttemptsShown = attemptedContacts.length;
@@ -729,14 +872,14 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       progress = seconds / 5;
     } else if (currentTier == 1) {
       t1Status = 'ACTIVE';
-      countdownText = '${60 - seconds}s until Tier 2';
-      progress = (seconds - 5) / 55;
+      countdownText = '${30 - seconds}s until Tier 2';
+      progress = (seconds - 5) / 25;
       progressColor = const Color(0xFF00C48C);
     } else if (currentTier == 2) {
       t1Status = 'COMPLETED';
       t2Status = 'ACTIVE';
-      countdownText = '${90 - seconds}s until Tier 3';
-      progress = (seconds - 60) / 30;
+      countdownText = '${45 - seconds}s until Tier 3';
+      progress = (seconds - 30) / 15;
       progressColor = const Color(0xFFFFB020);
     } else {
       t1Status = 'COMPLETED';
@@ -861,7 +1004,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         children: [
           Row(
             children: [
-              const Icon(Icons.smart_toy_outlined, color: Color(0xFF0891B2), size: 20),
+              Image.asset('assets/icon/gemma-color.png', width: 40, height: 40),
               const SizedBox(width: 8),
               Text('Gemma 4 Analysis', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ],
@@ -1023,7 +1166,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           Colors.white60,
           () {
             escalation.stopEscalation();
-            Navigator.pop(context, true);
+            Navigator.of(context).popUntil(ModalRoute.withName('/home'));
           },
           isFullWidth: true,
         ),
@@ -1046,16 +1189,34 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
             child: Text('Still in danger', style: GoogleFonts.poppins(color: const Color(0xFFFF0000), fontWeight: FontWeight.w600)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
               unawaited(_ttsService.stop());  // Stop any ongoing TTS first
               unawaited(_confirmationSoundService.confirmContactAction());
               unawaited(_ttsService.speak('Emergency situation resolved. Stay safe and contact support if needed.'));
-              escalation.resolveEmergency();
-              setState(() {
-                _summaryVisible = true;
-                _summaryText ??= 'Hiny marked herself safe. Echo recorded the incident locally and stopped escalation.';
-              });
+              
+              final escalationProvider = Provider.of<EscalationProvider>(context, listen: false);
+              final gemmaProvider = Provider.of<GemmaProvider>(context, listen: false);
+              
+              escalationProvider.resolveEmergency();
+              
+              // Generate post-incident report
+              try {
+                final report = await gemmaProvider.generatePostIncidentReport(
+                  location: 'Current location', // TODO: Get actual location
+                  actionsTaken: ['Safety confirmed by user'],
+                );
+                setState(() {
+                  _summaryVisible = true;
+                  _summaryText = report;
+                });
+              } catch (e) {
+                debugPrint('❌ Failed to generate post-incident report: $e');
+                setState(() {
+                  _summaryVisible = true;
+                  _summaryText ??= 'Hiny marked herself safe. Echo recorded the incident locally and stopped escalation.';
+                });
+              }
             },
             child: Text('I am safe', style: GoogleFonts.poppins(color: const Color(0xFF00C48C), fontWeight: FontWeight.w700)),
           ),
@@ -1084,7 +1245,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
               unawaited(_ttsService.stop());  // Stop any ongoing TTS first
               unawaited(_ttsService.speak('Emergency alert cancelled. If you need help, trigger Echo again.'));
               escalation.stopEscalation();
-              Navigator.pop(context, true); // return to home
+              Navigator.of(context).popUntil(ModalRoute.withName('/home')); // return to home
             },
             child: Text('Cancel Emergency', style: GoogleFonts.poppins(color: const Color(0xFFFF0000), fontWeight: FontWeight.w700)),
           ),

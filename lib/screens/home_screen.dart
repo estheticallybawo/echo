@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../providers/gemma_provider.dart';
 import '../theme.dart';
 import '../services/local_storage_service.dart';
 import '../services/sound/audio_record_service.dart';
@@ -31,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _contactNameController = TextEditingController();
   final TextEditingController _contactPhoneController = TextEditingController();
   bool _bgListening = true;
+  VoiceRecognitionStatus _voiceStatus = VoiceRecognitionStatus.uninitialized;
   _EchoMode _mode = _EchoMode.standby;
   int _sosCountdown = 1;
   int _elapsed = 0;
@@ -77,11 +80,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Initialize voice recognition with hotword detection
     _voiceRecognition = VoiceRecognitionService(
       safetyPhrase: _safetyPhrase,
-      minConfidence: 0.75,
+      minConfidence: 0.60,  // Lowered from 0.75 to make triggering easier
     );
     _initializeVoiceRecognition();
     _initializeVoiceCapture();
     _loadDemoUserAndContacts();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final gemmaProvider = context.read<GemmaProvider>();
+      gemmaProvider.verifyModelHealth();
+    });
   }
 
   Future<void> _loadDemoUserAndContacts() async {
@@ -110,9 +118,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         if (!mounted) return;
         _triggerSOS();
       },
+      onStatusChange: (status) {
+        if (!mounted) return;
+        setState(() => _voiceStatus = status);
+      },
     );
-    if (initialized && _bgListening) {
-      await _voiceRecognition.startListening();
+    if (initialized) {
+      setState(() => _voiceStatus = VoiceRecognitionStatus.paused);
+      if (_bgListening) {
+        await _voiceRecognition.startListening();
+        setState(() => _voiceStatus = VoiceRecognitionStatus.listening);
+      }
+    } else {
+      setState(() => _voiceStatus = VoiceRecognitionStatus.error);
     }
   }
 
@@ -310,6 +328,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     setState(() => _voiceLevel = 0);
+  }
+
+  String _getVoiceStatusText() {
+    switch (_voiceStatus) {
+      case VoiceRecognitionStatus.uninitialized:
+        return 'Voice recognition: Not initialized';
+      case VoiceRecognitionStatus.initializing:
+        return 'Voice recognition: Initializing...';
+      case VoiceRecognitionStatus.listening:
+        return 'Voice recognition: Listening for "echo help now"';
+      case VoiceRecognitionStatus.paused:
+        return 'Voice recognition: Paused';
+      case VoiceRecognitionStatus.error:
+        return 'Voice recognition: Error - check permissions';
+    }
   }
 
   String _fmtElapsed() {
@@ -565,9 +598,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildListeningCard() {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         HapticFeedback.lightImpact();
+        final wasListening = _bgListening;
         setState(() => _bgListening = !_bgListening);
+        
+        if (_bgListening && !wasListening) {
+          // Start listening
+          await _voiceRecognition.startListening();
+        } else if (!_bgListening && wasListening) {
+          // Stop listening
+          await _voiceRecognition.pauseListening();
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -624,6 +666,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Text(
               _bgListening ? 'Active — Gemma is listening' : 'Inactive — Tap to enable',
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _getVoiceStatusText(),
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.7)),
             ),
             const SizedBox(height: 14),
             Container(
@@ -768,6 +815,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildStatusCard() {
     final isActive = _mode == _EchoMode.active;
+    final gemmaProvider = context.watch<GemmaProvider>();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -816,6 +864,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _statusRow(Icons.location_on_outlined, 'Location shared with circle', isActive),
           _statusRow(Icons.psychology_outlined, 'Analyzing with Gemma AI', isActive),
           _statusRow(Icons.public, 'Public escalation', isActive && _elapsed > 120),
+          const SizedBox(height: 12),
+          _statusRowText(
+            Icons.memory_rounded,
+            'Gemma Status',
+            gemmaProvider.isCheckingModel
+                ? 'Checking...'
+                : gemmaProvider.modelHealthMessage,
+            gemmaProvider.isModelHealthy ? Colors.greenAccent : Colors.amberAccent,
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: gemmaProvider.isCheckingModel ? null : () => gemmaProvider.verifyModelHealth(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              decoration: BoxDecoration(
+                color: gemmaProvider.isCheckingModel ? Colors.white12 : EchoColors.primary,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                gemmaProvider.isCheckingModel ? 'Checking model...' : 'Verify Gemma Status',
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -902,6 +974,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
 
 
+
+  Widget _statusRowText(IconData icon, String title, String value, Color valueColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Image.asset('assets/icon/gemma-color.png', width: 40, height: 40),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildActionCards() {
     return Row(

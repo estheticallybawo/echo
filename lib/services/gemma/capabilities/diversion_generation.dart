@@ -8,7 +8,7 @@ class DiversionGeneration {
   /// Generate a short spoken diversion message (≤15 words).
   /// Message informs attacker that help is coming and location is tracked.
   Future<String> generateDiversionMessage({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 30),
   }) async {
     try {
       const prompt =
@@ -19,7 +19,11 @@ class DiversionGeneration {
         maxTokens: 30,
         timeout: timeout,
       );
-      return response.trim();
+      final trimmed = response.trim();
+      if (trimmed.isEmpty) {
+        return generateDiversionMessageMock();
+      }
+      return trimmed;
     } catch (e) {
       print('❌ generateDiversionMessage error: $e');
       return generateDiversionMessageMock();

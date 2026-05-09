@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'platform_host.dart';
 
 /// Llama.cpp Server Configuration (for llama-server.exe)
 /// 
@@ -18,7 +19,7 @@ class LlamaConfig {
   static String ngrokHost = '';
 
   /// Use Ngrok endpoint if available (for team testing)
-  static String get activeHost =>  LOCAL_HOST;
+  static String get activeHost => ngrokHost.isNotEmpty ? ngrokHost : getPlatformLocalHost();
 
   /// Max tokens to generate (shorter = faster for emergencies)
   static const int MAX_TOKENS = 30;

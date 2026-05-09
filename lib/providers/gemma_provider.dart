@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/gemma/llama_config.dart';
 import '../services/gemma/llama_threat_service.dart';
 import '../services/firestore_incident_service.dart';
 import '../services/gemma/gemma_decision_engine.dart';
@@ -26,6 +27,16 @@ class GemmaProvider extends ChangeNotifier {
   String? _cachedDiversionMessage;
   String? _cachedSafetyReport;
   List<String>? _cachedSafetyInstructions;
+
+  // Model health tracking
+  bool isModelHealthy = false;
+  bool isCheckingModel = false;
+  String modelHealthMessage = 'Unknown';
+
+  // Emergency session tracking for post-incident reporting
+  DateTime? _emergencyStartTime;
+  DateTime? _emergencyEndTime;
+  int _tiersTriggered = 0;
 
   GemmaProvider({required LlamaThreatService llamaThreatService})
       : _llamaThreatService = llamaThreatService;
@@ -72,6 +83,22 @@ class GemmaProvider extends ChangeNotifier {
     return message;
   }
 
+  /// Verify the underlying model server is reachable and ready.
+  Future<bool> verifyModelHealth() async {
+    isCheckingModel = true;
+    modelHealthMessage = 'Checking model connectivity...';
+    notifyListeners();
+
+    final healthy = await LlamaConfig.isServerHealthy();
+    isModelHealthy = healthy;
+    modelHealthMessage = healthy
+        ? 'Gemma is online'
+        : 'Gemma is unavailable';
+    isCheckingModel = false;
+    notifyListeners();
+    return healthy;
+  }
+
   // ----------------------------------------------------------------------
   // Post‑incident safety report
   // ----------------------------------------------------------------------
@@ -102,6 +129,84 @@ class GemmaProvider extends ChangeNotifier {
     final instructions = await _llamaThreatService.getSafetyInstructions(threat: lastThreatAssessment!);
     _cachedSafetyInstructions = instructions;
     return instructions;
+  }
+
+  // ----------------------------------------------------------------------
+  // Emergency session tracking (for post-incident reporting)
+  // ----------------------------------------------------------------------
+  void startEmergencySession() {
+    _emergencyStartTime = DateTime.now();
+    _emergencyEndTime = null;
+    _tiersTriggered = 0;
+    _cachedSafetyReport = null;
+    clearCachedResults();
+    print('🚨 Emergency session started at $_emergencyStartTime');
+  }
+
+  void recordTierActivation(int tierNumber) {
+    _tiersTriggered = tierNumber > _tiersTriggered ? tierNumber : _tiersTriggered;
+    print('📊 Tier $tierNumber activated. Max tier reached: $_tiersTriggered');
+  }
+
+  /// Generate a comprehensive post-incident report with timing and recommendations.
+  /// Call this after the user marks themselves safe.
+  Future<String> generatePostIncidentReport({
+    required String location,
+    List<String>? actionsTaken,
+  }) async {
+    if (_emergencyStartTime == null) {
+      return 'No emergency session recorded.';
+    }
+
+    _emergencyEndTime = DateTime.now();
+    final duration = _emergencyEndTime!.difference(_emergencyStartTime!);
+    final durationMinutes = duration.inSeconds ~/ 60;
+    final durationSeconds = duration.inSeconds % 60;
+
+    // Build tier progression text
+    final tierProgression = _tiersTriggered == 0
+        ? 'No tiers activated'
+        : _tiersTriggered == 1
+            ? 'Tier 1 only (inner circle SMS)'
+            : _tiersTriggered == 2
+                ? 'Tier 1 + Tier 2 (extended network)'
+                : 'Full escalation (Tier 1-3, including public feed)';
+
+    final threatType = lastThreatAssessment?['threat'] ?? 'unknown';
+    final confidence = lastThreatAssessment?['confidence'] ?? 0;
+    final actions = actionsTaken?.join(', ') ?? 'Safety confirmed';
+
+    final prompt =
+        'Generate a brief post-incident safety report (max 100 words) for this emergency:\n'
+        '- Threat Type: $threatType\n'
+        '- Confidence: $confidence%\n'
+        '- Duration: ${durationMinutes}m ${durationSeconds}s\n'
+        '- Escalation: $tierProgression\n'
+        '- Location: $location\n'
+        '- Resolution: $actions\n'
+        'Include:\n'
+        '1. What happened (in 1 sentence)\n'
+        '2. Response actions taken\n'
+        '3. One recommendation for future safety\n'
+        'Keep it warm, supportive, and actionable.';
+
+    try {
+      final report = await _llamaThreatService.generateSafetyReport(
+        threatType: threatType.toString(),
+        confidence: (confidence as num).toInt(),
+        location: location,
+        actionsTaken: [tierProgression, actions],
+      );
+      _cachedSafetyReport = report;
+      notifyListeners();
+      return report;
+    } catch (e) {
+      print('❌ generatePostIncidentReport error: $e');
+      // Fallback report
+      return 'Emergency resolved safely. Duration: ${durationMinutes}m ${durationSeconds}s. '
+          'Escalation: $tierProgression. '
+          'You handled this well. Consider adding more trusted contacts for faster support next time.';
+    }
   }
 
   // ----------------------------------------------------------------------
