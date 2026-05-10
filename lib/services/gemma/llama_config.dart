@@ -11,8 +11,11 @@ import 'platform_host.dart';
 /// Run: .\llama-server.exe -m <model.gguf> --host 0.0.0.0 --port 8080
 class LlamaConfig {
   /// Local llama-server endpoint
+  /// For Android emulator: use 10.0.2.2 to reach host machine
+  /// For iOS simulator: use 127.0.0.1
+  /// For desktop: use 127.0.0.1 or localhost
   // ignore: constant_identifier_names
-  static const String LOCAL_HOST = 'http://localhost:8080';
+  static const String LOCAL_HOST = 'http://10.0.2.2:8080';
   
   static const String chatCompletionEndpoint = '/v1/chat/completions';
   /// Production Ngrok tunnel URL (set dynamically after   //  tunnel created)

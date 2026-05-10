@@ -6,6 +6,8 @@ import 'screens/emergency_active_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding/onboarding_flow.dart';
 import 'screens/threat_analysis_result_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/model_setup_screen.dart';
 
 import 'package:provider/provider.dart';
 import 'providers/escalation_provider.dart';
@@ -81,19 +83,8 @@ class EchoApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/emergency-active': (context) => const EmergencyActiveScreen(),
         '/threat-analysis-result': (context) => const ThreatAnalysisResultScreen(),
-  
-        '/contacts': (context) => const _PlaceholderScreen(
-          title: 'Contacts',
-          message: 'Contacts are shown directly on the Home screen for the demo.',
-        ),
-        '/activity': (context) => const _PlaceholderScreen(
-          title: 'Activity',
-          message: 'Demo placeholder for the mobile build.',
-        ),
-        '/ai-intel': (context) => const _PlaceholderScreen(
-          title: 'AI Intel',
-          message: 'Gemma features are shown in the emergency flow for the demo.',
-        )
+        '/chat': (context) => const ChatScreen(),
+        '/model-setup': (context) => const ModelSetupScreen()
       },
     );
   }

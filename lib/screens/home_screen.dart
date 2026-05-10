@@ -720,6 +720,194 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildAIModeCard() {
+    final gemmaProvider = context.watch<GemmaProvider>();
+    final useOnDevice = gemmaProvider.useOnDevice;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xB2052C66),
+            const Color(0xB2052C66).withOpacity(0.3),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: useOnDevice
+              ? EchoColors.switchOn.withOpacity(0.35)
+              : EchoColors.secondaryLight.withOpacity(0.35),
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: useOnDevice ? EchoColors.switchOn : EchoColors.secondaryLight,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (useOnDevice ? EchoColors.switchOn : EchoColors.secondaryLight),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'AI Processing Mode',
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            useOnDevice ? 'On-Device — Gemma runs locally' : 'Server — Uses external Gemma server',
+            style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            gemmaProvider.modelHealthMessage,
+            style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.7)),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: useOnDevice
+                      ? () async {
+                          HapticFeedback.lightImpact();
+                          await gemmaProvider.switchToServer();
+                        }
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: useOnDevice
+                          ? EchoColors.switchOn.withOpacity(0.15)
+                          : EchoColors.primaryLight.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: useOnDevice
+                            ? EchoColors.switchOn.withOpacity(0.4)
+                            : EchoColors.secondary.withOpacity(0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          useOnDevice ? Icons.smartphone_rounded : Icons.cloud_rounded,
+                          size: 18,
+                          color: useOnDevice ? const Color.fromARGB(255, 110, 152, 241) : EchoColors.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          useOnDevice ? 'Switch to Server' : 'Server',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: useOnDevice ? const Color.fromARGB(255, 210, 223, 250) : const Color.fromARGB(255, 223, 215, 250),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/chat'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: EchoColors.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: EchoColors.primary.withOpacity(0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_rounded,
+                          size: 18,
+                          color: EchoColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Chat',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: EchoColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (!useOnDevice) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/model-setup'),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: EchoColors.secondaryLight.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: EchoColors.secondaryLight.withOpacity(0.4),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.download_rounded,
+                      size: 18,
+                      color: EchoColors.primaryLight,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Setup On-Device AI',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: EchoColors.primaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildInnerCircle() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1178,6 +1366,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       const SizedBox(height: 28),
                       _buildListeningCard(),
+                      const SizedBox(height: 20),
+                      _buildAIModeCard(),
                       const SizedBox(height: 20),
                       _buildInnerCircle(),
                       const SizedBox(height: 28),

@@ -5,17 +5,25 @@ import '../services/gemma/llama_threat_service.dart';
 import '../services/firestore_incident_service.dart';
 import '../services/gemma/gemma_decision_engine.dart';
 import '../services/escalation_timer_service.dart';
+import 'dart:convert';
+import '../services/gemma_dual_service.dart';
+import '../services/model_options.dart';
+import '../models/chat_message.dart';
 
 /// Provider that exposes all Gemma 4 capabilities to the UI:
 /// - Threat assessment (text/voice)
 /// - Spoken diversion message
 /// - Post‑incident safety report
 /// - Step‑by‑step emergency instructions
+/// - Chat functionality
 /// - (Optional) translation
 class GemmaProvider extends ChangeNotifier {
   final LlamaThreatService _llamaThreatService;
   final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
   final GemmaDecisionEngine _decisionEngine = GemmaDecisionEngine();
+  final GemmaDualService _dualService;
+
+  bool _useOnDevice = false; // Toggle between server and on-device mode
 
   bool isAnalyzing = false;
   Map<String, dynamic>? lastThreatAssessment;
@@ -38,8 +46,45 @@ class GemmaProvider extends ChangeNotifier {
   DateTime? _emergencyEndTime;
   int _tiersTriggered = 0;
 
-  GemmaProvider({required LlamaThreatService llamaThreatService})
-      : _llamaThreatService = llamaThreatService;
+  // Chat functionality
+  List<ChatMessage> messages = [];
+  bool isLoading = false;
+
+  GemmaProvider({
+    required LlamaThreatService llamaThreatService,
+    String? serverUrl,
+  }) : _llamaThreatService = llamaThreatService,
+       _dualService = GemmaDualService(serverUrl: serverUrl) {
+    _initializeDualService();
+  }
+
+  Future<void> _initializeDualService() async {
+    await _dualService.initialize();
+    _useOnDevice = _dualService.mode == GemmaMode.onDevice;
+    notifyListeners();
+  }
+
+  // Toggle between server and on-device mode
+  void setUseOnDevice(bool useOnDevice) {
+    _useOnDevice = useOnDevice;
+    notifyListeners();
+  }
+
+  bool get useOnDevice => _useOnDevice;
+
+  bool get isOnDevice => _dualService.mode == GemmaMode.onDevice;
+
+  Future<void> switchToOnDevice() async {
+    await _dualService.switchToOnDevice();
+    _useOnDevice = true;
+    notifyListeners();
+  }
+
+  Future<void> switchToServer() async {
+    await _dualService.switchToServer();
+    _useOnDevice = false;
+    notifyListeners();
+  }
 
   // ----------------------------------------------------------------------
   // Location context (injected into threat assessment prompts)
@@ -60,11 +105,17 @@ class GemmaProvider extends ChangeNotifier {
 
     try {
       clearCachedResults();
-      final result = await _llamaThreatService.assessThreat(transcribedText);
-      lastThreatAssessment = result;
+      final result = await _dualService.complete(
+        'Analyze this text for threat level and provide a JSON response with "threat", "confidence", and "threatLevel": $transcribedText',
+        systemPrompt: 'You are a threat analysis AI. Respond only with valid JSON containing threat assessment.'
+      );
+      
+      // Parse the JSON response
+      final Map<String, dynamic> parsedResult = jsonDecode(result);
+      lastThreatAssessment = parsedResult;
       isAnalyzing = false;
       notifyListeners();
-      return result;
+      return parsedResult;
     } catch (e) {
       error = e.toString();
       isAnalyzing = false;
@@ -74,11 +125,40 @@ class GemmaProvider extends ChangeNotifier {
   }
 
   // ----------------------------------------------------------------------
+  // Chat functionality
+  // ----------------------------------------------------------------------
+  Future<void> sendMessage(String message) async {
+    if (message.trim().isEmpty) return;
+
+    messages.add(ChatMessage(text: message, isUser: true));
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await _dualService.complete(message);
+      messages.add(ChatMessage(text: response, isUser: false));
+    } catch (e) {
+      messages.add(ChatMessage(text: 'Sorry, I encountered an error: $e', isUser: false));
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void clearChat() {
+    messages.clear();
+    notifyListeners();
+  }
+
+  // ----------------------------------------------------------------------
   // Spoken diversion message
   // ----------------------------------------------------------------------
   Future<String> getDiversionMessage() async {
     if (_cachedDiversionMessage != null) return _cachedDiversionMessage!;
-    final message = await _llamaThreatService.generateDiversionMessage();
+    final message = await _dualService.complete(
+      'Generate a short, calming diversion message for someone in a threatening situation.',
+      systemPrompt: 'You are a calming AI assistant. Provide brief, reassuring messages.'
+    );
     _cachedDiversionMessage = message;
     return message;
   }
@@ -89,14 +169,28 @@ class GemmaProvider extends ChangeNotifier {
     modelHealthMessage = 'Checking model connectivity...';
     notifyListeners();
 
-    final healthy = await LlamaConfig.isServerHealthy();
-    isModelHealthy = healthy;
-    modelHealthMessage = healthy
-        ? 'Gemma is online'
-        : 'Gemma is unavailable';
+    try {
+      if (_dualService.mode == GemmaMode.onDevice) {
+        // For on-device, check if model is loaded
+        await _dualService.complete('test', systemPrompt: 'test');
+        isModelHealthy = true;
+        modelHealthMessage = 'On-device Gemma is ready';
+      } else {
+        // For server mode, check server health
+        final healthy = await LlamaConfig.isServerHealthy();
+        isModelHealthy = healthy;
+        modelHealthMessage = healthy ? 'Gemma is online' : 'Gemma is unavailable';
+      }
+    } catch (e) {
+      isModelHealthy = false;
+      modelHealthMessage = _dualService.mode == GemmaMode.onDevice 
+          ? 'On-device Gemma failed to initialize' 
+          : 'Gemma is unavailable';
+    }
+    
     isCheckingModel = false;
     notifyListeners();
-    return healthy;
+    return isModelHealthy;
   }
 
   // ----------------------------------------------------------------------
@@ -109,13 +203,22 @@ class GemmaProvider extends ChangeNotifier {
     required List<String> actionsTaken,
   }) async {
     if (_cachedSafetyReport != null) return _cachedSafetyReport!;
+    
+    final prompt = '''
+Generate a brief post-incident safety report for this emergency:
+- Threat Type: $threatType
+- Confidence: ${confidence}%
+- Location: $location
+- Actions Taken: ${actionsTaken.join(', ')}
 
-    final report = await _llamaThreatService.generateSafetyReport(
-      threatType: threatType,
-      confidence: confidence,
-      location: location,
-      actionsTaken: actionsTaken,
-    );
+Include:
+1. What happened (in 1 sentence)
+2. Response actions taken
+3. One recommendation for future safety
+Keep it warm, supportive, and actionable.
+''';
+
+    final report = await _dualService.complete(prompt, systemPrompt: 'You are a supportive safety assistant providing post-incident reports.');
     _cachedSafetyReport = report;
     return report;
   }
@@ -126,9 +229,16 @@ class GemmaProvider extends ChangeNotifier {
   Future<List<String>> getSafetyInstructions() async {
     if (lastThreatAssessment == null) return ['Stay calm',  'Echo is Listening and Sharing your location'];
     if (_cachedSafetyInstructions != null) return _cachedSafetyInstructions!;
-    final instructions = await _llamaThreatService.getSafetyInstructions(threat: lastThreatAssessment!);
-    _cachedSafetyInstructions = instructions;
-    return instructions;
+    
+    final threatType = lastThreatAssessment!['threat'] ?? 'unknown';
+    final instructions = await _dualService.complete(
+      'Provide 3-5 step-by-step safety instructions for someone facing a $threatType threat. Number them clearly.',
+      systemPrompt: 'You are a safety assistant. Provide clear, actionable safety instructions.'
+    );
+    
+    // Split by numbers or lines
+    _cachedSafetyInstructions = instructions.split('\n').where((line) => line.trim().isNotEmpty).toList();
+    return _cachedSafetyInstructions!;
   }
 
   // ----------------------------------------------------------------------
@@ -191,12 +301,7 @@ class GemmaProvider extends ChangeNotifier {
         'Keep it warm, supportive, and actionable.';
 
     try {
-      final report = await _llamaThreatService.generateSafetyReport(
-        threatType: threatType.toString(),
-        confidence: (confidence as num).toInt(),
-        location: location,
-        actionsTaken: [tierProgression, actions],
-      );
+      final report = await _dualService.complete(prompt, systemPrompt: 'Generate a warm, supportive post-incident safety report.');
       _cachedSafetyReport = report;
       notifyListeners();
       return report;
