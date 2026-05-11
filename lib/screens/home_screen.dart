@@ -83,15 +83,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _loadDemoUserAndContacts();
 
     // Initialize Gemma provider on startup (silently)
-   
-WidgetsBinding.instance.addPostFrameCallback((_) {
-  final gemmaProvider = context.read<GemmaProvider>();
-  if (!gemmaProvider.isInitialized) {
-    gemmaProvider.initialize().catchError((e) {
-      print('⚠️ Gemma initialization failed: $e');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final gemmaProvider = context.read<GemmaProvider>();
+      if (!gemmaProvider.isInitialized) {
+        gemmaProvider.initialize().catchError((e) {
+          print('⚠️ Gemma initialization failed: $e');
+        });
+      }
     });
-  }
-});
   }
 
   Future<void> _loadDemoUserAndContacts() async {
@@ -115,9 +114,21 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 
   Future<void> _initializeVoiceRecognition() async {
     final initialized = await _voiceRecognition.initialize(
-      onActivation: (event) {
+      onActivation: (event) async {
         if (!mounted) return;
-        _triggerSOS();
+        await _audioRecorderService.stopRecording();
+        final audio = _audioRecorderService.buffer.getAudio(
+          maxDuration: const Duration(seconds: 10),
+        );
+        final analysis = await _speechTranscriptionService.transcribeAndAnalyse(
+          audioData: audio,
+          sampleRateHz: 16000,
+          context: {
+            'phrase': event.phraseDetected,
+            'confidence': event.confidence,
+          },
+        );
+        _triggerSOS(voiceAnalysis: analysis.toMap());
       },
       onStatusChange: (status) {
         if (!mounted) return;
@@ -137,6 +148,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 
   Future<void> _initializeVoiceCapture() async {
     await _audioRecorderService.initialize();
+    await _audioRecorderService.startRecording();
   }
 
   void _onSOSDown(PointerEvent e) {
@@ -149,7 +161,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() => _sosCountdown--);
       } else {
         timer.cancel();
-        _triggerSOS();
+        _manualSOS();
       }
     });
   }
@@ -159,6 +171,19 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
     _sosTimer?.cancel();
     _holdCtrl.reset();
     setState(() { _mode = _EchoMode.standby; _sosCountdown = 1; });
+  }
+
+  Future<void> _manualSOS() async {
+    await _audioRecorderService.stopRecording();
+    final audio = _audioRecorderService.buffer.getAudio(
+      maxDuration: const Duration(seconds: 10),
+    );
+    final analysis = await _speechTranscriptionService.transcribeAndAnalyse(
+      audioData: audio,
+      sampleRateHz: 16000,
+      context: {'trigger': 'manual'},
+    );
+    _triggerSOS(voiceAnalysis: analysis.toMap());
   }
 
   void _triggerSOS({Map<String, dynamic>? voiceAnalysis}) async {
@@ -173,10 +198,14 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
     _cancelSOS();
   }
 
-  void _cancelSOS() {
+  Future<void> _cancelSOS() async {
     _elapsedTimer?.cancel();
     HapticFeedback.mediumImpact();
     setState(() { _mode = _EchoMode.standby; _elapsed = 0; });
+    await _audioRecorderService.startRecording();
+    if (_bgListening) {
+      await _voiceRecognition.startListening();
+    }
   }
 
   Future<void> _showAddContactDialog() async {
@@ -340,7 +369,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
               onPointerUp: isActive ? null : _onSOSUp,
               onPointerCancel: isActive ? null : _onSOSUp,
               child: GestureDetector(
-                onTap: isActive ? () => Navigator.pushNamed(context, '/emergency-active') : _triggerSOS,
+                onTap: isActive ? () => Navigator.pushNamed(context, '/emergency-active') : _manualSOS,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   width: 170,

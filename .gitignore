@@ -82,3 +82,7 @@ firebase.json
 
 android/app/google-services.json
 lib/firebase_options.dart
+
+# voice docs
+VOICE_FOLLOW_ANALYSIS.md
+VOICE_FIX_SUMMARY.md

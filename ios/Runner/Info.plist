@@ -47,5 +47,13 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
-	</dict>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>audio</string>
+		</array>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Guardian listens for your safety phrase to activate in an emergency.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Guardian detects your safety phrase to activate in an emergency.</string>
+</dict>
 </plist>

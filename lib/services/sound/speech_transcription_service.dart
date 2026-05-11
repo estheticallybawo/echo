@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:math';
 
 enum DistressLevel {
   none,
@@ -73,6 +74,16 @@ class SpeechTranscriptionService {
   }) async {
     if (!_isInitialised) await initialize();
 
+    // Validate inputs
+    if (audioData.isEmpty) {
+      debugPrint('[Transcription] Audio data is empty');
+      return _buildResultFromFeatures({}, 0, context);
+    }
+    if (sampleRateHz <= 0) {
+      debugPrint('[Transcription] Invalid sample rate: $sampleRateHz');
+      return _buildResultFromFeatures({}, 0, context);
+    }
+
     final durationSeconds = audioData.length / sampleRateHz;
 
     debugPrint(
@@ -82,7 +93,7 @@ class SpeechTranscriptionService {
     final features = _extractAcousticFeatures(audioData, sampleRateHz);
 
     debugPrint(
-      '[Transcription] Acoustic profile: RMS=${features['rms_mean']?.toStringAsFixed(4)}, ZCR=${features['zcr_mean']?.toStringAsFixed(4)}, spectral=${features['spectral_centroid']?.toStringAsFixed(0)}Hz',
+      '[Transcription] Acoustic profile: RMS_mean=${features['rms_mean']?.toStringAsFixed(4)}, RMS_max=${features['rms_max']?.toStringAsFixed(4)}, ZCR=${features['zcr_mean']?.toStringAsFixed(4)}, centroid=${features['spectral_centroid']?.toStringAsFixed(0)}Hz',
     );
 
     return _buildResultFromFeatures(features, durationSeconds, context);

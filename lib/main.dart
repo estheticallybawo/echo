@@ -16,6 +16,8 @@ import 'providers/gemma_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_preferences_provider.dart';
 import 'services/local_storage_service.dart';
+import 'services/sound/background_service_manager.dart';
+import 'services/sound/background_voice_detection_service.dart';
 import 'theme.dart';
 import 'screens/onboarding/splash_screen.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
@@ -32,7 +34,6 @@ void main() async {
   
   // Initialize local storage (must be before Firebase)
   await LocalStorageService().initialize();
-  WidgetsFlutterBinding.ensureInitialized();
 
   // Important: initialize the plugin
   FlutterGemma.initialize(
@@ -44,6 +45,23 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize foreground service for persistent microphone access
+  final bgManager = BackgroundServiceManager();
+  await bgManager.startBackgroundServices();
+  debugPrint('[Main] ✅ Background services initialized for voice follow');
+
+  // Initialize periodic background voice detection
+  final bgVoiceService = BackgroundVoiceDetectionService();
+  await bgVoiceService.initialize(
+    onDetection: (result) async {
+      debugPrint('[Main] Background detection: distress=${result['distress_level']}, confidence=${result['confidence']}');
+    },
+  );
+  await bgVoiceService.start(
+    checkInterval: const Duration(minutes: 15),
+  );
+  debugPrint('[Main] ✅ Background voice detection initialized');
 
   final localStorage = LocalStorageService();
   await localStorage.setCurrentUser(

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 class AudioBuffer {
@@ -81,15 +82,31 @@ class AudioRecorderService {
   bool get isRecording => _status == RecorderStatus.recording;
 
   Future<bool> initialize() async {
-    final hasPermission = await _recorder.hasPermission();
-    if (!hasPermission) {
+    // Request microphone permission at runtime
+    final permissionStatus = await Permission.microphone.request();
+    
+    if (permissionStatus.isDenied) {
       _status = RecorderStatus.error;
-      debugPrint('[AudioRecorder] Microphone permission denied');
+      debugPrint('[AudioRecorder] ❌ Microphone permission denied by user');
+      return false;
+    }
+    
+    if (permissionStatus.isPermanentlyDenied) {
+      _status = RecorderStatus.error;
+      debugPrint('[AudioRecorder] ❌ Microphone permission permanently denied. Open app settings.');
+      return false;
+    }
+
+    // Double-check with recorder's permission API
+    final recorderHasPermission = await _recorder.hasPermission();
+    if (!recorderHasPermission) {
+      _status = RecorderStatus.error;
+      debugPrint('[AudioRecorder] ❌ Recorder permission check failed');
       return false;
     }
 
     _status = RecorderStatus.ready;
-    debugPrint('[AudioRecorder] Initialised');
+    debugPrint('[AudioRecorder] ✅ Initialised with microphone access');
     return true;
   }
 

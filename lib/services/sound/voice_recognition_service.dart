@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -64,6 +65,28 @@ class VoiceRecognitionService {
     _onStatusChange = onStatusChange;
     _status = VoiceRecognitionStatus.initializing;
 
+    // Request microphone permission for speech recognition
+    final micPermission = await Permission.microphone.request();
+    if (micPermission.isDenied || micPermission.isPermanentlyDenied) {
+      _status = VoiceRecognitionStatus.error;
+      _lastError = 'Microphone permission required for voice recognition';
+      _onStatusChange?.call(_status);
+      debugPrint('[VoiceRecognition] ❌ Microphone permission denied');
+      return false;
+    }
+
+    // Request speech recognition permission (iOS/Android 12+)
+    if (await Permission.speechRecognition.isDenied) {
+      final speechPerm = await Permission.speechRecognition.request();
+      if (speechPerm.isDenied || speechPerm.isPermanentlyDenied) {
+        _status = VoiceRecognitionStatus.error;
+        _lastError = 'Speech recognition permission required';
+        _onStatusChange?.call(_status);
+        debugPrint('[VoiceRecognition] ❌ Speech recognition permission denied');
+        return false;
+      }
+    }
+
     final available = await _speech.initialize(
       onError: _onError,
       onStatus: _onStatus,
@@ -73,13 +96,13 @@ class VoiceRecognitionService {
       _status = VoiceRecognitionStatus.error;
       _lastError = 'Speech recognition not available on this device';
       _onStatusChange?.call(_status);
-      debugPrint('[VoiceRecognition] Not available on this device');
+      debugPrint('[VoiceRecognition] ❌ Not available on this device');
       return false;
     }
 
     _status = VoiceRecognitionStatus.paused;
     _onStatusChange?.call(_status);
-    debugPrint('[VoiceRecognition] Initialised. Safety phrase: "$_safetyPhrase"');
+    debugPrint('[VoiceRecognition] ✅ Initialised. Safety phrase: "$_safetyPhrase"');
     return true;
   }
 
