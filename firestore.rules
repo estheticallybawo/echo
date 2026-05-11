@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to manage their own profile and contacts
+    match /users/{userId} {
+      allow read, write: if true; // Temporarily open for testing
+      
+      match /contacts/{contactId} {
+        allow read, write: if true; // Temporarily open for testing
+      }
+    }
+    
+    // Allow reading incidents for the Live Tracker map
+    match /incidents/{incidentId} {
+      allow read: if true;
+      allow write: if true; // Temporarily open for testing
+    }
+  }
+}

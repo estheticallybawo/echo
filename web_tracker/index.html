@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECHO | SECURE TRACKING CONSOLE</title>
+    <!-- Modern Security Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --accent-color: #ff3b30; 
+            --safe-color: #34c759;
+            --info-color: #007aff;
+            --glass-bg: rgba(20, 20, 20, 0.85);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-color: #f5f5f7;
+            --terminal-text: #a1a1aa;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Tactical Grid Map Background */
+        #map-container {
+            flex-grow: 1;
+            background-color: #0a0a0a;
+            background-image: 
+                linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Secure Overlay */
+        .overlay {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            right: 24px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+            z-index: 10;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            font-weight: 700;
+            animation: pulse-red 2s infinite;
+        }
+
+        .telemetry-bar {
+            display: flex;
+            gap: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--terminal-text);
+            text-transform: uppercase;
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .user-info h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        /* Address Monitor */
+        .location-box {
+            margin-top: 20px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .label-monitor {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            color: var(--terminal-text);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .address-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--safe-color);
+        }
+
+        /* GEMMA 4 ANALYSIS LOG */
+        .ai-card {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(0, 122, 255, 0.05);
+            border-left: 3px solid var(--info-color);
+            border-radius: 4px;
+        }
+
+        .ai-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--info-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .ai-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #d4d4d8;
+        }
+
+        /* Action Console */
+        .actions-bar {
+            padding: 24px;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 18px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 10px 30px rgba(255, 59, 48, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: #ff453a;
+            transform: scale(1.01);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #fff;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Tactical Marker */
+        .location-marker {
+            width: 30px;
+            height: 30px;
+            background: rgba(0, 122, 255, 0.2);
+            border: 2px solid var(--info-color);
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .location-marker::after {
+            content: "";
+            width: 10px;
+            height: 10px;
+            background: var(--info-color);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--info-color);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="overlay">
+            <div class="status-header">
+                <div class="status-badge">● LIVE INCIDENT LOGGED</div>
+                <div class="telemetry-bar">
+                    <span>SIG: 88%</span>
+                    <span>BAT: 64%</span>
+                    <span>LATENCY: 12ms</span>
+                </div>
+            </div>
+
+            <div class="user-info">
+                <h1>Amaka Umoren</h1>
+                
+                <div class="location-box">
+                    <span class="label-monitor">Verified Target Address [GEOLOC.v4]</span>
+                    <div id="location-address" class="address-text">
+                        SYNCING SATELLITE FEED...
+                    </div>
+                </div>
+
+                <div class="ai-card">
+                    <span class="ai-label">GEMMA SITUATIONAL ANALYSIS</span>
+                    <div id="ai-summary" class="ai-text">
+                        INITIALIZING MULTIMODAL AUDIT...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div class="location-marker"></div>
+        </div>
+
+        <div class="actions-bar">
+            <button class="btn btn-primary" id="respond-btn" onclick="confirmResponse()">Confirm Response Intervention</button>
+            <a href="tel:112" class="btn btn-secondary">CALL EMERGENCY SERVICES | DIRECT POLICE TRUNK (112)</a>
+        </div>
+    </div>
+
+    <!-- FIREBASE PRODUCTION SCRIPTS -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        /**
+         * FIREBASE INITIALIZATION
+         * Paste your Firebase config object here to go LIVE.
+         */
+        
+        const firebaseConfig = {
+            apiKey: "SAMPLE_KEY", 
+            authDomain: "echo-safety.firebaseapp.com",
+            projectId: "echo-safety",
+            storageBucket: "echo-safety.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:12345:web:abcde"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function confirmResponse() {
+            const btn = document.getElementById('respond-btn');
+            btn.innerHTML = "[ DISPATCHED: RESCUE EN ROUTE ]";
+            btn.style.background = "#34c759";
+            btn.style.boxShadow = "NONE";
+            alert("Crisis Intervention Registered. Mission log updated.");
+            
+            const incidentId = window.location.pathname.split('/').pop() || "SAMPLE_INCIDENT_ID";
+            db.collection('incidents').doc(incidentId).update({ responded: true });
+        }
+
+        /**
+         * LIVE INCIDENT LISTENER
+         * Listens for coordinates and Gemma 4 Insights from the victim's phone.
+         */
+        const incidentId = window.location.pathname.split('/').pop() || "SAMPLE_INCIDENT_ID";
+        
+        db.collection('incidents').doc(incidentId).onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById('location-address').innerText = data.address || "Resolving GPS...";
+                document.getElementById('ai-summary').innerText = data.summary || "GEMMA 4: Analyzing environment...";
+                
+                // Update marker position if coordinates change (if map is integrated)
+                // updateMarker(data.location.lat, data.location.lng);
+            } else {
+                // Fallback for simulation/testing
+                document.getElementById('location-address').innerText = "145 Aba Road, Rumuokoro, Port Harcourt";
+                document.getElementById('ai-summary').innerText = "Distress detected. User's phone profile indicates high-speed data. Situation suggests urgent manual check-in.";
+            }
+        });
+    </script>
+</body>
+</html>
