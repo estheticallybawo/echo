@@ -166,7 +166,7 @@ class VoiceRecognitionService {
     }
 
     await _speech.stop();
-    await Future<void>.delayed(const Duration(milliseconds: 3000));
+    await Future<void>.delayed(const Duration(milliseconds: 30));
     await _startBurst();
   }
 
@@ -233,7 +233,7 @@ class VoiceRecognitionService {
 
     if (_status == VoiceRecognitionStatus.listening && !_isPaused) {
       _restartTimer?.cancel();
-      _restartTimer = Timer(const Duration(seconds: 6), _restartBurst);
+      _restartTimer = Timer(const Duration(seconds: 60), _restartBurst);
     }
   }
 }

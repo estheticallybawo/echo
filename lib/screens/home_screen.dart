@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,7 +11,7 @@ import '../services/sound/speech_transcription_service.dart';
 import '../services/sound/voice_recognition_service.dart';
 import '../services/sound/tts_service.dart';
 
-enum _EchoMode { standby, countdown, active, voice }
+enum _EchoMode { standby, countdown, active }
 
 class _Contact {
   final String name;
@@ -37,12 +35,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   _EchoMode _mode = _EchoMode.standby;
   int _sosCountdown = 1;
   int _elapsed = 0;
-  double _voiceLevel = 0.0;
   String _displayName = 'Hiny';
 
   Timer? _sosTimer;
   Timer? _elapsedTimer;
-  Timer? _voiceTimer;
 
   late AnimationController _pulseCtrl;
   late AnimationController _holdCtrl;
@@ -80,20 +76,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Initialize voice recognition with hotword detection
     _voiceRecognition = VoiceRecognitionService(
       safetyPhrase: _safetyPhrase,
-      minConfidence: 0.60,  // Lowered from 0.75 to make triggering easier
+      minConfidence: 0.60,
     );
     _initializeVoiceRecognition();
     _initializeVoiceCapture();
     _loadDemoUserAndContacts();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final gemmaProvider = context.read<GemmaProvider>();
-      gemmaProvider.verifyModelHealth();
+    // Initialize Gemma provider on startup (silently)
+   
+WidgetsBinding.instance.addPostFrameCallback((_) {
+  final gemmaProvider = context.read<GemmaProvider>();
+  if (!gemmaProvider.isInitialized) {
+    gemmaProvider.initialize().catchError((e) {
+      print('⚠️ Gemma initialization failed: $e');
     });
+  }
+});
   }
 
   Future<void> _loadDemoUserAndContacts() async {
-    final currentUser = _localStorage.getCurrentUser();
     final userId = _localStorage.getCurrentUserUid() ?? 'demo-hiny';
     final contacts = _localStorage.getContacts(userId);
 
@@ -138,7 +139,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await _audioRecorderService.initialize();
   }
 
-
   void _onSOSDown(PointerEvent e) {
     if (_mode == _EchoMode.active) return;
     HapticFeedback.heavyImpact();
@@ -164,21 +164,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _triggerSOS({Map<String, dynamic>? voiceAnalysis}) async {
     HapticFeedback.heavyImpact();
     _holdCtrl.reset();
-    
     setState(() { _mode = _EchoMode.active; _elapsed = 0; });
-
-    // Phase 1 Update: Skip threat analysis result screen
-    // Go directly to emergency-active screen
-    // Voice analysis will be processed post-incident, not before escalation
-    final result = await Navigator.pushNamed(
+    await Navigator.pushNamed(
       context,
       '/emergency-active',
       arguments: voiceAnalysis,
     );
-
-    if (result == true) {
-      _cancelSOS();
-    }
+    _cancelSOS();
   }
 
   void _cancelSOS() {
@@ -198,10 +190,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           backgroundColor: const Color(0xFF0F3169),
           title: Text(
             'Add Emergency Contact',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -265,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 });
                 Navigator.of(dialogContext).pop();
                 messenger.showSnackBar(
-                  SnackBar(content: Text('$name added to Hiny\'s inner circle')),
+                  SnackBar(content: Text('$name added to your inner circle')),
                 );
               },
               style: ElevatedButton.styleFrom(backgroundColor: EchoColors.primary),
@@ -275,59 +264,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
     );
-  }
-
-
-  Future<void> _startVoice(PointerEvent e) async {
-    HapticFeedback.mediumImpact();
-    setState(() { _mode = _EchoMode.voice; _voiceLevel = 0; });
-    _voiceTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      if (mounted) setState(() => _voiceLevel = 0.15 + Random().nextDouble() * 0.85);
-    });
-
-    try {
-      final recorderReady = await _audioRecorderService.initialize();
-      if (!recorderReady) {
-        print('⚠️ Voice recorder is not ready; proceeding without audio capture');
-        return;
-      }
-
-      await _audioRecorderService.startRecording();
-      print('🎙️ Voice recording started');
-    } catch (e) {
-      print('⚠️ Unable to start voice recording: $e');
-    }
-  }
-
-  Future<void> _endVoice(PointerEvent e) async {
-    _voiceTimer?.cancel();
-
-    if (_mode == _EchoMode.voice) {
-      Map<String, dynamic>? voiceAnalysis;
-
-      try {
-        await _audioRecorderService.stopRecording();
-        final audio = _audioRecorderService.buffer.getAudio(
-          maxDuration: const Duration(seconds: 5),
-        );
-
-        if (audio.isNotEmpty) {
-          final analysis = await _speechTranscriptionService.transcribeAndAnalyse(
-            audioData: audio,
-            sampleRateHz: AudioBuffer.sampleRateHz,
-            context: const {'source': 'home_voice_sos'},
-          );
-          voiceAnalysis = analysis.toMap();
-          print('📊 Voice audio analysis: ${analysis.toString()}');
-        }
-      } catch (e) {
-        print('⚠️ Voice analysis failed, continuing SOS flow: $e');
-      }
-
-      _triggerSOS(voiceAnalysis: voiceAnalysis);
-    }
-
-    setState(() => _voiceLevel = 0);
   }
 
   String _getVoiceStatusText() {
@@ -351,19 +287,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return '$m:$s';
   }
 
-
-
   Widget _buildSOSButton() {
     final isActive = _mode == _EchoMode.active;
     final isCountdown = _mode == _EchoMode.countdown;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_pulseAnim, _holdAnim]),
-      builder: (_, _) {
+      builder: (_, __) {
         return Stack(
           alignment: Alignment.center,
           children: [
-            // Outer pulse ring
             if (!isActive)
               Transform.scale(
                 scale: isCountdown ? 1.0 : _pulseAnim.value,
@@ -373,36 +306,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: (isCountdown
-                              ? const Color(0xFFFFB020)
-                              : const Color(0xFFE85D3F))
-                          .withOpacity(0.35),
+                      color: (isCountdown ? const Color(0xFFFFB020) : const Color(0xFFE85D3F)).withOpacity(0.35),
                       width: 2,
                     ),
                   ),
                 ),
               ),
-            // Active emergency ring
             if (isActive)
               Container(
                 width: 220,
                 height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: EchoColors.switchOn.withOpacity(0.5),
-                    width: 2,
-                  ),
+                  border: Border.all(color: EchoColors.switchOn.withOpacity(0.5), width: 2),
                   boxShadow: [
-                    BoxShadow(
-                      color: EchoColors.switchOff.withOpacity(0.25),
-                      blurRadius: 40,
-                      spreadRadius: 10,
-                    ),
+                    BoxShadow(color: EchoColors.switchOff.withOpacity(0.25), blurRadius: 40, spreadRadius: 10),
                   ],
                 ),
               ),
-            // Hold progress ring
             if (isCountdown)
               SizedBox(
                 width: 196,
@@ -414,7 +335,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   valueColor: const AlwaysStoppedAnimation(EchoColors.secondaryLight),
                 ),
               ),
-            // Main SOS circle — Listener for instant hold detection
             Listener(
               onPointerDown: isActive ? null : _onSOSDown,
               onPointerUp: isActive ? null : _onSOSUp,
@@ -438,10 +358,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isActive
-                                ? EchoColors.primaryLight
-                                : EchoColors.secondaryLight)
-                            .withOpacity(0.55),
+                        color: (isActive ? EchoColors.primaryLight : EchoColors.secondaryLight).withOpacity(0.55),
                         blurRadius: 55,
                         spreadRadius: 8,
                       ),
@@ -464,8 +381,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-      Icon(Icons.mic, color: Colors.white, size: 27, semanticLabel: 'SOS Active',),
-          const SizedBox(height: 18),]
+          Icon(Icons.mic, color: Colors.white, size: 27),
+          const SizedBox(height: 18),
+        ],
       );
     }
     if (isCountdown) {
@@ -478,122 +396,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       );
     }
-    return Icon(Icons.mic, color: Colors.white, size: 44, semanticLabel: 'Hold to SOS',);
-  }
-
-  Widget _buildVoiceSOS() {
-    final isVoice = _mode == _EchoMode.voice;
-    return Listener(
-      onPointerDown: _startVoice,
-      onPointerUp: _endVoice,
-      onPointerCancel: _endVoice,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF1E3A8A).withOpacity(0.5),
-              const Color(0xFF1E3A8A).withOpacity(0.3),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isVoice ? const Color(0xFF2563EB).withOpacity(0.8) : Colors.white12,
-            width: isVoice ? 1.5 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
-            if (isVoice) BoxShadow(color: const Color(0xFF2563EB).withOpacity(0.4), blurRadius: 20, spreadRadius: 2),
-          ],
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isVoice ? const Color(0xFF2563EB) : Colors.white12,
-                boxShadow: isVoice
-                    ? [BoxShadow(color: const Color(0xFF2563EB).withOpacity(0.5), blurRadius: 12, spreadRadius: 2)]
-                    : [],
-              ),
-              child: Icon(
-                isVoice ? Icons.mic : Icons.mic_none_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: isVoice
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 7, height: 7,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: EchoColors.secondaryLight,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text('Recording...', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF2563EB))),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        _buildWaveform(),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Voice SOS', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-                        Text('Hold & say you\'re in danger', style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(0.9))),
-                      ],
-                    ),
-            ),
-            if (!isVoice)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text('HOLD', style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 1)),
-              ),
-            if (isVoice)
-              Text('Release\nto send', textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontSize: 10, color: Colors.white, height: 1.3)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWaveform() {
-    return Row(
-      children: List.generate(28, (i) {
-        final threshold = i / 28;
-        final active = _voiceLevel > threshold;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 80),
-          margin: const EdgeInsets.symmetric(horizontal: 1),
-          width: 3,
-          height: active ? 6 + (_voiceLevel * 20) : 5,
-          decoration: BoxDecoration(
-            color: active ? Colors.white : Colors.white24,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        );
-      }),
-    );
+    return Icon(Icons.mic, color: Colors.white, size: 44);
   }
 
   Widget _buildListeningCard() {
@@ -602,12 +405,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         HapticFeedback.lightImpact();
         final wasListening = _bgListening;
         setState(() => _bgListening = !_bgListening);
-        
         if (_bgListening && !wasListening) {
-          // Start listening
           await _voiceRecognition.startListening();
         } else if (!_bgListening && wasListening) {
-          // Stop listening
           await _voiceRecognition.pauseListening();
         }
       },
@@ -626,9 +426,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: _bgListening
-                ? EchoColors.switchOn.withOpacity(0.35)
-                : EchoColors.secondaryLight.withOpacity(0.35),
+            color: _bgListening ? EchoColors.switchOn.withOpacity(0.35) : EchoColors.secondaryLight.withOpacity(0.35),
           ),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
@@ -647,72 +445,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     shape: BoxShape.circle,
                     color: _bgListening ? EchoColors.switchOn : EchoColors.secondaryLight,
                     boxShadow: [
-                      BoxShadow(
-                        color: (_bgListening ? EchoColors.switchOn : EchoColors.secondaryLight),
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                      ),
+                      BoxShadow(color: (_bgListening ? EchoColors.switchOn : EchoColors.secondaryLight), blurRadius: 6, spreadRadius: 1),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  'Background Listening',
-                  style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
-                ),
+                Text('Background Listening', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              _bgListening ? 'Active — Gemma is listening' : 'Inactive — Tap to enable',
+              _bgListening ? 'Active — listening for "echo help now"' : 'Inactive — Tap to enable',
               style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(0.9)),
             ),
             const SizedBox(height: 4),
-            Text(
-              _getVoiceStatusText(),
-              style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.7)),
-            ),
+            Text(_getVoiceStatusText(), style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.7))),
             const SizedBox(height: 14),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
-                color: _bgListening
-                    ? EchoColors.switchOn.withOpacity(0.15)
-                    : EchoColors.secondary.withOpacity(0.15),
+                color: _bgListening ? EchoColors.switchOn.withOpacity(0.15) : EchoColors.secondary.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _bgListening
-                      ? EchoColors.switchOn.withOpacity(0.4)
-                      : EchoColors.secondary.withOpacity(0.4),
+                  color: _bgListening ? EchoColors.switchOn.withOpacity(0.4) : EchoColors.secondary.withOpacity(0.4),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    _bgListening ? Icons.mic_off_rounded : Icons.mic_rounded,
-                    size: 18,
-                    color: _bgListening ? const Color.fromARGB(255, 110, 152, 241) : EchoColors.secondary,
-                  ),
+                  Icon(_bgListening ? Icons.mic_off_rounded : Icons.mic_rounded, size: 18, color: _bgListening ? const Color.fromARGB(255, 110, 152, 241) : EchoColors.secondary),
                   const SizedBox(width: 8),
                   Text(
                     _bgListening ? 'Turn Off Listening' : 'Enable Listening',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _bgListening ? const Color.fromARGB(255, 210, 223, 250) : const Color.fromARGB(255, 223, 215, 250),
-                    ),
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: _bgListening ? const Color.fromARGB(255, 210, 223, 250) : const Color.fromARGB(255, 223, 215, 250)),
                   ),
                 ],
               ),
             ),
             if (!_bgListening) ...[
               const SizedBox(height: 10),
-              Text(
-                '⚠ You can still trigger SOS manually or via hold.',
-                style: GoogleFonts.poppins(fontSize: 11, color: const Color.fromARGB(255, 208, 191, 247)),
-              ),
+              Text('⚠ You can still trigger SOS manually via the orb.', style: GoogleFonts.poppins(fontSize: 11, color: const Color.fromARGB(255, 208, 191, 247))),
             ],
           ],
         ),
@@ -722,7 +495,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildAIModeCard() {
     final gemmaProvider = context.watch<GemmaProvider>();
-    final useOnDevice = gemmaProvider.useOnDevice;
+    final isReady = gemmaProvider.isInitialized;
+    final errorMsg = gemmaProvider.error;
 
     return Container(
       width: double.infinity,
@@ -731,17 +505,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xB2052C66),
-            const Color(0xB2052C66).withOpacity(0.3),
-          ],
+          colors: [const Color(0xB2052C66), const Color(0xB2052C66).withOpacity(0.3)],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: useOnDevice
-              ? EchoColors.switchOn.withOpacity(0.35)
-              : EchoColors.secondaryLight.withOpacity(0.35),
-        ),
+        border: Border.all(color: isReady ? EchoColors.switchOn.withOpacity(0.35) : Colors.white12),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
         ],
@@ -757,74 +524,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: useOnDevice ? EchoColors.switchOn : EchoColors.secondaryLight,
+                  color: isReady ? EchoColors.switchOn : EchoColors.secondaryLight,
                   boxShadow: [
-                    BoxShadow(
-                      color: (useOnDevice ? EchoColors.switchOn : EchoColors.secondaryLight),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
+                    BoxShadow(color: (isReady ? EchoColors.switchOn : EchoColors.secondaryLight), blurRadius: 6, spreadRadius: 1),
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                'AI Processing Mode',
-                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
-              ),
+              Text('Gemma AI Status', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            useOnDevice ? 'On-Device — Gemma runs locally' : 'Server — Uses external Gemma server',
+            isReady ? 'On‑device model ready (offline capable)' : errorMsg != null ? 'Error: $errorMsg' : 'Initializing...',
             style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(0.9)),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            gemmaProvider.modelHealthMessage,
-            style: GoogleFonts.poppins(fontSize: 11, color: Colors.white.withOpacity(0.7)),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: useOnDevice
-                      ? () async {
-                          HapticFeedback.lightImpact();
-                          await gemmaProvider.switchToServer();
-                        }
-                      : null,
+                  onTap: () => Navigator.pushNamed(context, '/model-setup'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
-                      color: useOnDevice
-                          ? EchoColors.switchOn.withOpacity(0.15)
-                          : EchoColors.primaryLight.withOpacity(0.15),
+                      color: EchoColors.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: useOnDevice
-                            ? EchoColors.switchOn.withOpacity(0.4)
-                            : EchoColors.secondary.withOpacity(0.4),
-                      ),
+                      border: Border.all(color: EchoColors.primary.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          useOnDevice ? Icons.smartphone_rounded : Icons.cloud_rounded,
-                          size: 18,
-                          color: useOnDevice ? const Color.fromARGB(255, 110, 152, 241) : EchoColors.secondary,
-                        ),
+                        Icon(Icons.download_rounded, size: 18, color: EchoColors.primaryLight),
                         const SizedBox(width: 8),
-                        Text(
-                          useOnDevice ? 'Switch to Server' : 'Server',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: useOnDevice ? const Color.fromARGB(255, 210, 223, 250) : const Color.fromARGB(255, 223, 215, 250),
-                          ),
-                        ),
+                        Text('Models', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: EchoColors.primaryLight)),
                       ],
                     ),
                   ),
@@ -839,27 +572,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     decoration: BoxDecoration(
                       color: EchoColors.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: EchoColors.primary.withOpacity(0.4),
-                      ),
+                      border: Border.all(color: EchoColors.primary.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.chat_rounded,
-                          size: 18,
-                          color: EchoColors.primary,
-                        ),
+                        Icon(Icons.chat_rounded, size: 18, color: EchoColors.primary),
                         const SizedBox(width: 8),
-                        Text(
-                          'Chat',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: EchoColors.primary,
-                          ),
-                        ),
+                        Text('Chat', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: EchoColors.primary)),
                       ],
                     ),
                   ),
@@ -867,42 +587,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ],
           ),
-          if (!useOnDevice) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/model-setup'),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  color: EchoColors.secondaryLight.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: EchoColors.secondaryLight.withOpacity(0.4),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.download_rounded,
-                      size: 18,
-                      color: EchoColors.primaryLight,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Setup On-Device AI',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: EchoColors.primaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -917,8 +601,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Text('Inner Circle', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             const Spacer(),
             GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/tier1-inner-circle-setup'),
-              child: Text('Manage', style: GoogleFonts.poppins(fontSize: 12, color: EchoColors.primary, fontWeight: FontWeight.w500)),
+              onTap: _showAddContactDialog,
+              child: Text('Add Contact', style: GoogleFonts.poppins(fontSize: 12, color: EchoColors.primary, fontWeight: FontWeight.w500)),
             ),
           ],
         ),
@@ -926,10 +610,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [
-              ..._contacts.map((c) => _buildContactChip(c)),
-              _buildAddContact(),
-            ],
+            children: _contacts.map((c) => _buildContactChip(c)).toList(),
           ),
         ),
       ],
@@ -980,39 +661,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAddContact() {
-    return GestureDetector(
-      onTap: _showAddContactDialog,
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white24, width: 1.5),
-            ),
-            child: const Center(child: Icon(Icons.add, color: Colors.white, size: 24)),
-          ),
-          const SizedBox(height: 6),
-          Text('Add', style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withOpacity(0.8))),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatusCard() {
     final isActive = _mode == _EchoMode.active;
-    final gemmaProvider = context.watch<GemmaProvider>();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFF1E3A8A).withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isActive ? EchoColors.primaryLight.withOpacity(0.3) : Colors.white12,
-        ),
+        border: Border.all(color: isActive ? EchoColors.primaryLight.withOpacity(0.3) : Colors.white12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1026,22 +683,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   shape: BoxShape.circle,
                   color: isActive ? EchoColors.secondaryLight : EchoColors.switchOn,
                   boxShadow: [
-                    BoxShadow(
-                      color: (isActive ? EchoColors.secondaryLight : EchoColors.switchOn).withOpacity(0.6),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
+                    BoxShadow(color: (isActive ? EchoColors.secondaryLight : EchoColors.switchOn).withOpacity(0.6), blurRadius: 6, spreadRadius: 1),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 isActive ? 'Emergency Active' : 'Protected · Standby',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isActive ? EchoColors.secondaryLight : EchoColors.switchOn,
-                ),
+                style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: isActive ? EchoColors.secondaryLight : EchoColors.switchOn),
               ),
               const Spacer(),
               if (isActive) Text(_fmtElapsed(), style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
@@ -1050,32 +699,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SizedBox(height: 14),
           _statusRow(Icons.mic_rounded, 'Recording surroundings', isActive || _bgListening),
           _statusRow(Icons.location_on_outlined, 'Location shared with circle', isActive),
-          _statusRow(Icons.psychology_outlined, 'Analyzing with Gemma AI', isActive),
+          _statusRow(Icons.psychology_outlined, 'Gemma AI ready', true),
           _statusRow(Icons.public, 'Public escalation', isActive && _elapsed > 120),
-          const SizedBox(height: 12),
-          _statusRowText(
-            Icons.memory_rounded,
-            'Gemma Status',
-            gemmaProvider.isCheckingModel
-                ? 'Checking...'
-                : gemmaProvider.modelHealthMessage,
-            gemmaProvider.isModelHealthy ? Colors.greenAccent : Colors.amberAccent,
-          ),
-          const SizedBox(height: 10),
-          GestureDetector(
-            onTap: gemmaProvider.isCheckingModel ? null : () => gemmaProvider.verifyModelHealth(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              decoration: BoxDecoration(
-                color: gemmaProvider.isCheckingModel ? Colors.white12 : EchoColors.primary,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                gemmaProvider.isCheckingModel ? 'Checking model...' : 'Verify Gemma Status',
-                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1116,9 +741,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 shape: BoxShape.circle,
                 color: const Color(0xFF2563EB).withOpacity(0.2),
               ),
-              child: const Center(
-                child: Icon(Icons.history_rounded, color: Color(0xFF2563EB), size: 24),
-              ),
+              child: const Center(child: Icon(Icons.history_rounded, color: Color(0xFF2563EB), size: 24)),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1160,95 +783,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-
-
-
-  Widget _statusRowText(IconData icon, String title, String value, Color valueColor) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Image.asset('assets/icon/gemma-color.png', width: 40, height: 40),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: valueColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionCards() {
-    return Row(
-      children: [
-        Expanded(
-          child: _actionCard(
-            Icons.group_add_outlined,
-            'Contacts',
-            () => Navigator.pushNamed(context, '/contacts'),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _actionCard(
-            Icons.smart_toy_outlined,
-            'AI Intel',
-            () => Navigator.pushNamed(context, '/ai-intel'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _actionCard(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF1E3A8A).withOpacity(0.5),
-              const Color(0xFF1E3A8A).withOpacity(0.3),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: EchoColors.primary, size: 32),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isActive = _mode == _EchoMode.active;
@@ -1279,7 +813,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         'assets/icon/echosplashicon.png',
                         width: 70,
                         height: 70,
-                        errorBuilder: (_, _, _) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
+                        errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1290,19 +824,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             Text(
                               'Welcome, $_displayName',
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
+                              style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
                             ),
                             Text(
                               'Safety profile active',
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.white60,
-                              ),
+                              style: GoogleFonts.poppins(fontSize: 11, color: Colors.white60),
                             ),
                           ],
                         ),
@@ -1314,9 +841,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         decoration: BoxDecoration(
                           color: _bgListening ? EchoColors.switchOn.withOpacity(0.15) : Colors.white12,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _bgListening ? EchoColors.switchOn.withOpacity(0.4) : Colors.white24,
-                          ),
+                          border: Border.all(color: _bgListening ? EchoColors.switchOn.withOpacity(0.4) : Colors.white24),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1328,19 +853,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: _bgListening ? EchoColors.switchOn : Colors.white38,
-                                boxShadow: _bgListening
-                                    ? [BoxShadow(color: EchoColors.switchOn.withOpacity(0.6), blurRadius: 6, spreadRadius: 1)]
-                                    : [],
+                                boxShadow: _bgListening ? [BoxShadow(color: EchoColors.switchOn.withOpacity(0.6), blurRadius: 6, spreadRadius: 1)] : [],
                               ),
                             ),
                             const SizedBox(width: 6),
                             Text(
                               _bgListening ? 'Listening' : 'Paused',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: _bgListening ? EchoColors.switchOn : Colors.white54,
-                              ),
+                              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: _bgListening ? EchoColors.switchOn : Colors.white54),
                             ),
                           ],
                         ),
@@ -1360,7 +879,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ? 'SOS Active — contacts & emergency services notified'
                             : isCountdown
                                 ? 'Release to cancel'
-                                : 'Hold 1 second to send SOS',
+                                : 'Echo is listening for "echo help now" or you can press the orb to send an SOS immediately',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(fontSize: 13, color: Colors.white, height: 1.4),
                       ),
@@ -1373,10 +892,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(height: 28),
                       _buildIncidentHistoryCard(),
                       const SizedBox(height: 28),
-                      Text(
-                        'Echo Status',
-                        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                      ),
+                      Text('Echo Status', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
                       const SizedBox(height: 14),
                       _buildStatusCard(),
                       const SizedBox(height: 100),

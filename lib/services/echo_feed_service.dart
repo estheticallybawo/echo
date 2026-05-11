@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'capabilities/geolocation_enrichment_service.dart';
-import 'package:echo/services/gemma/llama_threat_service.dart';
+import 'geolocation_enrichment_service.dart';
+import '../providers/gemma_provider.dart';
+
 
 class EchoFeedService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GeolocationEnrichmentService _geoService = GeolocationEnrichmentService();
-  final LlamaThreatService _gemmaService = LlamaThreatService();
+  final GemmaProvider _gemmaProvider = GemmaProvider();
+
 
   /// Post an emergency to the Echo Feed (Tier 3 escalation)
   Future<void> postEmergencyToFeed({
@@ -26,9 +28,8 @@ class EchoFeedService {
       );
 
       // 2. Generate feed post using Gemma
-      final postText = await _gemmaService.generateEchoFeedPost(
+      final postText = await _gemmaProvider.generateEchoFeedPost(
         userInput: threatAssessment['summary'] ?? 'Emergency reported',
-        threat: threatAssessment,
         location: locationText,
         policeHandle: enriched['localPolice']!,
         hotline: enriched['emergencyHotline']!,

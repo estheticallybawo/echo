@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/chat_message.dart';
+import '../theme.dart';
 
 class ChatMessageWidget extends StatelessWidget {
   final ChatMessage message;
@@ -8,38 +10,67 @@ class ChatMessageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: message.isUser
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Theme.of(context).colorScheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            message.text,
-            style: TextStyle(
-              color: message.isUser
-                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+    final isUser = message.isUser;
+
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: isUser
+              ? const LinearGradient(
+                  colors: [EchoColors.primary, EchoColors.primaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : LinearGradient(
+                  colors: [
+                    const Color(0xFF1E3A8A).withOpacity(0.8),
+                    const Color(0xFF1E3A8A).withOpacity(0.5),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(4),
+            bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-            style: TextStyle(
-              fontSize: 10,
-              color: message.isUser
-                  ? Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7)
-                  : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+          border: isUser
+              ? null
+              : Border.all(color: Colors.white.withOpacity(0.15), width: 0.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message.text,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: isUser ? Colors.white : Colors.white.withOpacity(0.9),
+                height: 1.4,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              _formatTime(message.timestamp),
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                color: (isUser ? Colors.white : Colors.white70).withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 }

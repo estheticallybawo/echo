@@ -106,30 +106,30 @@ class EchoTypography {
   );
 }
 
-/// Echo Theme Data - Light Mode
+/// Echo Theme Data - Dark Mode
 ThemeData buildEchoTheme() {
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    scaffoldBackgroundColor: EchoColors.surface,
-    
+    scaffoldBackgroundColor: const Color(0xFF02091A),
+          
     // Primary brand color
     primaryColor: EchoColors.primary,
     
     // App Bar - Minimal, clean light
     appBarTheme: AppBarTheme(
-      backgroundColor: EchoColors.surface,
+      backgroundColor: EchoColors.primaryDark.withOpacity(0.8),
       elevation: 0,
       centerTitle: true,
       titleTextStyle: EchoTypography.headingLarge.copyWith(
-        color: EchoColors.textPrimary,
+        color: EchoColors.surface,
       ),
       iconTheme: const IconThemeData(color: EchoColors.primary),
     ),
     
     // Cards - Rounded with soft glass effect
     cardTheme: CardThemeData(
-      color: EchoColors.surfaceSecondary,
+      color: EchoColors.primaryLight.withOpacity(0.1),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -139,15 +139,15 @@ ThemeData buildEchoTheme() {
     // Input Decoration - Clean, minimal, light
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: EchoColors.surfaceSecondary,
+      fillColor: EchoColors.primaryLight.withOpacity(0.1),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: const BorderSide(color: Colors.white24),
+        borderSide: const BorderSide(color: EchoColors.primaryLight, width: 0.5),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: const BorderSide(color: Colors.white12),
+        borderSide: const BorderSide(color: EchoColors.primaryDark, width: 0.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
@@ -157,10 +157,10 @@ ThemeData buildEchoTheme() {
         ),
       ),
       hintStyle: EchoTypography.bodyMedium.copyWith(
-        color: EchoColors.textTertiary,
+        color: EchoColors.surface,
       ),
       labelStyle: EchoTypography.bodyMedium.copyWith(
-        color: EchoColors.textSecondary,
+        color: EchoColors.surface,
       ),
     ),
     
@@ -168,7 +168,7 @@ ThemeData buildEchoTheme() {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: EchoColors.primary,
-        foregroundColor: EchoColors.surface,
+        foregroundColor: EchoColors.primaryDark,
         elevation: 0,
         shadowColor: Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -204,25 +204,25 @@ ThemeData buildEchoTheme() {
     // Text Theme - Light mode text colors
     textTheme: TextTheme(
       displayLarge: EchoTypography.displayLarge.copyWith(
-        color: EchoColors.textPrimary,
+        color: EchoColors.surface,
       ),
       displayMedium: EchoTypography.displayMedium.copyWith(
-        color: EchoColors.textPrimary,
+        color: EchoColors.surface,
       ),
       headlineSmall: EchoTypography.headingLarge.copyWith(
-        color: EchoColors.textPrimary,
+        color: EchoColors.surface,
       ),
       titleLarge: EchoTypography.headingMedium.copyWith(
-        color: EchoColors.textPrimary,
+        color: EchoColors.surface,
       ),
       bodyLarge: EchoTypography.bodyLarge.copyWith(
-        color: EchoColors.textPrimary,
+        color: EchoColors.surface,
       ),
       bodyMedium: EchoTypography.bodyMedium.copyWith(
         color: EchoColors.textSecondary,
       ),
       bodySmall: EchoTypography.bodySmall.copyWith(
-        color: EchoColors.textTertiary,
+        color: EchoColors.surface,
       ),
       labelLarge: EchoTypography.labelLarge.copyWith(
         color: EchoColors.surface,
@@ -268,7 +268,7 @@ LinearGradient buildHolographicGradient({
 
 /// Glassmorphism Container
 BoxDecoration buildGlassmorphism({
-  Color baseColor = EchoColors.surfaceSecondary,
+  Color baseColor = EchoColors.primaryLight,
   double blur = 10,
   double opacity = 0.1,
 }) {

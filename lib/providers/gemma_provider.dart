@@ -1,103 +1,187 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/gemma/llama_config.dart';
-import '../services/gemma/llama_threat_service.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:http/http.dart' as http;
 import '../services/firestore_incident_service.dart';
-import '../services/gemma/gemma_decision_engine.dart';
+import '../services/gemma_decision_engine.dart';
 import '../services/escalation_timer_service.dart';
-import 'dart:convert';
-import '../services/gemma_dual_service.dart';
-import '../services/model_options.dart';
 import '../models/chat_message.dart';
 
-/// Provider that exposes all Gemma 4 capabilities to the UI:
-/// - Threat assessment (text/voice)
-/// - Spoken diversion message
-/// - Post‑incident safety report
-/// - Step‑by‑step emergency instructions
-/// - Chat functionality
-/// - (Optional) translation
 class GemmaProvider extends ChangeNotifier {
-  final LlamaThreatService _llamaThreatService;
   final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
   final GemmaDecisionEngine _decisionEngine = GemmaDecisionEngine();
-  final GemmaDualService _dualService;
 
-  bool _useOnDevice = false; // Toggle between server and on-device mode
-
+  // State
+  bool _isInitialized = false;
+  InferenceModel? _model;
   bool isAnalyzing = false;
   Map<String, dynamic>? lastThreatAssessment;
   Map<String, dynamic>? lastDecision;
   String? error;
   String? lastIncidentId;
 
-  // Cached results for new features
+  // Chat
+  List<ChatMessage> messages = [];
+  bool isLoading = false;
+
+  // Caches
   String? _cachedDiversionMessage;
   String? _cachedSafetyReport;
   List<String>? _cachedSafetyInstructions;
 
-  // Model health tracking
-  bool isModelHealthy = false;
-  bool isCheckingModel = false;
-  String modelHealthMessage = 'Unknown';
-
-  // Emergency session tracking for post-incident reporting
+  // Emergency session tracking
   DateTime? _emergencyStartTime;
   DateTime? _emergencyEndTime;
   int _tiersTriggered = 0;
 
-  // Chat functionality
-  List<ChatMessage> messages = [];
-  bool isLoading = false;
+  // Model configuration - use a lightweight model that works on <4GB RAM
+  // Note: This URL points to a .task file (MediaPipe format) which is what flutter_gemma expects
+  static const String _offlineModelUrl = 
+      'https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma-3-270m-it-litert-lm.task';
+  
+  // Hugging Face token – set via --dart-define=HUGGINGFACE_TOKEN=...
+  static const String _hfToken = String.fromEnvironment('HUGGINGFACE_TOKEN');
+  
+  // Gemini API key for cloud fallback (optional)
+  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
-  GemmaProvider({
-    required LlamaThreatService llamaThreatService,
-    String? serverUrl,
-  }) : _llamaThreatService = llamaThreatService,
-       _dualService = GemmaDualService(serverUrl: serverUrl) {
-    _initializeDualService();
+  // ----------------------------------------------------------------------
+  // Initialization (corrected API)
+  // ----------------------------------------------------------------------
+
+  Future<void> initialize({String? modelUrl}) async {
+    if (_isInitialized) return;
+
+    if (_hfToken.isEmpty) {
+      error = 'Missing Hugging Face token. Add --dart-define=HUGGINGFACE_TOKEN=your_token';
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final urlToUse = modelUrl ?? _offlineModelUrl;
+      
+      // Install model if not already present (downloads once)
+      print('📦 Installing model from: $urlToUse');
+      await FlutterGemma.installModel(
+        modelType: ModelType.gemmaIt,
+      )
+      .fromNetwork(
+        urlToUse,
+        token: _hfToken,
+        foreground: true, // Use foreground service for large downloads
+      )
+      .withProgress((progress) {
+        print('📦 Download progress: %{progress.percentage}%');
+      })
+      .install();
+
+      // Get the active model instance (no separate loadModel method needed)
+      _model = await FlutterGemma.getActiveModel(
+        maxTokens: 512,          // lower = faster, less RAM
+        preferredBackend: PreferredBackend.gpu,
+      );
+
+      _isInitialized = true;
+      print('✅ Gemma model ready (offline, on-device)');
+      error = null;
+      notifyListeners();
+    } catch (e) {
+      error = 'Model init failed: $e';
+      print('❌ $error');
+      _isInitialized = false;
+      notifyListeners();
+    }
   }
 
-  Future<void> _initializeDualService() async {
-    await _dualService.initialize();
-    _useOnDevice = _dualService.mode == GemmaMode.onDevice;
-    notifyListeners();
+  bool get isInitialized => _isInitialized;
+
+  // ----------------------------------------------------------------------
+  // Core inference (local + cloud fallback)
+  // ----------------------------------------------------------------------
+
+ Future<String> _complete(String prompt, {String? systemInstruction}) async {
+  if (!_isInitialized || _model == null) {
+    // Fallback if model is not ready (e.g., during first-time download)
+    return await _cloudComplete(prompt, systemInstruction: systemInstruction);
   }
 
-  // Toggle between server and on-device mode
-  void setUseOnDevice(bool useOnDevice) {
-    _useOnDevice = useOnDevice;
-    notifyListeners();
+  try {
+    final fullPrompt = systemInstruction != null
+        ? '$systemInstruction\n\nUser: $prompt\nAssistant:'
+        : 'User: $prompt\nAssistant:';
+
+    // Create a chat session
+    final chat = await _model!.createChat();
+    await chat.addQueryChunk(Message.text(text: fullPrompt, isUser: true));
+
+    // Generate the response
+    final response = await chat.generateChatResponse();
+
+    // --- Extract the string content from the response ---
+    String responseText = '';
+    
+    // The correct getters are .token, .name/.args, and .content
+    if (response is TextResponse) {
+      responseText = response.token;  // For standard Gemma models
+    } else if (response is FunctionCallResponse) {
+      // For models like FunctionGemma
+      responseText = 'Function call: ${response.name} with args: ${response.args}'; // Format it as needed
+    } else if (response is ThinkingResponse) {
+      // For DeepSeek models
+      responseText = response.content; // Access the reasoning content
+    } else {
+      responseText = response.toString();
+    }
+
+    // Clean up the chat session
+    await chat.close();
+    return responseText.trim();
+
+  } catch (e) {
+    // If on-device fails, fall back to cloud
+    debugPrint('On-device inference failed: $e');
+    return await _cloudComplete(prompt, systemInstruction: systemInstruction);
+  }
+}
+
+
+  Future<String> _cloudComplete(String prompt, {String? systemInstruction}) async {
+    final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_geminiApiKey';
+    final request = {
+      'contents': [{
+        'parts': [{'text': systemInstruction != null ? '$systemInstruction\n\n$prompt' : prompt}]
+      }]
+    };
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(request),
+    ).timeout(const Duration(seconds: 10));
+    
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['candidates'][0]['content']['parts'][0]['text'] as String;
+    }
+    throw Exception('Cloud fallback HTTP ${response.statusCode}');
   }
 
-  bool get useOnDevice => _useOnDevice;
-
-  bool get isOnDevice => _dualService.mode == GemmaMode.onDevice;
-
-  Future<void> switchToOnDevice() async {
-    await _dualService.switchToOnDevice();
-    _useOnDevice = true;
-    notifyListeners();
-  }
-
-  Future<void> switchToServer() async {
-    await _dualService.switchToServer();
-    _useOnDevice = false;
-    notifyListeners();
+  // Helper to extract JSON from LLM output
+  String _extractJson(String raw) {
+    final start = raw.indexOf('{');
+    final end = raw.lastIndexOf('}');
+    if (start != -1 && end != -1) {
+      return raw.substring(start, end + 1);
+    }
+    return raw;
   }
 
   // ----------------------------------------------------------------------
-  // Location context (injected into threat assessment prompts)
+  // Threat Assessment (JSON output)
   // ----------------------------------------------------------------------
-  void setLocationContext(String location) {
-    _llamaThreatService.setLocationContext(location);
-  }
 
-  void clearLocationContext() {
-    _llamaThreatService.clearLocationContext();
-  }
-
-  /// Analyze threat from voice transcription text
   Future<Map<String, dynamic>> assessThreat(String transcribedText) async {
     isAnalyzing = true;
     error = null;
@@ -105,28 +189,38 @@ class GemmaProvider extends ChangeNotifier {
 
     try {
       clearCachedResults();
-      final result = await _dualService.complete(
-        'Analyze this text for threat level and provide a JSON response with "threat", "confidence", and "threatLevel": $transcribedText',
-        systemPrompt: 'You are a threat analysis AI. Respond only with valid JSON containing threat assessment.'
+      const systemInstruction =
+          'You are a threat analysis AI. Respond only with valid JSON with keys: threat, confidence, threatLevel. No markdown.';
+      final result = await _complete(
+        'Analyze this text for threat level: "$transcribedText"',
+        systemInstruction: systemInstruction,
       );
-      
-      // Parse the JSON response
-      final Map<String, dynamic> parsedResult = jsonDecode(result);
-      lastThreatAssessment = parsedResult;
+      final jsonStr = _extractJson(result);
+      final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
+      // Normalize missing fields
+      parsed.putIfAbsent('threat', () => 'unknown');
+      parsed.putIfAbsent('confidence', () => 0);
+      parsed.putIfAbsent('threatLevel', () => 'medium');
+      lastThreatAssessment = parsed;
       isAnalyzing = false;
       notifyListeners();
-      return parsedResult;
+      return parsed;
     } catch (e) {
       error = e.toString();
       isAnalyzing = false;
       notifyListeners();
-      return {};
+      return {
+        'threat': 'unknown',
+        'confidence': 0,
+        'threatLevel': 'medium',
+      };
     }
   }
 
   // ----------------------------------------------------------------------
   // Chat functionality
   // ----------------------------------------------------------------------
+
   Future<void> sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
@@ -135,10 +229,12 @@ class GemmaProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _dualService.complete(message);
+      const systemInstruction =
+          'You are Echo, a friendly safety sidekick. Answer helpfully and concisely.';
+      final response = await _complete(message, systemInstruction: systemInstruction);
       messages.add(ChatMessage(text: response, isUser: false));
     } catch (e) {
-      messages.add(ChatMessage(text: 'Sorry, I encountered an error: $e', isUser: false));
+      messages.add(ChatMessage(text: 'Sorry, error: $e', isUser: false));
     } finally {
       isLoading = false;
       notifyListeners();
@@ -153,49 +249,20 @@ class GemmaProvider extends ChangeNotifier {
   // ----------------------------------------------------------------------
   // Spoken diversion message
   // ----------------------------------------------------------------------
+
   Future<String> getDiversionMessage() async {
     if (_cachedDiversionMessage != null) return _cachedDiversionMessage!;
-    final message = await _dualService.complete(
-      'Generate a short, calming diversion message for someone in a threatening situation.',
-      systemPrompt: 'You are a calming AI assistant. Provide brief, reassuring messages.'
-    );
-    _cachedDiversionMessage = message;
-    return message;
-  }
-
-  /// Verify the underlying model server is reachable and ready.
-  Future<bool> verifyModelHealth() async {
-    isCheckingModel = true;
-    modelHealthMessage = 'Checking model connectivity...';
-    notifyListeners();
-
-    try {
-      if (_dualService.mode == GemmaMode.onDevice) {
-        // For on-device, check if model is loaded
-        await _dualService.complete('test', systemPrompt: 'test');
-        isModelHealthy = true;
-        modelHealthMessage = 'On-device Gemma is ready';
-      } else {
-        // For server mode, check server health
-        final healthy = await LlamaConfig.isServerHealthy();
-        isModelHealthy = healthy;
-        modelHealthMessage = healthy ? 'Gemma is online' : 'Gemma is unavailable';
-      }
-    } catch (e) {
-      isModelHealthy = false;
-      modelHealthMessage = _dualService.mode == GemmaMode.onDevice 
-          ? 'On-device Gemma failed to initialize' 
-          : 'Gemma is unavailable';
-    }
-    
-    isCheckingModel = false;
-    notifyListeners();
-    return isModelHealthy;
+    const systemInstruction =
+        'Generate a short authoritative warning (max 15 words) to deter an attacker, saying help is on the way and location is tracked. Speak directly. No markdown.';
+    final msg = await _complete('', systemInstruction: systemInstruction);
+    _cachedDiversionMessage = msg.isNotEmpty ? msg : 'Alert: Police notified. Location tracked.';
+    return _cachedDiversionMessage!;
   }
 
   // ----------------------------------------------------------------------
   // Post‑incident safety report
   // ----------------------------------------------------------------------
+
   Future<String> getSafetyReport({
     required String threatType,
     required int confidence,
@@ -203,132 +270,133 @@ class GemmaProvider extends ChangeNotifier {
     required List<String> actionsTaken,
   }) async {
     if (_cachedSafetyReport != null) return _cachedSafetyReport!;
-    
     final prompt = '''
-Generate a brief post-incident safety report for this emergency:
-- Threat Type: $threatType
-- Confidence: ${confidence}%
+Generate a brief post-incident safety report (max 80 words) for this emergency:
+- Threat: $threatType
+- Confidence: $confidence%
 - Location: $location
 - Actions Taken: ${actionsTaken.join(', ')}
-
-Include:
-1. What happened (in 1 sentence)
-2. Response actions taken
-3. One recommendation for future safety
-Keep it warm, supportive, and actionable.
+Give 2 practical recommendations for future safety.
 ''';
-
-    final report = await _dualService.complete(prompt, systemPrompt: 'You are a supportive safety assistant providing post-incident reports.');
+    const systemInstruction = 'You are a supportive safety assistant. Keep it warm and actionable.';
+    final report = await _complete(prompt, systemInstruction: systemInstruction);
     _cachedSafetyReport = report;
     return report;
   }
 
   // ----------------------------------------------------------------------
-  // Step‑by‑step instructions (based on last threat assessment)
+  // Step‑by‑step instructions
   // ----------------------------------------------------------------------
+
   Future<List<String>> getSafetyInstructions() async {
-    if (lastThreatAssessment == null) return ['Stay calm',  'Echo is Listening and Sharing your location'];
+    if (lastThreatAssessment == null) {
+      return ['Stay calm', 'Echo is listening and sharing your location'];
+    }
     if (_cachedSafetyInstructions != null) return _cachedSafetyInstructions!;
-    
+
     final threatType = lastThreatAssessment!['threat'] ?? 'unknown';
-    final instructions = await _dualService.complete(
-      'Provide 3-5 step-by-step safety instructions for someone facing a $threatType threat. Number them clearly.',
-      systemPrompt: 'You are a safety assistant. Provide clear, actionable safety instructions.'
+    final instructionsRaw = await _complete(
+      'Provide 3 step-by-step safety instructions for someone facing a $threatType threat. Number them clearly.',
+      systemInstruction: 'You are a safety assistant. Provide clear, actionable instructions.',
     );
-    
-    // Split by numbers or lines
-    _cachedSafetyInstructions = instructions.split('\n').where((line) => line.trim().isNotEmpty).toList();
+    _cachedSafetyInstructions = instructionsRaw
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .map((l) => l.replaceFirst(RegExp(r'^\d+\.'), '').trim())
+        .toList();
     return _cachedSafetyInstructions!;
   }
 
   // ----------------------------------------------------------------------
-  // Emergency session tracking (for post-incident reporting)
+  // Echo Feed post generation (used by EchoFeedService)
   // ----------------------------------------------------------------------
+
+  Future<String> generateEchoFeedPost({
+    required String userInput,
+    required String location,
+    required String policeHandle,
+    required String hotline,
+  }) async {
+    final threat = lastThreatAssessment ?? {};
+    final prompt = '''
+Generate a short, urgent Echo Feed post (max 120 characters) for this emergency:
+User report: $userInput
+Location: $location
+Threat: ${threat['threat']} (confidence ${threat['confidence']}%)
+Include the police handle $policeHandle and emergency hotline $hotline.
+Add relevant hashtags like #EchoAlert.
+No explanations, just the post.
+''';
+    const systemInstruction = 'You are Echo, a community safety assistant.';
+    final post = await _complete(prompt, systemInstruction: systemInstruction);
+    return post.trim().isEmpty
+        ? '🚨 EMERGENCY in $location. Contact $policeHandle or call $hotline. #EchoAlert'
+        : post;
+  }
+
+  // ----------------------------------------------------------------------
+  // Emergency session tracking
+  // ----------------------------------------------------------------------
+
   void startEmergencySession() {
     _emergencyStartTime = DateTime.now();
     _emergencyEndTime = null;
     _tiersTriggered = 0;
     _cachedSafetyReport = null;
     clearCachedResults();
-    print('🚨 Emergency session started at $_emergencyStartTime');
+    print('🚨 Emergency session started');
   }
 
   void recordTierActivation(int tierNumber) {
     _tiersTriggered = tierNumber > _tiersTriggered ? tierNumber : _tiersTriggered;
-    print('📊 Tier $tierNumber activated. Max tier reached: $_tiersTriggered');
+    print('📊 Tier $tierNumber activated');
   }
 
-  /// Generate a comprehensive post-incident report with timing and recommendations.
-  /// Call this after the user marks themselves safe.
   Future<String> generatePostIncidentReport({
     required String location,
     List<String>? actionsTaken,
   }) async {
-    if (_emergencyStartTime == null) {
-      return 'No emergency session recorded.';
+    if (_emergencyStartTime == null || lastThreatAssessment == null) {
+      return 'Emergency resolved safely. Stay safe.';
     }
-
     _emergencyEndTime = DateTime.now();
     final duration = _emergencyEndTime!.difference(_emergencyStartTime!);
     final durationMinutes = duration.inSeconds ~/ 60;
     final durationSeconds = duration.inSeconds % 60;
-
-    // Build tier progression text
     final tierProgression = _tiersTriggered == 0
-        ? 'No tiers activated'
+        ? 'No tiers'
         : _tiersTriggered == 1
-            ? 'Tier 1 only (inner circle SMS)'
+            ? 'Tier 1 only'
             : _tiersTriggered == 2
-                ? 'Tier 1 + Tier 2 (extended network)'
-                : 'Full escalation (Tier 1-3, including public feed)';
-
-    final threatType = lastThreatAssessment?['threat'] ?? 'unknown';
-    final confidence = lastThreatAssessment?['confidence'] ?? 0;
+                ? 'Tier 1+2'
+                : 'Full escalation';
+    final threatType = lastThreatAssessment!['threat'] ?? 'unknown';
+    final confidence = lastThreatAssessment!['confidence'] ?? 0;
     final actions = actionsTaken?.join(', ') ?? 'Safety confirmed';
-
-    final prompt =
-        'Generate a brief post-incident safety report (max 100 words) for this emergency:\n'
-        '- Threat Type: $threatType\n'
-        '- Confidence: $confidence%\n'
-        '- Duration: ${durationMinutes}m ${durationSeconds}s\n'
-        '- Escalation: $tierProgression\n'
-        '- Location: $location\n'
-        '- Resolution: $actions\n'
-        'Include:\n'
-        '1. What happened (in 1 sentence)\n'
-        '2. Response actions taken\n'
-        '3. One recommendation for future safety\n'
-        'Keep it warm, supportive, and actionable.';
-
-    try {
-      final report = await _dualService.complete(prompt, systemPrompt: 'Generate a warm, supportive post-incident safety report.');
-      _cachedSafetyReport = report;
-      notifyListeners();
-      return report;
-    } catch (e) {
-      print('❌ generatePostIncidentReport error: $e');
-      // Fallback report
-      return 'Emergency resolved safely. Duration: ${durationMinutes}m ${durationSeconds}s. '
-          'Escalation: $tierProgression. '
-          'You handled this well. Consider adding more trusted contacts for faster support next time.';
-    }
+    final prompt = '''
+Generate a brief post-incident safety report (max 100 words) for this emergency:
+- Threat: $threatType ($confidence% confidence)
+- Duration: ${durationMinutes}m ${durationSeconds}s
+- Escalation: $tierProgression
+- Location: $location
+- Resolution: $actions
+Keep it warm, supportive, and actionable.
+''';
+    const systemInstruction = 'You are a supportive safety assistant. Write a short incident summary.';
+    final report = await _complete(prompt, systemInstruction: systemInstruction);
+    _cachedSafetyReport = report;
+    notifyListeners();
+    return report;
   }
 
   // ----------------------------------------------------------------------
-  // Translation (optional, for future use)
+  // Firestore / Escalation methods (preserved from your original)
   // ----------------------------------------------------------------------
-  Future<String> translate(String text, String targetLanguage) async {
-    return await _llamaThreatService.translate(text, targetLanguage);
-  }
 
-  // ----------------------------------------------------------------------
-  // Firestore logging & escalation (unchanged)
-  // ----------------------------------------------------------------------
   Future<void> logThreatToFirestore({
     required String contactId,
     required String location,
   }) async {
-    // ... (your existing code – unchanged)
     if (lastThreatAssessment == null) {
       error = 'No threat assessment to log';
       notifyListeners();
@@ -367,7 +435,6 @@ Keep it warm, supportive, and actionable.
     required String userThreatThreshold,
     required String location,
   }) async {
-    // ... (your existing code – unchanged)
     if (lastThreatAssessment == null || lastIncidentId == null) {
       return {'decision': 'ERROR', 'reason': 'No threat assessment available'};
     }
@@ -397,7 +464,6 @@ Keep it warm, supportive, and actionable.
   }
 
   Future<List<String>> getContactsToNotify() async {
-
     if (lastThreatAssessment == null) return [];
     try {
       final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
@@ -428,14 +494,15 @@ Keep it warm, supportive, and actionable.
 
   String generatePostPreview(String userName, String location) {
     if (lastThreatAssessment == null) return '';
-    return _llamaThreatService.generateEmergencyPost(userName, location, lastThreatAssessment!);
+    final situation = lastThreatAssessment!['analyzedSituation'] ?? 'emergency situation';
+    return '$userName needs urgent help in a $situation. Last live location: $location.';
   }
 
   Stream<List<IncidentModel>> getIncidentsStream() {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('❌ GemmaProvider: No authenticated user for incidents stream');
+        print('❌ GemmaProvider: No authenticated user');
         return Stream.value([]);
       }
       return _firestoreService.getIncidentStream(user.uid);
@@ -445,7 +512,6 @@ Keep it warm, supportive, and actionable.
     }
   }
 
-  // Helper to clear cached results (e.g., after new threat assessment)
   void clearCachedResults() {
     _cachedDiversionMessage = null;
     _cachedSafetyReport = null;
