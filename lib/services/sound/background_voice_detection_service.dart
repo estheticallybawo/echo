@@ -25,10 +25,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'audio_record_service.dart';
-import 'voice_recognition_service.dart';
 import 'speech_transcription_service.dart';
 
-/// Callback for background voice detection
 typedef BackgroundVoiceDetectionCallback = Future<void> Function(Map<String, dynamic> result);
 
 class BackgroundVoiceDetectionService {
@@ -60,6 +58,11 @@ class BackgroundVoiceDetectionService {
     try {
       _onDetection = onDetection;
       
+      if (kIsWeb) {
+        debugPrint('[BackgroundVoiceDetection] Web detected: Background tasks are not supported.');
+        return true;
+      }
+
       // Initialize workmanager
       await Workmanager().initialize(
         callbackDispatcher,
@@ -80,16 +83,21 @@ class BackgroundVoiceDetectionService {
     bool requiresDeviceIdle = false,
   }) async {
     try {
-      await Workmanager().periodicTask(
+      if (kIsWeb) {
+        debugPrint('[BackgroundVoiceDetection] Cannot start periodic tasks on Web.');
+        return;
+      }
+
+      await Workmanager().registerPeriodicTask(
         _taskName,
         _taskId,
         frequency: checkInterval,
-        existingWorkPolicy: ExistingWorkPolicy.keep,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
         constraints: Constraints(
           requiresBatteryNotLow: true,
           requiresCharging: false,
           requiresDeviceIdle: requiresDeviceIdle,
-          requiresNetworkType: NetworkType.not_required,
+          networkType: NetworkType.notRequired, 
         ),
       );
 
@@ -103,6 +111,11 @@ class BackgroundVoiceDetectionService {
   /// Stop background voice detection
   Future<void> stop() async {
     try {
+      if (kIsWeb) {
+        _isRunning = false;
+        return;
+      }
+
       await Workmanager().cancelByTag(_taskName);
       _isRunning = false;
       debugPrint('[BackgroundVoiceDetection] Stopped');
@@ -127,6 +140,8 @@ class BackgroundVoiceDetectionService {
 /// This must be a top-level function called from main()
 @pragma('vm:entry-point')
 void callbackDispatcher() {
+  if (kIsWeb) return;
+
   Workmanager().executeTask((taskName, inputData) async {
     if (taskName == 'background_voice_detection') {
       debugPrint('[BackgroundTask] Voice detection task triggered');

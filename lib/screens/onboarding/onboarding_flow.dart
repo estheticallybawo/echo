@@ -53,7 +53,7 @@ class _OnboardingScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'A safety companion for unfamiliar terrain, emergencies, and the moments you need help fastest.',
+                  'A safety companion for the explorer in unfamiliar terrain, emergencies, and the moments you need someone to know you need fast.',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     height: 1.5,

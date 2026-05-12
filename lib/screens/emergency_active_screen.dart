@@ -24,6 +24,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   Map<String, dynamic>? _initialVoiceAnalysis;
   bool _voiceAnalysisLoaded = false;
   Timer? _typewriterTimer;
+  Timer? _mockLocationTimer;
   double _emotionLevel = 0.45;
   Timer? _fluctuationTimer;
   late AnimationController _pulseCtrl;
@@ -70,6 +71,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     _startFluctuation();
     _loadSafetyInstructions();
     _loadContacts();
+    _startMockLocationLoop();
 
     // Play diversion message and start escalation immediately on emergency start
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -102,6 +104,24 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         debugPrint('❌ Failed to start emergency escalation or generate diversion message: $e');
         // Fallback message
         await _ttsService.speak('Alert: Authorities have been notified. This location is being tracked.');
+      }
+    });
+  }
+
+  /// Simulates periodic location detection to trigger status repetition
+  void _startMockLocationLoop() {
+    _mockLocationTimer = Timer.periodic(const Duration(seconds: 45), (timer) async {
+      if (!mounted) return;
+      
+      final escalation = Provider.of<EscalationProvider>(context, listen: false);
+      final isResolved = escalation.currentIncident?.isResolved ?? false;
+
+      // Only speak if the emergency is still ongoing and a tier is active
+      if (!isResolved && escalation.currentTier > 0) {
+         final message = 'New location detected. Escalation Tier ${escalation.currentTier} remains active. Your safety network is being updated.';
+         await _ttsService.speak(message);
+      } else if (isResolved) {
+        timer.cancel();
       }
     });
   }
@@ -457,6 +477,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   @override
   void dispose() {
     _typewriterTimer?.cancel();
+    _mockLocationTimer?.cancel();
     _fluctuationTimer?.cancel();
     _pulseCtrl.dispose();
     unawaited(_ttsService.stop());
@@ -1191,6 +1212,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
+              _mockLocationTimer?.cancel();
               unawaited(_ttsService.stop());  // Stop any ongoing TTS first
               unawaited(_confirmationSoundService.confirmContactAction());
               unawaited(_ttsService.speak('Emergency situation resolved. Stay safe and contact support if needed.'));
@@ -1242,6 +1264,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           TextButton(
             onPressed: () {
               Navigator.pop(context); // close dialog
+              _mockLocationTimer?.cancel();
               unawaited(_ttsService.stop());  // Stop any ongoing TTS first
               unawaited(_ttsService.speak('Emergency alert cancelled. If you need help, trigger Echo again.'));
               escalation.stopEscalation();

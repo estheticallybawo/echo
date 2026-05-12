@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-import '../models/community_feed_model.dart';
+import '../models/echo_feed_model.dart';
 
 /// Individual Community Feed Card Widget
 class CommunityFeedCard extends StatefulWidget {

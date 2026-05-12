@@ -1,5 +1,31 @@
 {
   "dependencies": {
-    "@xdevplatform/xdk": "^0.5.0"
-  }
+    "@elevenlabs/elevenlabs-js": "^2.46.0",
+    "@google-cloud/vertexai": "^1.12.0",
+    "@google/genai": "^2.0.1",
+    "@xdevplatform/xdk": "^0.5.0",
+    "express": "^5.2.1"
+  },
+  "name": "echo",
+  "version": "1.0.0",
+  "description": "**Mission:** Echo uses Gemma 4 AI to provide instant emergency alerts, location sharing, and automated contact notification. Built to honor Iniubong \"Hiny\" Umoren and prevent tragedies.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/estheticallybawo/echo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/estheticallybawo/echo/issues"
+  },
+  "homepage": "https://github.com/estheticallybawo/echo#readme"
 }

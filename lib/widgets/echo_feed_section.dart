@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/community_feed_model.dart';
-import 'community_feed_card.dart';
+import '../models/echo_feed_model.dart';
+import 'echo_feed_card.dart';
 
 /// Community Feed Section Widget for Home Screen
 class CommunityFeedSection extends StatefulWidget {

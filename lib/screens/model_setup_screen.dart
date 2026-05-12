@@ -18,25 +18,26 @@ class _ModelSetupScreenState extends State<ModelSetupScreen> {
     ModelOption(
       name: 'Gemma 3 270M (Lightweight)',
       description: '~400 MB, runs on devices with 2GB RAM or more',
-      modelUrl: 'https://huggingface.co/litert-community/gemma-3-270m-it-litert-lm/resolve/main/gemma-3-270m-it-litert-lm.task',
+      modelUrl: 'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task?download=true',
       minRamGB: 2,
       isRecommended: true,
     ),
     ModelOption(
       name: 'Gemma 4 E2B (Balanced)',
-      description: '~3.5 GB, best for 4‑6GB RAM devices',
-      modelUrl: 'https://huggingface.co/litert-community/gemma-4-4b-it-litert/resolve/main/gemma-4-4b-it-litert.task',
+      description: '~2 GB, best for 4‑6GB RAM devices',
+      modelUrl: 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task?download=true',
       minRamGB: 4,
     ),
     ModelOption(
       name: 'Gemma 4 E4B (Advanced)',
-      description: '~5 GB, highest quality, needs ≥8GB RAM',
-      modelUrl: 'https://huggingface.co/litert-community/gemma-4-9b-it-litert/resolve/main/gemma-4-9b-it-litert.task',
+      description: '~10 GB, highest quality, needs ≥12GB RAM',
+      modelUrl: 'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task?download=true',
       minRamGB: 8,
     ),
   ];
 
   ModelOption? _selectedModel;
+  final TextEditingController _tokenController = TextEditingController();
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   int _deviceRamGB = 4;
@@ -48,6 +49,12 @@ class _ModelSetupScreenState extends State<ModelSetupScreen> {
     _loadDeviceInfo();
   }
 
+  @override
+  void dispose() {
+    _tokenController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadDeviceInfo() async {
     final ramGB = await getDeviceRAMInGB();
     setState(() => _deviceRamGB = ramGB);
@@ -55,9 +62,9 @@ class _ModelSetupScreenState extends State<ModelSetupScreen> {
 
   Future<void> _downloadAndSwitch() async {
     if (_selectedModel == null) return;
-    final token = const String.fromEnvironment('HUGGINGFACE_TOKEN');
+    final token = _tokenController.text.isNotEmpty ? _tokenController.text : const String.fromEnvironment('HUGGINGFACE_TOKEN');
     if (token.isEmpty) {
-      setState(() => _error = 'Missing Hugging Face token. Add --dart-define=HUGGINGFACE_TOKEN=...');
+      setState(() => _error = 'Missing Hugging Face token');
       return;
     }
 
@@ -85,7 +92,7 @@ class _ModelSetupScreenState extends State<ModelSetupScreen> {
 
       // Reinitialize the provider with the new model
       final gemmaProvider = context.read<GemmaProvider>();
-      await gemmaProvider.initialize(modelUrl: _selectedModel!.modelUrl);
+      await gemmaProvider.initialize(modelUrl: _selectedModel!.modelUrl, manualToken: token);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,6 +195,36 @@ class _ModelSetupScreenState extends State<ModelSetupScreen> {
                               ],
                             ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Authentication',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _tokenController,
+                        obscureText: true,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          hintText: 'Paste Hugging Face Token (Read access)',
+                          hintStyle: const TextStyle(color: Colors.white38),
+                          prefixIcon: const Icon(Icons.key, color: Colors.white54),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

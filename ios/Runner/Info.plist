@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" platform :ios, '13.0' encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
@@ -11,6 +11,8 @@
 		<key>CFBundleIdentifier</key>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 		<key>CFBundleInfoDictionaryVersion</key>
+		<key>NSMicrophoneUsageDescription</key>
+    	<string>This app needs access to the microphone for real-time AI conversations.</string>
 		<string>6.0</string>
 		<key>CFBundleName</key>
 		<string>echo</string>

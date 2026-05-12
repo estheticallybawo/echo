@@ -83,4 +83,13 @@ class EchoFeedService {
       'amplifiedBy': [],
     });
   }
+
+  /// Provides a real-time stream of active emergency feed entries for the community UI
+  Stream<QuerySnapshot<Map<String, dynamic>>> getFeedStream() {
+    return _firestore
+        .collection('echo_feed')
+        .where('status', isEqualTo: 'active')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 }

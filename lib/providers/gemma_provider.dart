@@ -9,6 +9,7 @@ import '../services/gemma_decision_engine.dart';
 import '../services/escalation_timer_service.dart';
 import '../models/chat_message.dart';
 
+
 class GemmaProvider extends ChangeNotifier {
   final FirestoreIncidentService _firestoreService = FirestoreIncidentService();
   final GemmaDecisionEngine _decisionEngine = GemmaDecisionEngine();
@@ -39,23 +40,24 @@ class GemmaProvider extends ChangeNotifier {
   // Model configuration - use a lightweight model that works on <4GB RAM
   // Note: This URL points to a .task file (MediaPipe format) which is what flutter_gemma expects
   static const String _offlineModelUrl = 
-      'https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma-3-270m-it-litert-lm.task';
+      'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task?download=true';
   
   // Hugging Face token – set via --dart-define=HUGGINGFACE_TOKEN=...
   static const String _hfToken = String.fromEnvironment('HUGGINGFACE_TOKEN');
   
-  // Gemini API key for cloud fallback (optional)
-  static const String _geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
+  // Gemma API key for cloud fallback (optional)
+   static const String _gemmaApiKey = String.fromEnvironment('GEMMA_API_KEY');
 
   // ----------------------------------------------------------------------
   // Initialization (corrected API)
   // ----------------------------------------------------------------------
 
-  Future<void> initialize({String? modelUrl}) async {
+  Future<void> initialize({String? modelUrl, String? manualToken}) async {
     if (_isInitialized) return;
+    final effectiveToken = manualToken ?? _hfToken;
 
-    if (_hfToken.isEmpty) {
-      error = 'Missing Hugging Face token. Add --dart-define=HUGGINGFACE_TOKEN=your_token';
+    if (effectiveToken.isEmpty) {
+      error = 'Missing token';
       notifyListeners();
       return;
     }
@@ -70,7 +72,7 @@ class GemmaProvider extends ChangeNotifier {
       )
       .fromNetwork(
         urlToUse,
-        token: _hfToken,
+        token: effectiveToken,
         foreground: true, // Use foreground service for large downloads
       )
       .withProgress((progress) {
@@ -98,14 +100,52 @@ class GemmaProvider extends ChangeNotifier {
 
   bool get isInitialized => _isInitialized;
 
+
+
   // ----------------------------------------------------------------------
   // Core inference (local + cloud fallback)
   // ----------------------------------------------------------------------
 
+
+
+
+Future<String> _callGemmaAPI(String prompt, {String? systemInstruction}) async {
+  final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=$_gemmaApiKey';
+
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      if (systemInstruction != null && systemInstruction.isNotEmpty)
+        'system_instruction': {'parts': [{'text': systemInstruction}]},
+      'contents': [{'parts': [{'text': prompt}]}],
+      'generationConfig': {
+        'temperature': 0.2,
+        'topP': 0.95,
+        'topK': 40,
+        'maxOutputTokens': 500,
+      }
+    }),
+  ).timeout(const Duration(seconds: 10));
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    if (data['candidates'] != null && (data['candidates'] as List).isNotEmpty) {
+      return data['candidates'][0]['content']['parts'][0]['text'] as String;
+    }
+    throw Exception('No candidates returned from API.');
+  } else {
+    throw Exception('Gemini API error: ${response.statusCode} ${response.body}');
+  }
+}
+
+
+
+
  Future<String> _complete(String prompt, {String? systemInstruction}) async {
   if (!_isInitialized || _model == null) {
     // Fallback if model is not ready (e.g., during first-time download)
-    return await _cloudComplete(prompt, systemInstruction: systemInstruction);
+    return await _callGemmaAPI(prompt, systemInstruction: systemInstruction);
   }
 
   try {
@@ -143,40 +183,13 @@ class GemmaProvider extends ChangeNotifier {
   } catch (e) {
     // If on-device fails, fall back to cloud
     debugPrint('On-device inference failed: $e');
-    return await _cloudComplete(prompt, systemInstruction: systemInstruction);
+    return await _callGemmaAPI(prompt, systemInstruction: systemInstruction);
   }
 }
 
 
-  Future<String> _cloudComplete(String prompt, {String? systemInstruction}) async {
-    final url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$_geminiApiKey';
-    final request = {
-      'contents': [{
-        'parts': [{'text': systemInstruction != null ? '$systemInstruction\n\n$prompt' : prompt}]
-      }]
-    };
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(request),
-    ).timeout(const Duration(seconds: 10));
-    
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['candidates'][0]['content']['parts'][0]['text'] as String;
-    }
-    throw Exception('Cloud fallback HTTP ${response.statusCode}');
-  }
+ 
 
-  // Helper to extract JSON from LLM output
-  String _extractJson(String raw) {
-    final start = raw.indexOf('{');
-    final end = raw.lastIndexOf('}');
-    if (start != -1 && end != -1) {
-      return raw.substring(start, end + 1);
-    }
-    return raw;
-  }
 
   // ----------------------------------------------------------------------
   // Threat Assessment (JSON output)
@@ -190,7 +203,8 @@ class GemmaProvider extends ChangeNotifier {
     try {
       clearCachedResults();
       const systemInstruction =
-          'You are a threat analysis AI. Respond only with valid JSON with keys: threat, confidence, threatLevel. No markdown.';
+          'You are a safety companion. Analyze the transcribed text and determine if it indicates a potential safety threat. Respond with a JSON object, containing: "threat" (type of threat or "none"),' 
+            '"confidence" (0-100), and "threatLevel" ("low", "medium", "high"). Be concise and only respond with the JSON.';
       final result = await _complete(
         'Analyze this text for threat level: "$transcribedText"',
         systemInstruction: systemInstruction,
@@ -217,6 +231,15 @@ class GemmaProvider extends ChangeNotifier {
     }
   }
 
+
+String _extractJson(String raw) {
+  final start = raw.indexOf('{');
+  final end = raw.lastIndexOf('}');
+  if (start != -1 && end != -1) {
+    return raw.substring(start, end + 1);
+  }
+  return raw;
+}
   // ----------------------------------------------------------------------
   // Chat functionality
   // ----------------------------------------------------------------------
@@ -255,7 +278,7 @@ class GemmaProvider extends ChangeNotifier {
     const systemInstruction =
         'Generate a short authoritative warning (max 15 words) to deter an attacker, saying help is on the way and location is tracked. Speak directly. No markdown.';
     final msg = await _complete('', systemInstruction: systemInstruction);
-    _cachedDiversionMessage = msg.isNotEmpty ? msg : 'Alert: Police notified. Location tracked.';
+    _cachedDiversionMessage = msg.isNotEmpty ? msg : 'Alert: Police notified. Location is being tracked.';
     return _cachedDiversionMessage!;
   }
 
@@ -271,13 +294,13 @@ class GemmaProvider extends ChangeNotifier {
   }) async {
     if (_cachedSafetyReport != null) return _cachedSafetyReport!;
     final prompt = '''
-Generate a brief post-incident safety report (max 80 words) for this emergency:
-- Threat: $threatType
-- Confidence: $confidence%
-- Location: $location
-- Actions Taken: ${actionsTaken.join(', ')}
-Give 2 practical recommendations for future safety.
-''';
+    Generate a brief post-incident safety report (max 80 words) for this emergency:
+    - Threat: $threatType
+    - Confidence: $confidence%
+    - Location: $location
+    - Actions Taken: ${actionsTaken.join(', ')}
+    Give 2 practical recommendations for future safety.
+    ''';
     const systemInstruction = 'You are a supportive safety assistant. Keep it warm and actionable.';
     final report = await _complete(prompt, systemInstruction: systemInstruction);
     _cachedSafetyReport = report;
@@ -411,7 +434,7 @@ Keep it warm, supportive, and actionable.
       }
       final threatLevel = (lastThreatAssessment!['threatLevel'] ?? 'HIGH').toString().toUpperCase();
       final threatCategory = (lastThreatAssessment!['threat'] ?? 'unknown_threat').toString();
-      final analysisJson = lastThreatAssessment.toString();
+      final analysisJson = jsonEncode(lastThreatAssessment);
       lastIncidentId = await _firestoreService.logIncident(
         userId: user.uid,
         actionType: 'emergency_press',

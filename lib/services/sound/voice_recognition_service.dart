@@ -32,6 +32,8 @@ typedef VoiceStatusCallback = void Function(VoiceRecognitionStatus status);
 
 class VoiceRecognitionService {
   final String _safetyPhrase;
+  final String? _introPhrase;
+  final String? _capabilitiesPhrase;
   final double _minConfidence;
   final Duration _listenDuration;
 
@@ -47,9 +49,13 @@ class VoiceRecognitionService {
 
   VoiceRecognitionService({
     required String safetyPhrase,
+    String? introPhrase,
+    String? capabilitiesPhrase,
     double minConfidence = 0.70,
     Duration listenDuration = const Duration(seconds: 10),
   })  : _safetyPhrase = safetyPhrase.toLowerCase().trim(),
+        _introPhrase = introPhrase?.toLowerCase().trim(),
+        _capabilitiesPhrase = capabilitiesPhrase?.toLowerCase().trim(),
         _minConfidence = minConfidence,
         _listenDuration = listenDuration;
 
@@ -76,8 +82,8 @@ class VoiceRecognitionService {
     }
 
     // Request speech recognition permission (iOS/Android 12+)
-    if (await Permission.speechRecognition.isDenied) {
-      final speechPerm = await Permission.speechRecognition.request();
+    if (await Permission.speech.isDenied) {
+      final speechPerm = await Permission.speech.request();
       if (speechPerm.isDenied || speechPerm.isPermanentlyDenied) {
         _status = VoiceRecognitionStatus.error;
         _lastError = 'Speech recognition permission required';
@@ -208,9 +214,12 @@ class VoiceRecognitionService {
 
     if (confidence < _minConfidence) return;
     if (!_matchesSafetyPhrase(words)) return;
+    
+    final matched = _getMatchedPhrase(words);
+    if (matched == null) return;
 
     _onActivation?.call(VoiceActivationEvent(
-      phraseDetected: words,
+      phraseDetected: matched,
       confidence: confidence,
       detectedAt: DateTime.now(),
     ));
@@ -219,6 +228,17 @@ class VoiceRecognitionService {
 
   bool _matchesSafetyPhrase(String words) {
     return words.contains(_safetyPhrase);
+  }
+
+  String? _getMatchedPhrase(String words) {
+    if (words.contains(_safetyPhrase)) return _safetyPhrase;
+    if (_introPhrase != null && words.contains(_introPhrase)) {
+      return _introPhrase;
+    }
+    if (_capabilitiesPhrase != null && words.contains(_capabilitiesPhrase!)) {
+      return _capabilitiesPhrase;
+    }
+    return null;
   }
 
   void _onStatus(String status) {
@@ -234,10 +254,6 @@ class VoiceRecognitionService {
     }
 
     if (status == 'notListening' || status == 'done') {
-      if (_status == VoiceRecognitionStatus.listening && !_isPaused) {
-        _status = VoiceRecognitionStatus.paused;
-        _onStatusChange?.call(_status);
-      }
       _restartTimer?.cancel();
       _restartTimer = Timer(const Duration(seconds: 3), _restartBurst);
     }

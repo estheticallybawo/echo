@@ -1,3 +1,4 @@
+import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -17,19 +18,18 @@ class TTSService {
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  static const String _elevenLabsBaseUrl = 'https://api.elevenlabs.io/v1/text-to-speech';
-  static const String _defaultVoiceId = String.fromEnvironment(
-    'ELEVENLABS_VOICE_ID',
-    defaultValue: '21m00Tcm4TlvDq8ikWAM',
-  );
-  static const String _apiKeyFromEnvironment = String.fromEnvironment(
-    'ELEVENLABS_API_KEY',
-    defaultValue: '',
-  );
-
-  String? _apiKey = _apiKeyFromEnvironment.isEmpty ? null : _apiKeyFromEnvironment;
+  static const String _defaultVoiceId = 'EYQ7WzWOUhRLHwL7i08O';
+  String? _apiKey;
+  String _selectedVoiceId = _defaultVoiceId;
+  
   bool _isInitialized = false;
   bool _isSpeaking = false;
+
+  /// Initialize the service with an API key
+  static Future<void> init({required String apiKey}) async {
+    _instance._apiKey = apiKey;
+    await _instance.initialize();
+  }
 
   /// Configure ElevenLabs at runtime if you do not want to use --dart-define.
   void configureElevenLabs({
@@ -41,8 +41,6 @@ class TTSService {
       _selectedVoiceId = voiceId.trim();
     }
   }
-
-  String _selectedVoiceId = _defaultVoiceId;
 
   /// Initialize TTS engine
   Future<bool> initialize() async {
@@ -129,13 +127,22 @@ class TTSService {
 
     try {
       final response = await http.post(
-        Uri.parse('$_elevenLabsBaseUrl/text-to-speech/$_selectedVoiceId/stream'),
+        Uri.parse('https://api.elevenlabs.io/v1/text-to-speech/$_selectedVoiceId/stream'),
         headers: {
           'xi-api-key': apiKey,
           'Content-Type': 'application/json',
           'Accept': 'audio/mpeg',
         },
-        body: '{"text":${_jsonEscape(text)},"model_id":"eleven_multilingual_v2","voice_settings":{"stability":0.4,"similarity_boost":0.8,"style":0.2,"use_speaker_boost":true}}',
+        body: jsonEncode({
+          "text": text,
+          "model_id": "eleven_multilingual_v2",
+          "voice_settings": {
+            "stability": 0.4,
+            "similarity_boost": 0.8,
+            "style": 0.2,
+            "use_speaker_boost": true
+          }
+        }),
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {

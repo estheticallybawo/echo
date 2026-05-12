@@ -204,7 +204,7 @@ ThemeData buildEchoTheme() {
     // Text Theme - Light mode text colors
     textTheme: TextTheme(
       displayLarge: EchoTypography.displayLarge.copyWith(
-        color: EchoColors.surface,
+        color: const Color.fromARGB(255, 26, 26, 27),
       ),
       displayMedium: EchoTypography.displayMedium.copyWith(
         color: EchoColors.surface,

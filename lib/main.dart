@@ -18,6 +18,7 @@ import 'providers/user_preferences_provider.dart';
 import 'services/local_storage_service.dart';
 import 'services/sound/background_service_manager.dart';
 import 'services/sound/background_voice_detection_service.dart';
+import 'services/sound/tts_service.dart';
 import 'theme.dart';
 import 'screens/onboarding/splash_screen.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
@@ -62,6 +63,10 @@ void main() async {
     checkInterval: const Duration(minutes: 15),
   );
   debugPrint('[Main] ✅ Background voice detection initialized');
+
+  // Initialize TTS with Eleven Labs API Key
+  final ttsApiKey = dotenv.maybeGet('ELEVEN_LABS_API_KEY');
+  if (ttsApiKey != null) await TTSService.init(apiKey: ttsApiKey);
 
   final localStorage = LocalStorageService();
   await localStorage.setCurrentUser(

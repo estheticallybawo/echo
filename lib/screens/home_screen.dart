@@ -26,7 +26,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final LocalStorageService _localStorage = LocalStorageService();
   final TextEditingController _contactNameController = TextEditingController();
   final TextEditingController _contactPhoneController = TextEditingController();
@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   _EchoMode _mode = _EchoMode.standby;
   int _sosCountdown = 1;
   int _elapsed = 0;
-  String _displayName = 'Hiny';
+  final String _displayName = 'Hiny';
 
   Timer? _sosTimer;
   Timer? _elapsedTimer;
@@ -50,6 +50,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final SpeechTranscriptionService _speechTranscriptionService;
   final TTSService _ttsService = TTSService();
   static const String _safetyPhrase = 'echo help now';
+  static const String _introPhrase = 'echo who are you';
+  static const String _capabilitiesPhrase = 'echo what can you do'; 
 
   List<_Contact> _contacts = [];
 
@@ -76,6 +78,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Initialize voice recognition with hotword detection
     _voiceRecognition = VoiceRecognitionService(
       safetyPhrase: _safetyPhrase,
+      introPhrase: _introPhrase,
+      capabilitiesPhrase: _capabilitiesPhrase,
       minConfidence: 0.60,
     );
     _initializeVoiceRecognition();
@@ -116,7 +120,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final initialized = await _voiceRecognition.initialize(
       onActivation: (event) async {
         if (!mounted) return;
-        await _audioRecorderService.stopRecording();
+
+        if (event.phraseDetected == _introPhrase) {
+          await _handleIntroActivation();
+          return;
+        }
+
+        if (event.phraseDetected == _capabilitiesPhrase) {
+          await _handleCapabilitiesActivation();
+          return;
+        }
+
         final audio = _audioRecorderService.buffer.getAudio(
           maxDuration: const Duration(seconds: 10),
         );
@@ -143,6 +157,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     } else {
       setState(() => _voiceStatus = VoiceRecognitionStatus.error);
+    }
+  }
+
+  Future<void> _handleIntroActivation() async {
+    const String introMessage = 
+        "I am Echo, your AI safety guardian. I stay active in the background to protect you. "
+        "I can detect distress in your voice, analyze threats using on-device AI, and automatically "
+        "escalate alerts to your inner circle and local community. "
+        "If you are in danger, say, echo help now, or long press the orb on your screen.";
+    
+    setState(() => _voiceStatus = VoiceRecognitionStatus.paused);
+    await _ttsService.speak(introMessage);
+    
+    // Resume listening after speaking if background listening is still enabled
+    if (_bgListening && mounted) {
+      await _voiceRecognition.startListening();
+      setState(() => _voiceStatus = VoiceRecognitionStatus.listening);
+    }
+  }
+
+  Future<void> _handleCapabilitiesActivation() async {
+    const String capabilitiesMessage = 
+        "I can perform real-time threat assessments, provide step-by-step safety instructions, "
+        "and generate authoritative warnings to deter threats. I also manage multi-tier escalations "
+        "to notify your inner circle and the local community when you are in danger. "
+        "To start an emergency, say: echo help now.";
+    
+    setState(() => _voiceStatus = VoiceRecognitionStatus.paused);
+    await _ttsService.speak(capabilitiesMessage);
+    
+    // Resume listening after speaking if background listening is still enabled
+    if (_bgListening && mounted) {
+      await _voiceRecognition.startListening();
+      setState(() => _voiceStatus = VoiceRecognitionStatus.listening);
     }
   }
 
@@ -189,6 +237,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _triggerSOS({Map<String, dynamic>? voiceAnalysis}) async {
     HapticFeedback.heavyImpact();
     _holdCtrl.reset();
+
+    _elapsedTimer?.cancel();
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() => _elapsed++);
+    });
+
     setState(() { _mode = _EchoMode.active; _elapsed = 0; });
     await Navigator.pushNamed(
       context,
@@ -322,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     return AnimatedBuilder(
       animation: Listenable.merge([_pulseAnim, _holdAnim]),
-      builder: (_, __) {
+      builder: (_, _) {
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -842,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         'assets/icon/echosplashicon.png',
                         width: 70,
                         height: 70,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
+                        errorBuilder: (_, _, _) => const Icon(Icons.wifi_tethering, color: Colors.white, size: 28),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
