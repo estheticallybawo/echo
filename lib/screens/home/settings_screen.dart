@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/user_preferences_provider.dart';
+import '../../services/model/model_catalog.dart';
+import '../../services/model/model_download_service.dart';
 import '../../theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,6 +19,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool locationEnabled = true;
   bool contactsEnabled = true;
   bool notificationsEnabled = true;
+  bool alwaysListeningEnabled = true;
+  bool cloudProcessingEnabled = false;
+  bool saveVoiceSnippetsEnabled = false;
+  final ModelDownloadService _modelDownloadService = ModelDownloadService();
+  ModelDownloadState? _modelState;
+  ModelCatalogEntry _selectedModel = ModelCatalog.gemma4E2bQ5;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +92,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSectionHeader('Background Protection'),
                 const SizedBox(height: 16),
                 _buildToggleCard(
+                  Icons.hearing_rounded,
+                  'Always Listening',
+                  'Continuously listens for your safety phrase while active.',
+                  alwaysListeningEnabled,
+                  (v) => setState(() => alwaysListeningEnabled = v),
+                ),
+                _buildToggleCard(
+                  Icons.cloud_outlined,
+                  'Cloud Processing',
+                  'Allow optional cloud voice/TTS and bridge processing for the demo.',
+                  cloudProcessingEnabled,
+                  (v) => setState(() => cloudProcessingEnabled = v),
+                ),
+                _buildToggleCard(
+                  Icons.audio_file_outlined,
+                  'Save Voice Snippets',
+                  'Keep raw audio clips for review. If off, audio is deleted after analysis.',
+                  saveVoiceSnippetsEnabled,
+                  (v) => setState(() => saveVoiceSnippetsEnabled = v),
+                ),
+                _buildToggleCard(
                   Icons.mic_none_rounded,
                   'Microphone',
                   'Used for background listening only when Echo is active to detect distress.',
@@ -112,6 +141,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   (v) => setState(() => notificationsEnabled = v),
                 ),
                 const SizedBox(height: 40),
+                _buildSectionHeader('Permissions & Consent'),
+                const SizedBox(height: 16),
+                _buildPermissionCard(),
+                const SizedBox(height: 40),
                 _buildSectionHeader('Emergency Phase'),
                 const SizedBox(height: 16),
                 _buildPhaseCard(),
@@ -135,6 +168,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildPermissionCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Text(
+        'Microphone permission is used for voice SOS and distress detection flows. Background usage runs only when enabled. '
+        'Cloud processing can send audio/text to configured demo providers such as ElevenLabs or Telegram. You can revoke permissions or disable these features at any time in system settings.',
+        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
@@ -147,6 +196,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAiUpdateCard() {
+    final model = _selectedModel;
+    final compatibility = _modelDownloadService.checkCompatibility(
+      model,
+      const DeviceProfile(availableRamGb: 12, freeStorageGb: 8),
+    );
+    final state = _modelState?.model.id == model.id ? _modelState : null;
+    final status = state?.status ?? ModelDownloadStatus.notInstalled;
+    final progress = state?.progress ?? 0.0;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -158,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Why Download Latest AI Model?',
+            'Model Download Path',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -166,9 +224,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _bulletPoint('Faster threat detection (offline = no network required).'),
-          _bulletPoint('Works anywhere, even without internet.'),
-          _bulletPoint('Better accuracy with local processing.'),
+          _bulletPoint(
+            'Preview compatible Gemma model options for APK testing.',
+          ),
+          _bulletPoint(
+            'Keep Android/on-device runtime work separate from Chrome demo.',
+          ),
+          _bulletPoint('Show RAM and storage requirements before a download.'),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: ModelCatalog.all.map((option) {
+              final selected = option.id == model.id;
+              return ChoiceChip(
+                selected: selected,
+                label: Text(
+                  option.recommended
+                      ? '${option.displayName} *'
+                      : option.displayName,
+                ),
+                labelStyle: GoogleFonts.poppins(
+                  color: selected
+                      ? EchoColors.primaryDark
+                      : const Color(0xFFF2F3F5),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                selectedColor: const Color.fromARGB(
+                  255,
+                  8,
+                  87,
+                  255,
+                ).withOpacity(0.2),
+                backgroundColor: EchoColors.primaryDark,
+                side: BorderSide(color: Colors.white.withOpacity(0.08)),
+                onSelected: (_) => setState(() => _selectedModel = option),
+              );
+            }).toList(),
+          ),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16),
@@ -182,15 +276,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Enhanced AI (E4B)',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Text(
+                        model.displayName,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Text(
-                      '3.5 GB',
+                      '${model.sizeGb.toStringAsFixed(1)} GB',
                       style: GoogleFonts.poppins(
                         color: Colors.white38,
                         fontSize: 12,
@@ -200,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Version: Not Installed',
+                  'Version: ${model.version} - ${status.name}',
                   style: GoogleFonts.poppins(
                     color: Colors.white38,
                     fontSize: 12,
@@ -208,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Better Pattern Recognition (Requires 12GB RAM)',
+                  '${model.description} Quantized ${model.quantization} - Requires ${model.minRamGb.toStringAsFixed(0)}GB RAM',
                   style: GoogleFonts.poppins(
                     color: Colors.white70,
                     fontSize: 13,
@@ -216,18 +314,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'May impact battery life',
+                  compatibility.isCompatible
+                      ? 'Chrome demo uses your local server; APK exposes this download path.'
+                      : compatibility.reason ?? 'Device is not compatible.',
                   style: GoogleFonts.poppins(
                     color: Colors.amber.withOpacity(0.7),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                if (status == ModelDownloadStatus.downloading) ...[
+                  const SizedBox(height: 14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: Colors.white12,
+                      valueColor: const AlwaysStoppedAnimation(
+                        EchoColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed:
+                        compatibility.isCompatible &&
+                            status != ModelDownloadStatus.downloading
+                        ? _simulateModelDownload
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB),
                       shape: RoundedRectangleBorder(
@@ -236,7 +354,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Text(
-                      'Download Now',
+                      status == ModelDownloadStatus.installed
+                          ? 'Installed for APK Demo'
+                          : status == ModelDownloadStatus.downloading
+                          ? 'Downloading... ${(progress * 100).round()}%'
+                          : 'Preview Download Path',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -252,6 +374,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _simulateModelDownload() async {
+    await for (final state in _modelDownloadService.simulateDownload(
+      _selectedModel,
+    )) {
+      if (!mounted) return;
+      setState(() => _modelState = state);
+    }
+  }
+
   Widget _bulletPoint(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -262,10 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.poppins(
-                color: Colors.white70,
-                fontSize: 13,
-              ),
+              style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13),
             ),
           ),
         ],
@@ -311,7 +439,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: const Color(0xFFffffff),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -319,7 +447,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     sub,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: Colors.white38,
+                      color: const Color(0xFFffffff).withOpacity(0.6),
                       height: 1.4,
                     ),
                   ),
@@ -375,13 +503,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     displayPhone,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: Colors.white38,
+                      color: const Color(0xFFffffff).withOpacity(0.6),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 16),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFFffffff),
+              size: 16,
+            ),
           ],
         ),
       ),
@@ -413,7 +545,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               IconButton(
                 onPressed: _showDittoInfo,
-                icon: const Icon(Icons.info_outline_rounded, color: Colors.white38, size: 20),
+                icon: const Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFFffffff),
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -433,7 +569,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () {},
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(
@@ -464,7 +602,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         content: Text(
-          'Ditto is your secret duress code. If an attacker forces you to turn off Echo, enter "Ditto" instead of your real code. The app will look like it turned off, but it will silently alert your Inner Circle and the police that you are acting under pressure.',
+          'Ditto is your secret duress code. If an attacker forces you to turn off Echo, enter "Ditto" instead of your real code. The app can appear to turn off while starting the trusted-contact escalation path in the background.',
           style: GoogleFonts.poppins(
             color: Colors.white70,
             fontSize: 14,
@@ -538,7 +676,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 16),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white24,
+              size: 16,
+            ),
           ],
         ),
       ),

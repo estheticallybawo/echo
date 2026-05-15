@@ -1,148 +1,146 @@
-# Echo - AI-Powered Emergency Response System
+# Echo
 
-**Mission:** Echo uses Gemma 4 AI to provide instant emergency alerts, location sharing, and automated contact notification. Built to honor Iniubong "Hiny" Umoren and prevent tragedies.
+Echo is a Flutter safety assistant built for the Gemma 4 Good Hackathon. The current submission path is a Chrome-first demo that uses a local Gemma/llama.cpp server, local emergency state, an Echo Feed, optional ElevenLabs speech, and an optional Telegram bridge for Tier 1/Tier 2 contact responses.
 
-**Status:** May 15 MVP (Feature-complete, design refinement phase)
+Echo is intentionally designed with graceful degradation: if speech recognition, Gemma, ElevenLabs, or Telegram is unavailable, the emergency UI, local state, typed fallback, and escalation timers should still keep moving.
 
----
+## What Works Now
 
-## 🚀 Quick Start
+- Chrome demo with voice SOS, typed fallback, and listening/thinking/speaking states.
+- Local Gemma reasoning through `llama.cpp` on `http://localhost:8080`.
+- Tier 1, Tier 2, and Tier 3/Echo Feed escalation flow.
+- Local storage for returning demo users and emergency/feed state.
+- Optional ElevenLabs TTS through a local proxy. Do not put the ElevenLabs API key in Flutter code.
+- Optional Telegram bot bridge for contact alerts and SAFE/HELP/CALL replies.
+- APK-facing model catalog/download UI for teammate testing.
 
-### Prerequisites
-- **Flutter:** 3.19+ ([install](https://flutter.dev/docs/get-started/install))
-- **Dart:** 3.3+ (included with Flutter)
-- **Git:** For version control
-- **Figma:** For design reference (optional)
+## Current Constraints
 
-### 1. Clone & Setup
-```bash
-git clone 
+- Chrome is the reliable test surface for the hackathon demo.
+- Direct Gemma WAV/audio understanding works through `llama-mtmd-cli` experiments, but it is slow on the current laptop. The app therefore uses transcript-first Gemma reasoning by default.
+- On-device Gemma inference is architecturally prepared, but not claimed as fully validated without Android device/runtime testing.
+- Telegram and ElevenLabs require internet and local secrets.
+
+## Prerequisites
+
+- Flutter 3.19+ and Dart 3.3+
+- Node.js 18+ for local proxy scripts
+- A running `llama.cpp` server with a Gemma GGUF model
+- Chrome for the main demo
+
+## Start Gemma
+
+Start your local `llama.cpp` server before running Echo. Example:
+
+```powershell
+cd C:\llama.cpp\build\bin\Release
+.\llama-server.exe -m C:\llama.cpp\models\gemma-4-E2B-it-Q8_0.gguf --host 127.0.0.1 --port 8080 --ctx-size 131072
+```
+
+Echo checks both `/completion` and `/v1/chat/completions` depending on the path being tested.
+
+## Optional ElevenLabs Voice
+
+Use the local proxy so your long-lived ElevenLabs key never ships in Flutter web or APK code.
+
+```powershell
+cd C:\Users\DELL\gemma4good\echo
+$env:ELEVENLABS_API_KEY="your_elevenlabs_key"
+$env:ELEVENLABS_VOICE_ID="EYQ7WzWOUhRLHwL7i08O"
+node scripts\elevenlabs_tts_proxy.mjs
+```
+
+## Optional Telegram Contact Bridge
+
+Create a Telegram bot, get the chat ID for your demo contact/group, then run:
+
+```powershell
+cd C:\Users\DELL\gemma4good\echo
+$env:TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+$env:TELEGRAM_TIER1_CHAT_ID="your_chat_id"
+$env:TELEGRAM_TIER2_CHAT_ID="your_chat_id_or_backup_group"
+node scripts\telegram_escalation_bridge.mjs
+```
+
+If these variables are missing, the bridge prints a message preview instead of sending real Telegram alerts.
+
+## Run The Chrome Demo
+
+```powershell
+cd C:\Users\DELL\gemma4good\echo
 flutter pub get
+flutter run -d chrome `
+  --dart-define=ECHO_DEMO_CLOUD_TTS=true `
+  --dart-define=ELEVENLABS_PROXY_URL=http://localhost:8787/tts `
+  --dart-define=ELEVENLABS_VOICE_ID=EYQ7WzWOUhRLHwL7i08O `
+  --dart-define=ECHO_TELEGRAM_BRIDGE_URL=http://localhost:8790
 ```
 
-### 2. Run the App
-```bash
-# Development (Chrome for fast iteration)
+For a local-only run without ElevenLabs or Telegram:
+
+```powershell
 flutter run -d chrome
-
-# Mobile (iOS)
-flutter run -d ios
-
-# Mobile (Android)
-flutter run -d android
 ```
 
+The app supports demo OTP `000000` for local sign-up/testing.
 
----
+## Health Check Before Recording
 
-##  Project Structure
-
-```
-lib/
-├── main.dart                 # App entry point
-├── theme.dart               # Design system (colors, fonts)
-├── screens/
-│   ├── onboarding_flow.dart  # 7-page onboarding journey
-│   ├── emergency_active_screen.dart  # Real-time emergency UI
-│   ├── home_screen.dart      # Main dashboard (TODO)
-│   └── ...
-└── services/
-    ├── voice_recognition_service.dart    # (Placeholder)
-    ├── location_tracker_service.dart     # (Placeholder)
-    ├── gemma_analysis_service.dart       # (Placeholder)
-    └── notification_service.dart         # (Placeholder)
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\check_demo_health.ps1"
 ```
 
----
+Expected healthy output:
 
-##  Common Commands
+```text
+Gemma: ready and active
+ElevenLabs: ready
+Telegram bridge: ready
+Echo demo context: loaded
+```
 
-| Command | Purpose |
-|---------|---------|
-| `flutter run` | Run on emulator/device |
-| `flutter run -d chrome` | Web browser (fastest for iteration) |
-| `flutter analyze` | Check code issues |
-| `flutter format lib/` | Auto-format code |
-| `flutter clean` | Clear build cache |
-| `flutter pub upgrade` | Update dependencies |
+Gemma audio is optional and may show unavailable unless you also start the experimental audio proxy.
 
----
+## Experimental Gemma Audio Path
 
-##  Getting Oriented
+Direct WAV understanding is intentionally opt-in because it can take minutes on CPU.
 
-### First Time Here?
-1. Read [ARCHITECTURE.md](ARCHITECTURE.md) (5-10 min overview)
-2. Explore [lib/screens/onboarding_flow.dart](lib/screens/onboarding_flow.dart) to see page structure
-3. Check [DESIGN_BRIEF.md](DESIGN_BRIEF.md) for color/font usage
+```powershell
+$env:GEMMA_SERVER_URL="http://127.0.0.1:8080"
+$env:GEMMA_MODEL_NAME="gemma-4-E2B-it-Q8_0"
+node scripts\gemma_audio_proxy.mjs
+```
 
-### Adding a Feature?
-1. Reference the service pattern in ARCHITECTURE.md
-2. Create new service file in `lib/services/`
-3. Wire into state manager (EmergencyStateManager)
-4. Add UI in appropriate screen file
+Then run Flutter with:
 
-### Fixing a Bug?
-1. Run `flutter analyze` to spot issues
-2. Check [ARCHITECTURE.md](ARCHITECTURE.md) workflow section
-3. Test in Chrome first (faster reload cycles)
+```powershell
+flutter run -d chrome --dart-define=GEMMA_AUDIO_PROXY_URL=http://localhost:8788/audio/analyze --dart-define=ECHO_ENABLE_GEMMA_AUDIO_FALLBACK=true
+```
 
-### Design Changes?
-1. Update colors/fonts in [lib/theme.dart](lib/theme.dart)
-2. Reference [DESIGN_BRIEF.md](DESIGN_BRIEF.md) for rules
-3. Run `flutter format` to keep code clean
+For the demo, keep this disabled unless you specifically want to show the slower audio experiment.
 
----
+## Build And Checks
 
-##  Current Template Status
+```powershell
+flutter analyze
+flutter test
+flutter build web
+flutter build apk
+```
 
-###  Completed
-- Onboarding flow (7 pages)
-- Emergency active screen (3 WOW widgets)
-- Theme system (colors, typography)
-- Voice phrase recording UI
-- X OAuth template (Page 5)
-- Audio/haptic preview (Page 6)
+`flutter build apk` is for internal/team testing. The hackathon submission story should center on the functional web demo and repo, not a guaranteed production Android on-device inference runtime.
 
-###  In Progress
-- Home screen design
-- Contact management UI
-- Settings / preferences
+## Secrets Policy
 
-###  Deferred (Post-Launch)
-- IncidentRepository (local storage)
-- Actual service implementations (voice, location, Gemma)
-- Incident history screen
+Do not commit `.env`, API keys, Telegram tokens, generated credential exports, model files, or downloaded GGUF/mmproj assets. Use PowerShell environment variables or local ignored config files for personal secrets.
 
----
+## Key Paths
 
-##  Documentation
-
-| Document | For | Purpose |
-|----------|-----|---------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Developers | Service layer, state management, workflows |
-| [DESIGN_BRIEF.md](DESIGN_BRIEF.md) | Designers | Brand guidelines, color system, design philosophy |
-| [DESIGN_CHECKLIST.md](DESIGN_CHECKLIST.md) | Designers | Screen specs, wireframes, to-do lists |
-| [lib/theme.dart](lib/theme.dart) | Developers | Color palette (copy exact values from here) |
-
----
-
-##  Issues?
-
-**App won't run?**
-- `flutter clean` → `flutter pub get` → `flutter run -d chrome`
-
-**Colors look wrong?**
-- Check [lib/theme.dart](lib/theme.dart) — use EchoColors constants, not hardcoded values
-
-**Design questions?**
-- Reference [DESIGN_BRIEF.md](DESIGN_BRIEF.md) sections
-
-**Architecture questions?**
-- Check [ARCHITECTURE.md](ARCHITECTURE.md) service patterns
-
----
-
-
-**Questions? Read the docs first, then ask in Whatsapp Group.** 
-
-Good luck! 🚀
+- `lib\screens\home\home_screen.dart` - voice SOS and conversation entry point
+- `lib\screens\home\emergency_active_screen.dart` - escalation UI and bridge polling
+- `lib\services\gemma` - local Gemma/llama.cpp integration
+- `lib\services\sound` - speech, transcription, and TTS services
+- `lib\services\model` - model catalog and download-state simulation
+- `scripts\check_demo_health.ps1` - demo readiness check
+- `scripts\elevenlabs_tts_proxy.mjs` - local ElevenLabs proxy
+- `scripts\telegram_escalation_bridge.mjs` - local Telegram bridge

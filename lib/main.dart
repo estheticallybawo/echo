@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
-
+import 'screens/account-setups/system_test_screen.dart';
 import 'screens/account-setups/permission_setup_screen.dart';
 import 'screens/account-setups/tier1_inner_circle_setup_screen.dart';
 import 'screens/account-setups/tier2_public_alert_setup_screen.dart';
@@ -23,6 +23,7 @@ import 'providers/escalation_provider.dart';
 import 'providers/gemma_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_preferences_provider.dart';
+import 'services/demo/demo_emergency_service.dart';
 import 'services/gemma/llama_threat_service.dart';
 import 'services/local_storage_service.dart';
 import 'theme.dart';
@@ -30,13 +31,12 @@ import 'screens/onboarding/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize local storage (must be before Firebase)
   await LocalStorageService().initialize();
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await DemoEmergencyService().restore();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     MultiProvider(
       providers: [
@@ -44,9 +44,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UserPreferencesProvider()),
         ChangeNotifierProvider(create: (_) => EscalationProvider()),
         ChangeNotifierProvider(
-          create: (_) => GemmaProvider(
-            llamaThreatService: LlamaThreatService(),
-          ),
+          create: (_) =>
+              GemmaProvider(llamaThreatService: LlamaThreatService()),
         ),
       ],
       child: const EchoApp(),
@@ -69,19 +68,24 @@ class EchoApp extends StatelessWidget {
       routes: {
         '/account-setups': (context) => const AccountSetupsScreen(),
         '/permission-setup': (context) => const AccountSetupsScreen(),
-        '/tier1-inner-circle-setup': (context) => const Tier1InnerCircleSetupScreen(),
-        '/tier2-public-alert-setup': (context) => const Tier2PublicAlertSetupScreen(),
+        '/tier1-inner-circle-setup': (context) =>
+            const Tier1InnerCircleSetupScreen(),
+        '/tier2-public-alert-setup': (context) =>
+            const Tier2PublicAlertSetupScreen(),
         '/onboarding': (context) => const OnboardingFlow(),
         '/home': (context) => const MainScaffold(),
+        '/main': (context) => const MainScaffold(),
         '/ai-intel': (context) => const AiIntelScreen(),
         '/contacts': (context) => const ContactsScreen(),
         '/emergency-active': (context) => const EmergencyActiveScreen(),
         '/activity': (context) => const ActivityScreen(),
         '/notifications': (context) => const NotificationScreen(),
         '/terms-privacy': (context) => const TermsPrivacyScreen(),
-        '/threat-analysis-result': (context) => const ThreatAnalysisResultScreen(),
+        '/threat-analysis-result': (context) =>
+            const ThreatAnalysisResultScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/system-test-screen': (context) => const SystemTestScreen(),
       },
     );
   }

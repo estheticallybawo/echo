@@ -8,6 +8,7 @@
 /// final e2e = E2ETestHelper();
 /// await e2e.runScenario(E2EScenario.normalThreatResponse);
 /// ```
+library;
 
 import '../logging/echo_logger.dart';
 import '../../services/gemma/llama_threat_service.dart';

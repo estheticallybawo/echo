@@ -7,7 +7,6 @@ class EscalationProvider with ChangeNotifier {
   int _elapsedSeconds = 0;
   Timer? _timer;
 
-
   VoidCallback? onTier1Activate;
   VoidCallback? onTier2Escalate;
   VoidCallback? onTier3Escalate;
@@ -15,11 +14,11 @@ class EscalationProvider with ChangeNotifier {
   Incident? get currentIncident => _currentIncident;
   int get elapsedSeconds => _elapsedSeconds;
   bool get isActive => _currentIncident != null;
-  
+
   int get currentTier {
     if (_elapsedSeconds < 5) return 0;
-    if (_elapsedSeconds < 60) return 1;
-    if (_elapsedSeconds < 90) return 2;
+    if (_elapsedSeconds < 15) return 1;
+    if (_elapsedSeconds < 25) return 2;
     return 3;
   }
 
@@ -44,20 +43,20 @@ class EscalationProvider with ChangeNotifier {
     );
     _elapsedSeconds = 0;
     _timer?.cancel();
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _elapsedSeconds++;
-      
+
       if (_elapsedSeconds == 5) {
         _activateTier1();
-      } else if (_elapsedSeconds == 60) {
+      } else if (_elapsedSeconds == 15) {
         _activateTier2();
-      } else if (_elapsedSeconds == 90) {
+      } else if (_elapsedSeconds == 25) {
         _activateTier3();
       } else if (_elapsedSeconds >= 180) {
         _resolveEmergency();
       }
-      
+
       notifyListeners();
     });
     notifyListeners();

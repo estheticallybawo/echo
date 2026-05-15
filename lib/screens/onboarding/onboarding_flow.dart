@@ -6,7 +6,7 @@ import '../auth/auth_screen.dart';
 
 class OnboardingState extends ChangeNotifier {
   int _currentStep = 0;
-  
+
   double _audioLevel = 0.5;
 
   int get currentStep => _currentStep;
@@ -19,7 +19,8 @@ class OnboardingState extends ChangeNotifier {
   void _monitorAudioLevels() async {
     while (true) {
       await Future.delayed(const Duration(milliseconds: 200));
-      _audioLevel = 0.3 + (0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000);
+      _audioLevel =
+          0.3 + (0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000);
       notifyListeners();
     }
   }
@@ -74,12 +75,9 @@ class _OnboardingScreen extends StatelessWidget {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0.0, -0.2), 
+            center: Alignment(0.0, -0.2),
             radius: 1.0,
-            colors: [
-              Color(0xFF0F3169),
-              Color(0xFF02091A),
-            ],
+            colors: [Color(0xFF0F3169), Color(0xFF02091A)],
             stops: [0.0, 1.0],
           ),
         ),
@@ -90,13 +88,13 @@ class _OnboardingScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Spacer(flex: 3),
-                
-               
+
                 Center(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutQuad,
-                    transform: Matrix4.identity()..scale(1.0 + (state.audioLevel * 0.15)),
+                    transform: Matrix4.identity()
+                      ..scale(1.0 + (state.audioLevel * 0.15)),
                     transformAlignment: Alignment.center,
                     child: Image.asset(
                       'assets/onboarding/Echosoundwave.png',
@@ -106,10 +104,9 @@ class _OnboardingScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
-                const SizedBox(height: 26), 
 
-                
+                const SizedBox(height: 26),
+
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: RichText(
@@ -126,8 +123,8 @@ class _OnboardingScreen extends StatelessWidget {
                           text: step == 0
                               ? "You deserve to feel safe, even when you're alone. "
                               : step == 1
-                                  ? "Hands-free protection wherever you are. "
-                                  : "Smart safety features for the real world. ",
+                              ? "Hands-free protection wherever you are. "
+                              : "Smart safety features for the real world. ",
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -142,10 +139,10 @@ class _OnboardingScreen extends StatelessWidget {
                         ),
                         TextSpan(
                           text: step == 0
-                              ? "listens for you and alerts help instantly when something feels wrong."
+                              ? "listens for you and starts a help flow when something feels wrong."
                               : step == 1
-                                  ? "detects signs of danger and silently notifies your emergency contacts."
-                                  : "live location tracking and automatic voice recording, help is always on the way.",
+                              ? "uses context to decide when to answer, monitor, or escalate."
+                              : "location context, optional voice snippets, and timed escalation help responders understand what is happening.",
                           style: const TextStyle(
                             color: Color(0xFF6B7A99),
                             fontWeight: FontWeight.w600,
@@ -158,7 +155,6 @@ class _OnboardingScreen extends StatelessWidget {
 
                 const Spacer(flex: 4),
 
-               
                 AnimatedOpacity(
                   duration: const Duration(milliseconds: 600),
                   opacity: step >= 1 ? 1.0 : 0.0,
@@ -175,21 +171,26 @@ class _OnboardingScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 400),
                   child: step == 2
                       ? Padding(
-                          padding: const EdgeInsets.only(bottom: 24.0, top: 16.0),
+                          padding: const EdgeInsets.only(
+                            bottom: 24.0,
+                            top: 16.0,
+                          ),
                           child: Container(
                             width: double.infinity,
                             height: 56,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(30),
-                              color: const Color(0xFF2563EB), 
+                              color: const Color(0xFF2563EB),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                                  color: const Color(
+                                    0xFF2563EB,
+                                  ).withOpacity(0.3),
                                   offset: const Offset(0, 4),
                                   blurRadius: 12,
                                   spreadRadius: 2,
@@ -218,7 +219,10 @@ class _OnboardingScreen extends StatelessWidget {
                           ),
                         )
                       : Padding(
-                          padding: const EdgeInsets.only(bottom: 24.0, top: 16.0),
+                          padding: const EdgeInsets.only(
+                            bottom: 24.0,
+                            top: 16.0,
+                          ),
                           child: Row(
                             key: const ValueKey('arrows'),
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -229,7 +233,9 @@ class _OnboardingScreen extends StatelessWidget {
                                 child: IgnorePointer(
                                   ignoring: step == 0,
                                   child: InkWell(
-                                    onTap: () => context.read<OnboardingState>().previousStep(),
+                                    onTap: () => context
+                                        .read<OnboardingState>()
+                                        .previousStep(),
                                     borderRadius: BorderRadius.circular(50),
                                     child: Container(
                                       padding: const EdgeInsets.all(16),
@@ -250,7 +256,8 @@ class _OnboardingScreen extends StatelessWidget {
                                 ),
                               ),
                               InkWell(
-                                onTap: () => context.read<OnboardingState>().nextStep(),
+                                onTap: () =>
+                                    context.read<OnboardingState>().nextStep(),
                                 borderRadius: BorderRadius.circular(50),
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
@@ -259,7 +266,9 @@ class _OnboardingScreen extends StatelessWidget {
                                     color: EchoColors.primary,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: EchoColors.primary.withOpacity(0.4),
+                                        color: EchoColors.primary.withOpacity(
+                                          0.4,
+                                        ),
                                         blurRadius: 20,
                                         spreadRadius: 4,
                                         offset: const Offset(0, 4),
@@ -285,5 +294,3 @@ class _OnboardingScreen extends StatelessWidget {
     );
   }
 }
-
-

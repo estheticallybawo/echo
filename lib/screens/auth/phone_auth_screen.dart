@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'profile_setup_screen.dart';
-import 'otp_verification_screen.dart';
+import 'package:echo/theme.dart';
 import '../../services/local_storage_service.dart';
+import 'otp_verification_screen.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({super.key});
@@ -15,10 +14,8 @@ class PhoneAuthScreen extends StatefulWidget {
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _phoneController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocalStorageService _localStorage = LocalStorageService();
-  
-  String? _verificationId;
+
   bool _isLoading = false;
   String? _error;
 
@@ -29,89 +26,51 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   }
 
   Future<void> _handlePhoneAuth() async {
-    if (_formKey.currentState?.validate() ?? false) {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final phone = _normalizePhone(_phoneController.text.trim());
+      final uid = 'demo_phone_${phone.replaceAll(RegExp(r'[^0-9]'), '')}';
+      final returningUser = _localStorage.getUserByUid(uid);
+      final returningName = returningUser?['displayName'] as String?;
+
+      await _localStorage.setCurrentUser(
+        uid: uid,
+        email: phone,
+        displayName: returningName,
+      );
+      debugPrint('[DemoAuth] Local phone verification started for $phone');
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (ctx) => OTPVerificationScreen(phoneNumber: phone),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
       setState(() {
-        _isLoading = true;
-        _error = null;
+        _error = 'Local verification failed: $error';
+        _isLoading = false;
       });
-
-      try {
-        final phone = _phoneController.text.trim();
-        print('🔐 Starting Firebase phone auth for: $phone');
-
-        await _auth.verifyPhoneNumber(
-          phoneNumber: phone,
-          verificationCompleted: (PhoneAuthCredential credential) async {
-            print('✅ Phone auto-verified: $phone');
-            // Auto sign-in for instant verification (rare, mostly for testing)
-            try {
-              final userCredential = await _auth.signInWithCredential(credential);
-              final user = userCredential.user;
-              if (user != null && mounted) {
-                // Save UID locally
-                await _localStorage.setCurrentUser(
-                  uid: user.uid,
-                  email: user.phoneNumber ?? '',
-                  displayName: null,
-                );
-                print('✅ UID saved locally: ${user.uid}');
-                
-                if (mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (ctx) => const ProfileSetupScreen(),
-                    ),
-                  );
-                }
-              }
-            } catch (e) {
-              print('❌ Auto-sign-in failed: $e');
-              setState(() {
-                _error = 'Authentication failed. Please try again.';
-                _isLoading = false;
-              });
-            }
-          },
-          verificationFailed: (FirebaseAuthException e) {
-            print('❌ Phone verification failed: ${e.message}');
-            setState(() {
-              _error = 'Verification failed: ${e.message}';
-              _isLoading = false;
-            });
-          },
-          codeSent: (String verificationId, int? resendToken) {
-            print('📱 OTP sent to: $phone');
-            _verificationId = verificationId;
-            setState(() {
-              _isLoading = false;
-            });
-            
-            // Navigate to OTP verification screen
-            if (mounted) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (ctx) => OTPVerificationScreen(
-                    phoneNumber: phone,
-                    verificationId: verificationId,
-                  ),
-                ),
-              );
-            }
-          },
-          codeAutoRetrievalTimeout: (String verificationId) {
-            print('⏱️ Auto-retrieval timeout for: $phone');
-            _verificationId = verificationId;
-          },
-          timeout: const Duration(minutes: 2),
-        );
-      } catch (e) {
-        print('❌ Phone auth error: $e');
-        setState(() {
-          _error = 'Failed to send code: $e';
-          _isLoading = false;
-        });
-      }
     }
+  }
+
+  String _normalizePhone(String raw) {
+    final trimmed = raw.replaceAll(RegExp(r'\s+'), '');
+    if (trimmed.startsWith('+')) return trimmed;
+    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.startsWith('0') && digits.length == 11) {
+      return '+234${digits.substring(1)}';
+    }
+    if (digits.startsWith('234')) return '+$digits';
+    return '+$digits';
   }
 
   @override
@@ -134,37 +93,30 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          InkWell(
-                            onTap: () => Navigator.of(context).pop(),
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: EchoColors.primaryDark.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
                           ),
-                        ],
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: EchoColors.primaryLight,
+                            size: 20,
+                          ),
+                        ),
                       ),
-
                       const SizedBox(height: 48),
-
                       Text(
-                        "Create your Echo account",
+                        'Create your Echo account',
                         style: GoogleFonts.poppins(
                           fontSize: 26,
                           fontWeight: FontWeight.w600,
@@ -174,22 +126,19 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Set up your safety network in minutes",
+                        'Set up your safety network in minutes',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w400,
                         ),
                       ),
-
                       const SizedBox(height: 48),
-
                       Form(
                         key: _formKey,
                         child: Container(
                           height: 56,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2E3D5E),
+                            color: const Color(0xFFF4F5F5),
                             borderRadius: BorderRadius.circular(28),
                           ),
                           child: Row(
@@ -206,26 +155,20 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                                   controller: _phoneController,
                                   keyboardType: TextInputType.phone,
                                   style: GoogleFonts.poppins(
-                                    color: Colors.white,
+                                    color: EchoColors.primaryDark,
                                     fontSize: 16,
                                   ),
                                   decoration: InputDecoration(
-                                    filled: false,
-                                    fillColor: Colors.transparent,
                                     border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
                                     hintText: 'Enter phone number',
                                     hintStyle: GoogleFonts.poppins(
-                                      color: Colors.white70,
+                                      color: EchoColors.primaryLight
+                                          .withOpacity(0.9),
                                       fontSize: 16,
                                     ),
                                   ),
                                   validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Enter your phone number';
-                                    }
-                                    final digits = value.replaceAll(
+                                    final digits = (value ?? '').replaceAll(
                                       RegExp(r'[^0-9]'),
                                       '',
                                     );
@@ -241,56 +184,33 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
                       Center(
                         child: Text(
-                          "We'll send a code to verify your number",
+                          'Demo verification runs locally. Use code 000000.',
                           style: GoogleFonts.poppins(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 13,
                           ),
                         ),
                       ),
-
                       if (_error != null) ...[
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.withOpacity(0.5)),
-                          ),
-                          child: Text(
-                            _error!,
-                            style: GoogleFonts.poppins(
-                              color: Colors.red.shade300,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
+                        _ErrorMessage(error: _error!),
                       ],
                     ],
                   ),
                 ),
               ),
-
               Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Container(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
                   width: double.infinity,
                   height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handlePhoneAuth,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
+                      backgroundColor: const Color(0xFF2563EB),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -307,7 +227,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                             ),
                           )
                         : Text(
-                            "Continue",
+                            'Continue',
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -320,6 +240,28 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ErrorMessage extends StatelessWidget {
+  final String error;
+
+  const _ErrorMessage({required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.withOpacity(0.5)),
+      ),
+      child: Text(
+        error,
+        style: GoogleFonts.poppins(color: Colors.red.shade300, fontSize: 13),
       ),
     );
   }

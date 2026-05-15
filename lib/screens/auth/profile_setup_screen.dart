@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:echo/theme.dart';
+
 import '../../services/local_storage_service.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -14,9 +15,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocalStorageService _localStorage = LocalStorageService();
-  
+
   bool _agreed = false;
   bool _isLoading = false;
 
@@ -25,6 +25,37 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final currentUser = _localStorage.getCurrentUser();
+      final uid =
+          currentUser?['uid'] as String? ??
+          'demo_user_${DateTime.now().millisecondsSinceEpoch}';
+      final phone = currentUser?['email'] as String? ?? '';
+      final displayName =
+          '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
+
+      await _localStorage.setCurrentUser(
+        uid: uid,
+        email: phone,
+        displayName: displayName,
+      );
+      debugPrint('[DemoAuth] Profile saved locally for $uid');
+
+      if (mounted) Navigator.pushNamed(context, '/permission-setup');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving profile: $error')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -47,12 +78,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -73,26 +103,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             ),
                           ),
                           Row(
-                        children: List.generate(7, (index) {
-                          final bool active = index == 0;
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: active ? 74 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: active ? const Color(0xFF2563EB) : Colors.white24,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          );
-                        }),
+                            children: List.generate(7, (index) {
+                              final active = index == 0;
+                              return Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                width: active ? 74 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? const Color(0xFF2563EB)
+                                      : Colors.white24,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              );
+                            }),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 48),
-
                       Text(
-                        "TELL US ABOUT YOURSELF",
+                        'TELL US ABOUT YOURSELF',
                         style: GoogleFonts.poppins(
                           fontSize: 26,
                           fontWeight: FontWeight.w600,
@@ -106,108 +138,21 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w400,
                         ),
                       ),
-
                       const SizedBox(height: 48),
-
                       Form(
                         key: _formKey,
                         child: Column(
                           children: [
-                            Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(color: Colors.white24, width: 1.0),
-                              ),
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 20),
-                                  const Icon(
-                                    Icons.person_outline,
-                                    color: Colors.blue,
-                                    size: 22,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _firstNameController,
-                                      keyboardType: TextInputType.name,
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                      decoration: InputDecoration(
-                                        filled: false,
-                                        fillColor: Colors.transparent,
-                                        border: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        hintText: 'Enter First Name',
-                                        hintStyle: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
-                                          return 'Enter your first name';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            _NameField(
+                              controller: _firstNameController,
+                              hint: 'Enter First Name',
                             ),
                             const SizedBox(height: 40),
-                            Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(color: Colors.white24, width: 1.0),
-                              ),
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 20),
-                                  const Icon(
-                                    Icons.person_outline,
-                                    color: Colors.blue,
-                                    size: 22,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _lastNameController,
-                                      keyboardType: TextInputType.name,
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                      decoration: InputDecoration(
-                                        filled: false,
-                                        fillColor: Colors.transparent,
-                                        border: InputBorder.none,
-                                        enabledBorder: InputBorder.none,
-                                        focusedBorder: InputBorder.none,
-                                        hintText: 'Enter Last Name',
-                                        hintStyle: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      validator: (value) {
-                                        if (value == null || value.trim().isEmpty) {
-                                          return 'Enter your last name';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            _NameField(
+                              controller: _lastNameController,
+                              hint: 'Enter Last Name',
                             ),
                           ],
                         ),
@@ -220,7 +165,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             width: 24,
                             child: Checkbox(
                               value: _agreed,
-                              onChanged: (val) => setState(() => _agreed = val ?? false),
+                              onChanged: (val) =>
+                                  setState(() => _agreed = val ?? false),
                               activeColor: const Color(0xFF2563EB),
                               checkColor: Colors.white,
                               side: const BorderSide(color: Colors.white38),
@@ -229,10 +175,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, '/terms-privacy'),
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/terms-privacy',
+                              ),
                               child: RichText(
                                 text: TextSpan(
-                                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.white70,
+                                  ),
                                   children: [
                                     const TextSpan(text: 'I agree to the '),
                                     TextSpan(
@@ -255,72 +207,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                 ),
               ),
-
               Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Container(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
                   width: double.infinity,
                   height: 56,
-                  decoration: BoxDecoration(
-                    color: _agreed ? const Color(0xFF2563EB) : const Color(0xFF2563EB).withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
                   child: ElevatedButton(
-                    onPressed: _agreed && !_isLoading ? () async {
-                      if (_formKey.currentState?.validate() ?? false) {
-                        setState(() => _isLoading = true);
-                        
-                        try {
-                          final user = _auth.currentUser;
-                          if (user != null) {
-                            final firstName = _firstNameController.text.trim();
-                            final lastName = _lastNameController.text.trim();
-                            final displayName = '$firstName $lastName';
-                            
-                            print('✅ Saving user profile: $displayName for UID: ${user.uid}');
-                            
-                            // Update display name in LocalStorageService
-                            await _localStorage.setCurrentUser(
-                              uid: user.uid,
-                              email: user.phoneNumber ?? '',
-                              displayName: displayName,
-                            );
-                            
-                            // Also update Firebase profile
-                            await user.updateDisplayName(displayName);
-                            print('✅ Profile saved: $displayName');
-                            
-                            if (mounted) {
-                              Navigator.pushNamed(context, '/permission-setup');
-                            }
-                          } else {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Error: Not authenticated. Please sign in again.')),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          print('❌ Profile save error: $e');
-                          if (mounted) {
+                    onPressed: _agreed && !_isLoading
+                        ? _saveProfile
+                        : () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error saving profile: $e')),
+                              const SnackBar(
+                                content: Text(
+                                  'Please agree to the Terms & Privacy Policy to continue.',
+                                ),
+                              ),
                             );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => _isLoading = false);
-                          }
-                        }
-                      }
-                    } : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please agree to the Terms & Privacy Policy to continue.')),
-                      );
-                    },
+                          },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
+                      backgroundColor: _agreed
+                          ? EchoColors.primary
+                          : const Color(0xFF2563EB).withOpacity(0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -337,7 +244,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             ),
                           )
                         : Text(
-                            "Continue",
+                            'Continue',
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -350,6 +257,52 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NameField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+
+  const _NameField({required this.controller, required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 20),
+          const Icon(Icons.person_outline, color: Colors.blue, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: controller,
+              keyboardType: TextInputType.name,
+              style: GoogleFonts.poppins(color: EchoColors.primary, fontSize: 16),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: hint,
+                hintStyle: GoogleFonts.poppins(
+                  color: EchoColors.primaryDark.withOpacity(0.9),
+                  fontSize: 16,
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Required';
+                }
+                return null;
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

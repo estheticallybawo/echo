@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../theme.dart';
 
-/// Shown after download completes successfully
+/// Shown after the APK model-download path preview completes.
 class AIModelReadyDialog extends StatelessWidget {
   final VoidCallback onContinue;
 
-  const AIModelReadyDialog({
-    required this.onContinue,
-    super.key,
-  });
+  const AIModelReadyDialog({required this.onContinue, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +16,6 @@ class AIModelReadyDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Success animation
             Container(
               width: 80,
               height: 80,
@@ -34,47 +30,42 @@ class AIModelReadyDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-
             Text(
-              '✅ AI Ready!',
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: EchoColors.success,
-                  ),
+              'Model Path Ready',
+              style: Theme.of(
+                context,
+              ).textTheme.displayMedium?.copyWith(color: EchoColors.success),
             ),
             const SizedBox(height: 12),
-
             Text(
-              'Your offline AI assistant is ready.\n\nYou\'ll get better threat assessment now.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: EchoColors.textSecondary,
-                  ),
+              'The model download path is ready for APK testing.\n\nChrome still uses your local Gemma server.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: EchoColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-
-            // Benefits list
             _buildBenefit(
               context,
               icon: Icons.psychology_outlined,
-              title: 'Better Detection',
-              subtitle: 'Faster threat assessment',
+              title: 'Gemma Option',
+              subtitle: 'Model selected for testing',
             ),
             const SizedBox(height: 12),
             _buildBenefit(
               context,
               icon: Icons.speed_outlined,
-              title: 'Instant Analysis',
-              subtitle: 'Offline = no latency',
+              title: 'Compatibility',
+              subtitle: 'RAM and storage checked',
             ),
             const SizedBox(height: 12),
             _buildBenefit(
               context,
               icon: Icons.lock_outline,
-              title: 'Private',
-              subtitle: 'All processing on device',
+              title: 'Isolated Path',
+              subtitle: 'Web demo stays stable',
             ),
             const SizedBox(height: 32),
-
             ElevatedButton(
               onPressed: onContinue,
               style: ElevatedButton.styleFrom(
@@ -110,15 +101,15 @@ class AIModelReadyDialog extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: EchoColors.textTertiary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: EchoColors.textTertiary),
               ),
             ],
           ),

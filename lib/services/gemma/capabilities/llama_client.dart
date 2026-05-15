@@ -15,7 +15,7 @@ class LlamaClient {
     double temperature = 0.0,
     int topK = 10,
     double repeatPenalty = 1.0,
-    Duration timeout = const Duration(seconds: 30),
+    Duration timeout = const Duration(seconds: 400),
   }) async {
     try {
       final response = await _http.post(

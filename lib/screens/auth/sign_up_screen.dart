@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/local_storage_service.dart';
 import 'phone_auth_screen.dart';
-import '../home/terms_privacy_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,7 +11,14 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final bool _agreed = false;
+  final LocalStorageService _localStorage = LocalStorageService();
+  Map<String, dynamic>? _returningUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _returningUser = _localStorage.getCurrentUser();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +30,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           gradient: RadialGradient(
             center: Alignment(0.0, -0.3),
             radius: 1.2,
-            colors: [
-              Color(0xFF0F3169),
-              Color(0xFF02091A),
-            ],
+            colors: [Color(0xFF0F3169), Color(0xFF02091A)],
             stops: [0.0, 1.0],
           ),
         ),
@@ -37,7 +41,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                
+
                 Row(
                   children: [
                     InkWell(
@@ -58,9 +62,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 48),
-                
+
                 Text(
                   "Create your Echo account",
                   style: GoogleFonts.poppins(
@@ -79,11 +83,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                
+
                 const SizedBox(height: 48),
 
+                if (_returningUser != null &&
+                    ((_returningUser!['displayName'] as String?) ?? '')
+                        .trim()
+                        .isNotEmpty) ...[
+                  _AuthButton(
+                    text: 'Continue as ${_returningUser!['displayName']}',
+                    backgroundColor: const Color(0xFF00A3C4),
+                    onPressed: () {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/system-test-screen',
+                        (_) => false,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Your phone, profile, and contacts are already saved on this device.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
                 _AuthButton(
-                  text: 'Sign up with Phone number',
+                  text: _returningUser == null
+                      ? 'Sign up with Phone number'
+                      : 'Use another phone number',
                   backgroundColor: const Color(0xFF2563EB),
                   onPressed: () {
                     Navigator.of(context).push(
@@ -123,16 +157,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   text: 'Continue with Google',
                   iconWidget: _buildGoogleIcon(),
                   backgroundColor: const Color(0xFF2E3D5E),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(
+                      context,
+                    ).pushReplacementNamed('/account-setups');
+                  },
                 ),
 
                 const SizedBox(height: 16),
 
                 _AuthButton(
                   text: 'Continue with Apple',
-                  iconWidget: const Icon(Icons.apple, color: Colors.white, size: 24),
+                  iconWidget: const Icon(
+                    Icons.apple,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                   backgroundColor: const Color(0xFF2E3D5E),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(
+                      context,
+                    ).pushReplacementNamed('/system-test-screen');
+                  },
                 ),
 
                 const Spacer(),
@@ -204,10 +250,7 @@ class _AuthButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (iconWidget != null) ...[
-              iconWidget!,
-              const SizedBox(width: 12),
-            ],
+            if (iconWidget != null) ...[iconWidget!, const SizedBox(width: 12)],
             Text(
               text,
               style: GoogleFonts.poppins(

@@ -55,7 +55,7 @@ class CommunityFeedEntry {
 
   /// Get formatted feed message
   String getFeedMessage() {
-    return "Echo was triggered at ${getDisplayLocation()} and it's been ${getTimeElapsed()}. Help amplify using $hashTag";
+    return "Echo case reported near ${getDisplayLocation()} ${getTimeElapsed()}. Exact map links stay private. Help amplify using $hashTag";
   }
 
   /// Copy with method for state management

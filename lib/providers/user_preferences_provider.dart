@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/user_profile_service.dart';
 import '../services/gemma/gemma_decision_engine.dart';
+import '../services/local_storage_service.dart';
 
 /// Track C: User Preferences Provider
 /// Manages user-specific settings and profile data
@@ -9,6 +10,7 @@ import '../services/gemma/gemma_decision_engine.dart';
 class UserPreferencesProvider extends ChangeNotifier {
   final UserProfileService _userProfileService = UserProfileService();
   final GemmaDecisionEngine _decisionEngine = GemmaDecisionEngine();
+  final LocalStorageService _localStorage = LocalStorageService();
 
   // User profile data
   String? _userId;
@@ -18,7 +20,7 @@ class UserPreferencesProvider extends ChangeNotifier {
   bool _onboardingComplete = false;
   String _threatThreshold = 'medium';
   bool _autoEscalateEnabled = true;
-  
+
   // Notification preferences
   bool _smsAlertsEnabled = true;
   bool _whatsappAlertsEnabled = true;
@@ -28,6 +30,9 @@ class UserPreferencesProvider extends ChangeNotifier {
   bool _shareLocationWithContacts = true;
   bool _allowPublicPosts = true;
   bool _storeIncidentHistory = true;
+  bool _alwaysListeningEnabled = true;
+  bool _cloudProcessingEnabled = false;
+  bool _saveVoiceSnippetsEnabled = false;
 
   // Emergency contacts
   List<Map<String, dynamic>> _emergencyContacts = [];
@@ -51,6 +56,9 @@ class UserPreferencesProvider extends ChangeNotifier {
   bool get shareLocationWithContacts => _shareLocationWithContacts;
   bool get allowPublicPosts => _allowPublicPosts;
   bool get storeIncidentHistory => _storeIncidentHistory;
+  bool get alwaysListeningEnabled => _alwaysListeningEnabled;
+  bool get cloudProcessingEnabled => _cloudProcessingEnabled;
+  bool get saveVoiceSnippetsEnabled => _saveVoiceSnippetsEnabled;
 
   List<Map<String, dynamic>> get emergencyContacts => _emergencyContacts;
   Map<String, dynamic> get threatProfile => _threatProfile;
@@ -58,8 +66,16 @@ class UserPreferencesProvider extends ChangeNotifier {
   /// Initialize user profile on first app launch or re-login
   Future<void> initializeUserProfile() async {
     try {
-      print('🔄 Loading user profile...');
-      
+      debugPrint('🔄 Loading user profile...');
+
+      final localUser = _localStorage.getCurrentUser();
+      if (localUser != null) {
+        _userId = localUser['uid'] as String?;
+        _fullName = localUser['displayName'] as String?;
+        _phone = localUser['email'] as String?;
+        _onboardingComplete = (_fullName ?? '').trim().isNotEmpty;
+      }
+
       final profile = await _userProfileService.getUserProfile();
       if (profile != null) {
         _userId = profile['uid'];
@@ -78,13 +94,21 @@ class UserPreferencesProvider extends ChangeNotifier {
 
         // Load privacy settings
         final privacySettings = profile['privacy_settings'] ?? {};
-        _shareLocationWithContacts = privacySettings['share_location_with_contacts'] ?? true;
+        _shareLocationWithContacts =
+            privacySettings['share_location_with_contacts'] ?? true;
         _allowPublicPosts = privacySettings['allow_public_posts'] ?? true;
-        _storeIncidentHistory = privacySettings['store_incident_history'] ?? true;
+        _storeIncidentHistory =
+            privacySettings['store_incident_history'] ?? true;
+        _alwaysListeningEnabled =
+            privacySettings['always_listening_enabled'] ?? true;
+        _cloudProcessingEnabled =
+            privacySettings['cloud_processing_enabled'] ?? false;
+        _saveVoiceSnippetsEnabled =
+            privacySettings['save_voice_snippets_enabled'] ?? false;
 
-        print('✅ User profile loaded: $_fullName');
+        debugPrint('✅ User profile loaded: $_fullName');
       } else {
-        print('⚠️ No user profile found - onboarding required');
+        debugPrint('⚠️ No user profile found - onboarding required');
         _onboardingComplete = false;
       }
 
@@ -96,7 +120,7 @@ class UserPreferencesProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('❌ Error initializing user profile: $e');
+      debugPrint('❌ Error initializing user profile: $e');
     }
   }
 
@@ -119,9 +143,9 @@ class UserPreferencesProvider extends ChangeNotifier {
       _onboardingComplete = true;
 
       notifyListeners();
-      print('✅ User profile created');
+      debugPrint('✅ User profile created');
     } catch (e) {
-      print('❌ Error creating user profile: $e');
+      debugPrint('❌ Error creating user profile: $e');
     }
   }
 
@@ -142,9 +166,9 @@ class UserPreferencesProvider extends ChangeNotifier {
 
       await loadEmergencyContacts();
       notifyListeners();
-      print('✅ Emergency contact added');
+      debugPrint('✅ Emergency contact added');
     } catch (e) {
-      print('❌ Error adding emergency contact: $e');
+      debugPrint('❌ Error adding emergency contact: $e');
     }
   }
 
@@ -154,7 +178,7 @@ class UserPreferencesProvider extends ChangeNotifier {
       _emergencyContacts = await _userProfileService.getEmergencyContacts();
       notifyListeners();
     } catch (e) {
-      print('❌ Error loading emergency contacts: $e');
+      debugPrint('❌ Error loading emergency contacts: $e');
     }
   }
 
@@ -164,9 +188,9 @@ class UserPreferencesProvider extends ChangeNotifier {
       await _userProfileService.updateThreatThreshold(newThreshold);
       _threatThreshold = newThreshold;
       notifyListeners();
-      print('✅ Threat threshold updated: $newThreshold');
+      debugPrint('✅ Threat threshold updated: $newThreshold');
     } catch (e) {
-      print('❌ Error updating threat threshold: $e');
+      debugPrint('❌ Error updating threat threshold: $e');
     }
   }
 
@@ -176,9 +200,9 @@ class UserPreferencesProvider extends ChangeNotifier {
       // Note: In real implementation, add this to UserProfileService
       _autoEscalateEnabled = enabled;
       notifyListeners();
-      print('✅ Auto-escalation ${enabled ? 'enabled' : 'disabled'}');
+      debugPrint('✅ Auto-escalation ${enabled ? 'enabled' : 'disabled'}');
     } catch (e) {
-      print('❌ Error toggling auto-escalation: $e');
+      debugPrint('❌ Error toggling auto-escalation: $e');
     }
   }
 
@@ -194,9 +218,9 @@ class UserPreferencesProvider extends ChangeNotifier {
       if (emailAlerts != null) _emailAlertsEnabled = emailAlerts;
 
       notifyListeners();
-      print('✅ Notification preferences updated');
+      debugPrint('✅ Notification preferences updated');
     } catch (e) {
-      print('❌ Error updating notification preferences: $e');
+      debugPrint('❌ Error updating notification preferences: $e');
     }
   }
 
@@ -205,6 +229,9 @@ class UserPreferencesProvider extends ChangeNotifier {
     required bool shareLocation,
     required bool allowPublicPosts,
     required bool storeIncidentHistory,
+    required bool alwaysListeningEnabled,
+    required bool cloudProcessingEnabled,
+    required bool saveVoiceSnippetsEnabled,
   }) async {
     try {
       await _userProfileService.updatePrivacySettings(
@@ -216,11 +243,14 @@ class UserPreferencesProvider extends ChangeNotifier {
       _shareLocationWithContacts = shareLocation;
       _allowPublicPosts = allowPublicPosts;
       _storeIncidentHistory = storeIncidentHistory;
+      _alwaysListeningEnabled = alwaysListeningEnabled;
+      _cloudProcessingEnabled = cloudProcessingEnabled;
+      _saveVoiceSnippetsEnabled = saveVoiceSnippetsEnabled;
 
       notifyListeners();
-      print('✅ Privacy settings updated');
+      debugPrint('✅ Privacy settings updated');
     } catch (e) {
-      print('❌ Error updating privacy settings: $e');
+      debugPrint('❌ Error updating privacy settings: $e');
     }
   }
 
@@ -229,9 +259,9 @@ class UserPreferencesProvider extends ChangeNotifier {
     try {
       _threatProfile = await _decisionEngine.getUserThreatProfile();
       notifyListeners();
-      print('✅ Threat profile loaded');
+      debugPrint('✅ Threat profile loaded');
     } catch (e) {
-      print('❌ Error loading threat profile: $e');
+      debugPrint('❌ Error loading threat profile: $e');
     }
   }
 
@@ -239,7 +269,7 @@ class UserPreferencesProvider extends ChangeNotifier {
   Future<String> getUserThreatLevelRecommendation() async {
     try {
       final incidentCount = _threatProfile['incident_count'] ?? 0;
-      
+
       if (incidentCount > 5) {
         return 'HIGH: Consider enabling high-sensitivity alerting';
       } else if (incidentCount > 2) {
@@ -260,10 +290,10 @@ class UserPreferencesProvider extends ChangeNotifier {
     try {
       final hasContacts = _emergencyContacts.isNotEmpty;
       final isOnboarded = _onboardingComplete;
-      
+
       return hasContacts && isOnboarded;
     } catch (e) {
-      print('❌ Error checking emergency readiness: $e');
+      debugPrint('❌ Error checking emergency readiness: $e');
       return false;
     }
   }

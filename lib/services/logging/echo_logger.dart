@@ -6,6 +6,12 @@ class EchoLogger {
   EchoLogger._();
 
   static const String _prefix = '🔔 ECHO';
+  static String _redact(dynamic value) {
+    final text = value?.toString() ?? '';
+    if (text.isEmpty) return text;
+    if (text.length <= 6) return '[REDACTED]';
+    return '${text.substring(0, 2)}***${text.substring(text.length - 2)}';
+  }
 
   /// Log feature initiation
   static void featureStart(String featureName, {Map<String, dynamic>? context}) {
@@ -34,7 +40,13 @@ class EchoLogger {
 
   /// Log data/input
   static void data(String label, dynamic value) {
-    print('📝 [$_prefix] $label: $value');
+    final piiLabel = label.toLowerCase();
+    final isSensitive = piiLabel.contains('transcript') ||
+        piiLabel.contains('location') ||
+        piiLabel.contains('contact') ||
+        piiLabel.contains('phone') ||
+        piiLabel.contains('email');
+    print('📝 [$_prefix] $label: ${isSensitive ? _redact(value) : value}');
   }
 
   /// Log analysis/result
@@ -109,13 +121,13 @@ class EchoLogger {
   /// Log voice transcript received
   static void voiceTranscript(String transcript) {
     print('🎤 [$_prefix] VOICE TRANSCRIPT RECEIVED');
-    print('   Text: "$transcript"');
+    print('   Text: [REDACTED]');
   }
 
   /// Log voice response generation
   static void voiceResponse(String message, {int? durationMs}) {
     print('🔊 [$_prefix] VOICE RESPONSE GENERATED');
-    print('   Text: "$message"');
+    print('   Text: ${_redact(message)}');
     if (durationMs != null) {
       print('   Duration: ${durationMs}ms');
     }

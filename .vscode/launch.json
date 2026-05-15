@@ -1,5 +1,7 @@
 {
     "configurations": [
+        
+
         {
             "name": "echo (Flutter)",
             "program": "lib/main.dart",

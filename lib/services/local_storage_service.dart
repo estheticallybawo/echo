@@ -42,36 +42,44 @@ class LocalStorageService {
   }
 
   // ==================== USERS BOX ====================
-  /// Save current user (firebase UID + basic info)
+  /// Save current user (local demo UID + basic info).
   Future<void> setCurrentUser({
     required String uid,
     required String email,
     required String? displayName,
   }) async {
-    await _usersBox.put('current_user', {
+    final existing = getUserByUid(uid) ?? getCurrentUser();
+    final existingDisplayName = existing?['displayName'] as String?;
+    final existingCreatedAt = existing?['createdAt'] as String?;
+    final incomingDisplayName = displayName?.trim() ?? '';
+    final user = {
       'uid': uid,
       'email': email,
-      'displayName': displayName ?? '',
-      'createdAt': DateTime.now().toIso8601String(),
-    });
+      'displayName': incomingDisplayName.isNotEmpty
+          ? incomingDisplayName
+          : (existingDisplayName ?? ''),
+      'createdAt': existingCreatedAt ?? DateTime.now().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+
+    await _usersBox.put('current_user', user);
+    await _usersBox.put('user_$uid', user);
   }
 
   /// Get current user UID (used to isolate all user data)
   String? getCurrentUserUid() {
-    final user = _usersBox.get('current_user');
-    if (user is Map) {
-      return user['uid'] as String?;
-    }
-    return null;
+    return getCurrentUser()?['uid'] as String?;
   }
 
   /// Get full current user data
   Map<String, dynamic>? getCurrentUser() {
     final user = _usersBox.get('current_user');
-    if (user is Map) {
-      return Map<String, dynamic>.from(user);
-    }
-    return null;
+    return _asStringMap(user);
+  }
+
+  Map<String, dynamic>? getUserByUid(String uid) {
+    final user = _usersBox.get('user_$uid');
+    return _asStringMap(user);
   }
 
   /// Clear user on logout
@@ -87,13 +95,14 @@ class LocalStorageService {
     final key = 'contacts_$userId';
     final data = _contactsBox.get(key);
     if (data is List) {
-      return data.cast<Map<String, dynamic>>();
+      return data.map(_asStringMap).whereType<Map<String, dynamic>>().toList();
     }
     return [];
   }
 
   /// Add emergency contact
-  Future<void> addContact(String userId, {
+  Future<void> addContact(
+    String userId, {
     required String name,
     required String phoneNumber,
   }) async {
@@ -117,7 +126,9 @@ class LocalStorageService {
   }
 
   /// Update emergency contact
-  Future<void> updateContact(String userId, int contactId, {
+  Future<void> updateContact(
+    String userId,
+    int contactId, {
     required String name,
     required String phoneNumber,
   }) async {
@@ -142,13 +153,14 @@ class LocalStorageService {
     final key = 'incidents_$userId';
     final data = _incidentsBox.get(key);
     if (data is List) {
-      return data.cast<Map<String, dynamic>>();
+      return data.map(_asStringMap).whereType<Map<String, dynamic>>().toList();
     }
     return [];
   }
 
   /// Create new incident record
-  Future<int> createIncident(String userId, {
+  Future<int> createIncident(
+    String userId, {
     required String? audioPath,
     required double? threatLevel,
     required String? transcription,
@@ -156,7 +168,7 @@ class LocalStorageService {
     final key = 'incidents_$userId';
     final incidents = getIncidents(userId);
     final incidentId = DateTime.now().millisecondsSinceEpoch;
-    
+
     incidents.add({
       'id': incidentId,
       'userId': userId,
@@ -168,7 +180,7 @@ class LocalStorageService {
       'markedSafeAt': null,
       'analyzed': false,
     });
-    
+
     await _incidentsBox.put(key, incidents);
     return incidentId;
   }
@@ -186,7 +198,9 @@ class LocalStorageService {
   }
 
   /// Mark incident as analyzed (threat analysis complete)
-  Future<void> markIncidentAnalyzed(String userId, int incidentId, {
+  Future<void> markIncidentAnalyzed(
+    String userId,
+    int incidentId, {
     required double threatLevel,
     required String analysis,
   }) async {
@@ -224,7 +238,11 @@ class LocalStorageService {
   }
 
   /// Save user-specific preference (e.g., language, theme)
-  Future<void> setUserPreference(String userId, String key, dynamic value) async {
+  Future<void> setUserPreference(
+    String userId,
+    String key,
+    dynamic value,
+  ) async {
     await _preferencesBox.put('${userId}_$key', value);
   }
 
@@ -245,5 +263,10 @@ class LocalStorageService {
     await _contactsBox.clear();
     await _incidentsBox.clear();
     await _preferencesBox.clear();
+  }
+
+  Map<String, dynamic>? _asStringMap(dynamic value) {
+    if (value is! Map) return null;
+    return value.map((key, mapValue) => MapEntry(key.toString(), mapValue));
   }
 }

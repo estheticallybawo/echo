@@ -1,4 +1,3 @@
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -17,29 +16,33 @@ class TTSService {
   final FlutterTts _flutterTts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  static const String _elevenLabsBaseUrl = 'https://api.elevenlabs.io/v1/text-to-speech';
-  static const String _defaultVoiceId = String.fromEnvironment(
-    'ELEVENLABS_VOICE_ID',
-    defaultValue: '21m00Tcm4TlvDq8ikWAM',
-  );
-  static const String _apiKeyFromEnvironment = String.fromEnvironment(
-    'ELEVENLABS_API_KEY',
+  static const String _elevenLabsProxyUrl = String.fromEnvironment(
+    'ELEVENLABS_PROXY_URL',
     defaultValue: '',
   );
-
-  String? _apiKey = _apiKeyFromEnvironment.isEmpty ? null : _apiKeyFromEnvironment;
+  static const String _defaultVoiceId = String.fromEnvironment(
+    'ELEVENLABS_VOICE_ID',
+    defaultValue: 'pNInz6obpgDQGcFmaJgB',
+  );
+  String? _sessionToken;
   bool _isInitialized = false;
   bool _isSpeaking = false;
+  bool _cloudProcessingEnabled = false;
 
-  /// Configure ElevenLabs at runtime if you do not want to use --dart-define.
-  void configureElevenLabs({
-    required String apiKey,
+  /// Configure an ephemeral backend-issued token for cloud TTS.
+  /// Do not pass long-lived provider API keys to the client.
+  void configureCloudTtsSession({
+    required String sessionToken,
     String? voiceId,
   }) {
-    _apiKey = apiKey.trim().isEmpty ? null : apiKey.trim();
+    _sessionToken = sessionToken.trim().isEmpty ? null : sessionToken.trim();
     if (voiceId != null && voiceId.trim().isNotEmpty) {
       _selectedVoiceId = voiceId.trim();
     }
+  }
+
+  void setCloudProcessingEnabled(bool enabled) {
+    _cloudProcessingEnabled = enabled;
   }
 
   String _selectedVoiceId = _defaultVoiceId;
@@ -50,8 +53,8 @@ class TTSService {
 
     try {
       await _flutterTts.setLanguage('en-US');
-      await _flutterTts.setPitch(1.0);
-      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setPitch(0.92);
+      await _flutterTts.setSpeechRate(0.46);
 
       // Listen for completion
       _flutterTts.setCompletionHandler(() {
@@ -84,7 +87,7 @@ class TTSService {
       final playedViaElevenLabs = await _speakWithElevenLabs(text);
       if (!playedViaElevenLabs) {
         await _flutterTts.speak(text);
-        debugPrint('🔊 Local TTS: Speaking "$text"');
+        debugPrint('🔊 Local TTS playback started');
       }
     } catch (e) {
       _isSpeaking = false;
@@ -121,24 +124,38 @@ class TTSService {
   }
 
   Future<bool> _speakWithElevenLabs(String text) async {
-    final apiKey = _apiKey;
-    if (apiKey == null || apiKey.isEmpty) {
+    if (!_cloudProcessingEnabled) {
+      return false;
+    }
+
+    final token = _sessionToken;
+    if (token == null || token.isEmpty) {
       return false;
     }
 
     try {
+      if (_elevenLabsProxyUrl.isEmpty) {
+        debugPrint(
+          '⚠️ ElevenLabs proxy URL is not configured; using local TTS fallback',
+        );
+        return false;
+      }
+
       final response = await http.post(
-        Uri.parse('$_elevenLabsBaseUrl/text-to-speech/$_selectedVoiceId/stream'),
+        Uri.parse(_elevenLabsProxyUrl),
         headers: {
-          'xi-api-key': apiKey,
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
           'Accept': 'audio/mpeg',
         },
-        body: '{"text":${_jsonEscape(text)},"model_id":"eleven_multilingual_v2","voice_settings":{"stability":0.4,"similarity_boost":0.8,"style":0.2,"use_speaker_boost":true}}',
+        body:
+            '{"text":${_jsonEscape(text)},"voice_id":${_jsonEscape(_selectedVoiceId)},"model_id":"eleven_multilingual_v2","voice_settings":{"stability":0.72,"similarity_boost":0.82,"style":0.08,"use_speaker_boost":true}}',
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        debugPrint('⚠️ ElevenLabs request failed: ${response.statusCode} ${response.body}');
+        debugPrint(
+          '⚠️ ElevenLabs request failed: ${response.statusCode} ${response.body}',
+        );
         return false;
       }
 
@@ -151,7 +168,7 @@ class TTSService {
       await _audioPlayer.play(BytesSource(Uint8List.fromList(bytes)));
       await _audioPlayer.onPlayerComplete.first;
       _isSpeaking = false;
-      debugPrint('🔊 ElevenLabs: Speaking "$text"');
+      debugPrint('🔊 Cloud TTS playback completed');
       return true;
     } catch (e) {
       debugPrint('⚠️ ElevenLabs TTS failed, falling back to local TTS: $e');

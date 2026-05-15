@@ -28,7 +28,7 @@ class GemmaProvider extends ChangeNotifier {
   List<String>? _cachedSafetyInstructions;
 
   GemmaProvider({required LlamaThreatService llamaThreatService})
-      : _llamaThreatService = llamaThreatService;
+    : _llamaThreatService = llamaThreatService;
 
   // ----------------------------------------------------------------------
   // Location context (injected into threat assessment prompts)
@@ -45,7 +45,9 @@ class GemmaProvider extends ChangeNotifier {
   /// Analyze threat from voice transcript (internal use only).
   /// IMPORTANT: Only call this with transcripts from speech recognition service.
   /// Do NOT expose to UI for manual text input.
-  Future<Map<String, dynamic>> _analyzeVoiceTranscript(String voiceTranscript) async {
+  Future<Map<String, dynamic>> _analyzeVoiceTranscript(
+    String voiceTranscript,
+  ) async {
     isAnalyzing = true;
     error = null;
     notifyListeners();
@@ -123,9 +125,12 @@ class GemmaProvider extends ChangeNotifier {
   // Step‑by‑step instructions (based on last threat assessment)
   // ----------------------------------------------------------------------
   Future<List<String>> getSafetyInstructions() async {
-    if (lastThreatAssessment == null) return ['Stay calm', 'Share your location'];
+    if (lastThreatAssessment == null)
+      return ['Stay calm', 'Entering full emergency mode', 'Echoing your location immediately'];
     if (_cachedSafetyInstructions != null) return _cachedSafetyInstructions!;
-    final instructions = await _llamaThreatService.getSafetyInstructions(threat: lastThreatAssessment!);
+    final instructions = await _llamaThreatService.getSafetyInstructions(
+      threat: lastThreatAssessment!,
+    );
     _cachedSafetyInstructions = instructions;
     return instructions;
   }
@@ -157,8 +162,11 @@ class GemmaProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      final threatLevel = (lastThreatAssessment!['threatLevel'] ?? 'HIGH').toString().toUpperCase();
-      final threatCategory = (lastThreatAssessment!['threat'] ?? 'unknown_threat').toString();
+      final threatLevel = (lastThreatAssessment!['threatLevel'] ?? 'HIGH')
+          .toString()
+          .toUpperCase();
+      final threatCategory =
+          (lastThreatAssessment!['threat'] ?? 'unknown_threat').toString();
       final analysisJson = lastThreatAssessment.toString();
       lastIncidentId = await _firestoreService.logIncident(
         userId: user.uid,
@@ -183,13 +191,14 @@ class GemmaProvider extends ChangeNotifier {
     required String userThreatThreshold,
     required String location,
   }) async {
-    // ... (your existing code – unchanged)
     if (lastThreatAssessment == null || lastIncidentId == null) {
       return {'decision': 'ERROR', 'reason': 'No threat assessment available'};
     }
     try {
-      final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
-      final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
+      final threatType = (lastThreatAssessment!['threat'] ?? 'unknown')
+          .toString();
+      final confidence =
+          (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
       lastDecision = await _decisionEngine.makeEscalationDecision(
         incidentId: lastIncidentId!,
         threatType: threatType,
@@ -213,11 +222,12 @@ class GemmaProvider extends ChangeNotifier {
   }
 
   Future<List<String>> getContactsToNotify() async {
-
     if (lastThreatAssessment == null) return [];
     try {
-      final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
-      final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
+      final threatType = (lastThreatAssessment!['threat'] ?? 'unknown')
+          .toString();
+      final confidence =
+          (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
       final escalationService = EscalationTimerService();
       final currentTier = escalationService.currentTier;
       return await _decisionEngine.getContactsToAlert(
@@ -233,8 +243,10 @@ class GemmaProvider extends ChangeNotifier {
 
   String generateAlertMessage(String location) {
     if (lastThreatAssessment == null) return '';
-    final threatType = (lastThreatAssessment!['threat'] ?? 'unknown').toString();
-    final confidence = (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
+    final threatType = (lastThreatAssessment!['threat'] ?? 'unknown')
+        .toString();
+    final confidence =
+        (lastThreatAssessment!['confidence'] as num?)?.toDouble() ?? 0.0;
     return _decisionEngine.generateAlertMessage(
       threatType: threatType,
       confidence: confidence,
@@ -244,7 +256,11 @@ class GemmaProvider extends ChangeNotifier {
 
   String generatePostPreview(String userName, String location) {
     if (lastThreatAssessment == null) return '';
-    return _llamaThreatService.generateEmergencyPost(userName, location, lastThreatAssessment!);
+    return _llamaThreatService.generateEmergencyPost(
+      userName,
+      location,
+      lastThreatAssessment!,
+    );
   }
 
   Stream<List<IncidentModel>> getIncidentsStream() {

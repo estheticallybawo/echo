@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'profile_setup_screen.dart';
+import 'package:echo/theme.dart';
 import '../../services/local_storage_service.dart';
+import 'profile_setup_screen.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String phoneNumber;
-  final String verificationId;
 
-  const OTPVerificationScreen({
-    required this.phoneNumber,
-    required this.verificationId,
-    super.key,
-  });
+  const OTPVerificationScreen({required this.phoneNumber, super.key});
 
   @override
   State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
@@ -20,9 +15,8 @@ class OTPVerificationScreen extends StatefulWidget {
 
 class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   final TextEditingController _otpController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocalStorageService _localStorage = LocalStorageService();
-  
+
   bool _isLoading = false;
   String? _error;
 
@@ -34,11 +28,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
   Future<void> _verifyOTP() async {
     final otp = _otpController.text.trim();
-    
     if (otp.length != 6) {
-      setState(() {
-        _error = 'OTP must be 6 digits';
-      });
+      setState(() => _error = 'OTP must be 6 digits');
       return;
     }
 
@@ -47,49 +38,35 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       _error = null;
     });
 
-    try {
-      print('🔐 Verifying OTP: $otp');
-      
-      final credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
-        smsCode: otp,
-      );
-
-      final userCredential = await _auth.signInWithCredential(credential);
-      final user = userCredential.user;
-
-      if (user != null) {
-        print('✅ Phone verified! UID: ${user.uid}');
-        
-        // Save UID locally for session persistence
-        await _localStorage.setCurrentUser(
-          uid: user.uid,
-          email: user.phoneNumber ?? widget.phoneNumber,
-          displayName: null,
-        );
-        print('✅ User UID saved to local storage: ${user.uid}');
-
-        if (mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => const ProfileSetupScreen(),
-            ),
-          );
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      print('❌ OTP verification failed: ${e.message}');
+    if (otp != '000000') {
       setState(() {
-        _error = e.message ?? 'Invalid OTP. Please try again.';
+        _error = 'Use demo code 000000';
         _isLoading = false;
       });
-    } catch (e) {
-      print('❌ Verification error: $e');
-      setState(() {
-        _error = 'Error: $e';
-        _isLoading = false;
-      });
+      return;
     }
+
+    final digits = widget.phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    final uid = 'demo_phone_$digits';
+    final returningUser = _localStorage.getUserByUid(uid);
+    final returningName = returningUser?['displayName'] as String?;
+    await _localStorage.setCurrentUser(
+      uid: uid,
+      email: widget.phoneNumber,
+      displayName: returningName,
+    );
+    debugPrint('[DemoAuth] Local OTP accepted for ${widget.phoneNumber}');
+
+    if (!mounted) return;
+    if (returningName != null && returningName.trim().isNotEmpty) {
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/system-test-screen', (_) => false);
+      return;
+    }
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (ctx) => const ProfileSetupScreen()));
   }
 
   @override
@@ -112,34 +89,30 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          InkWell(
-                            onTap: () => Navigator.of(context).pop(),
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
                           ),
-                        ],
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 48),
                       Text(
-                        "Verify your phone",
+                        'Verify your phone',
                         style: GoogleFonts.poppins(
                           fontSize: 26,
                           fontWeight: FontWeight.w600,
@@ -149,10 +122,10 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Enter the 6-digit code sent to ${widget.phoneNumber}",
+                        'Enter demo code 000000 for ${widget.phoneNumber}',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -160,7 +133,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                       Container(
                         height: 56,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2E3D5E),
+                          color: const Color(0xFFE8EAF0),
                           borderRadius: BorderRadius.circular(28),
                         ),
                         child: Row(
@@ -168,7 +141,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             const SizedBox(width: 20),
                             const Icon(
                               Icons.security_rounded,
-                              color: Colors.blue,
+                              color: EchoColors.primary,
                               size: 20,
                             ),
                             const SizedBox(width: 12),
@@ -178,21 +151,21 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                 keyboardType: TextInputType.number,
                                 maxLength: 6,
                                 style: GoogleFonts.poppins(
-                                  color: Colors.white,
+                                  color: EchoColors.primaryDark.withOpacity(
+                                    0.9,
+                                  ),
                                   fontSize: 18,
                                   letterSpacing: 4,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 decoration: InputDecoration(
-                                  filled: false,
-                                  fillColor: Colors.transparent,
                                   border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
                                   counterText: '',
                                   hintText: '000000',
                                   hintStyle: GoogleFonts.poppins(
-                                    color: Colors.white30,
+                                    color: EchoColors.primaryDark.withOpacity(
+                                      0.9,
+                                    ),
                                     fontSize: 18,
                                     letterSpacing: 4,
                                   ),
@@ -202,41 +175,29 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      if (_error != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.withOpacity(0.5)),
-                          ),
-                          child: Text(
-                            _error!,
-                            style: GoogleFonts.poppins(
-                              color: Colors.red.shade300,
-                              fontSize: 13,
-                            ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          _error!,
+                          style: GoogleFonts.poppins(
+                            color: EchoColors.primaryLight,
+                            fontSize: 13,
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Container(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
                   width: double.infinity,
                   height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _verifyOTP,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
+                      backgroundColor: const Color(0xFF2563EB),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -248,12 +209,12 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                                EchoColors.primaryDark,
                               ),
                             ),
                           )
                         : Text(
-                            "Verify Code",
+                            'Verify Code',
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,

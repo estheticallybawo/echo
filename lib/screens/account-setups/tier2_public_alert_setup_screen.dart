@@ -6,17 +6,23 @@ class Tier2PublicAlertSetupScreen extends StatefulWidget {
   const Tier2PublicAlertSetupScreen({super.key});
 
   @override
-  State<Tier2PublicAlertSetupScreen> createState() => _Tier2PublicAlertSetupScreenState();
+  State<Tier2PublicAlertSetupScreen> createState() =>
+      _Tier2PublicAlertSetupScreenState();
 }
 
-class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScreen> {
+class _Tier2PublicAlertSetupScreenState
+    extends State<Tier2PublicAlertSetupScreen> {
   bool shareName = true;
   bool shareLocation = true;
   bool shareTime = true;
   bool shareLink = true;
   bool consented = false;
 
-  Widget _buildToggleItem(String title, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildToggleItem(
+    String title,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return GestureDetector(
       onTap: () => onChanged(!value),
       child: Container(
@@ -70,7 +76,10 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 18,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -98,11 +107,15 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                             children: List.generate(7, (index) {
                               final bool active = index == 6;
                               return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
                                 width: active ? 74 : 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: active ? EchoColors.primary : Colors.white24,
+                                  color: active
+                                      ? EchoColors.primary
+                                      : Colors.white24,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                               );
@@ -141,16 +154,31 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                       const SizedBox(height: 16),
                       Column(
                         children: [
-                          _buildToggleItem('First Name', shareName, (v) => setState(() => shareName = v)),
-                          _buildToggleItem('Your Location', shareLocation, (v) => setState(() => shareLocation = v)),
-                          _buildToggleItem('Time of Alert', shareTime, (v) => setState(() => shareTime = v)),
-                          _buildToggleItem('Live Tracking Link', shareLink, (v) => setState(() => shareLink = v)),
+                          _buildToggleItem(
+                            'First Name',
+                            shareName,
+                            (v) => setState(() => shareName = v),
+                          ),
+                          _buildToggleItem(
+                            'Your Location',
+                            shareLocation,
+                            (v) => setState(() => shareLocation = v),
+                          ),
+                          _buildToggleItem(
+                            'Time of Alert',
+                            shareTime,
+                            (v) => setState(() => shareTime = v),
+                          ),
+                          _buildToggleItem(
+                            'Live Tracking Link',
+                            shareLink,
+                            (v) => setState(() => shareLink = v),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 32),
                       Row(
                         children: [
-                          
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -178,10 +206,15 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                             decoration: BoxDecoration(
                               color: EchoColors.primary.withOpacity(0.15),
                               shape: BoxShape.circle,
-                              border: Border.all(color: EchoColors.primary.withOpacity(0.5), width: 1),
+                              border: Border.all(
+                                color: EchoColors.primary.withOpacity(0.5),
+                                width: 1,
+                              ),
                               image: const DecorationImage(
-                                image: AssetImage('assets/onboarding/echosplashicon.png'),
-                                fit: BoxFit.contain
+                                image: AssetImage(
+                                  'assets/onboarding/echosplashicon.png',
+                                ),
+                                fit: BoxFit.contain,
                               ),
                             ),
                           ),
@@ -194,52 +227,80 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                         decoration: BoxDecoration(
                           color: const Color(0xFF0B1C41).withOpacity(0.4),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: EchoColors.primary.withOpacity(0.3)),
+                          border: Border.all(
+                            color: EchoColors.primary.withOpacity(0.3),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Text('🆘', style: TextStyle(fontSize: 14)),
+                                const Text(
+                                  '🆘',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Ada Chukwu may be in danger',
-                                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Text('📍', style: TextStyle(fontSize: 14)),
+                                const Text(
+                                  '📍',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'D-Line Junction, Port Harcourt',
-                                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.white70,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Text('🕒', style: TextStyle(fontSize: 14)),
+                                const Text(
+                                  '🕒',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   '9:41 AM · Apr 22, 2026',
-                                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    color: Colors.white70,
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 16),
                             Text(
                               "If you're nearby or can help, please share",
-                              style: GoogleFonts.poppins(fontSize: 14, color: Colors.white),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'echo.live/track/ada-4821 ↗',
-                              style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF2563EB), fontWeight: FontWeight.w500),
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: const Color(0xFF2563EB),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Container(
@@ -259,13 +320,24 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF2563EB),
                                         shape: BoxShape.circle,
-                                        boxShadow: [BoxShadow(color: const Color(0xFF2563EB).withOpacity(0.5), blurRadius: 10, spreadRadius: 4)],
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF2563EB,
+                                            ).withOpacity(0.5),
+                                            blurRadius: 10,
+                                            spreadRadius: 4,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
                                       'Last known location',
-                                      style: GoogleFonts.poppins(fontSize: 12, color: Colors.white54),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.white54,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -274,11 +346,17 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                             const SizedBox(height: 12),
                             Text(
                               'Verified SMS Alert sent to Police',
-                              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white54),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.white54,
+                              ),
                             ),
                             Text(
                               'Public Echo Feed Active',
-                              style: GoogleFonts.poppins(fontSize: 13, color: const Color(0xFF2563EB)),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF2563EB),
+                              ),
                             ),
                           ],
                         ),
@@ -295,10 +373,23 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                               margin: const EdgeInsets.only(top: 4),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: consented ? EchoColors.primary : Colors.white24, width: 2),
-                                color: consented ? EchoColors.primary : Colors.transparent,
+                                border: Border.all(
+                                  color: consented
+                                      ? EchoColors.primary
+                                      : Colors.white24,
+                                  width: 2,
+                                ),
+                                color: consented
+                                    ? EchoColors.primary
+                                    : Colors.transparent,
                               ),
-                              child: consented ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                              child: consented
+                                  ? const Icon(
+                                      Icons.check,
+                                      size: 16,
+                                      color: Colors.white,
+                                    )
+                                  : null,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -307,12 +398,20 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                                 children: [
                                   Text(
                                     'Your Consent',
-                                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     "I agree to share this information publicly during an emergency, only if my contacts don't respond within 2 minutes. I can change this anytime in Settings.",
-                                    style: GoogleFonts.poppins(fontSize: 14, height: 1.5, color: Colors.white70),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      height: 1.5,
+                                      color: Colors.white70,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -332,17 +431,30 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                       width: double.infinity,
                       height: 60,
                       child: ElevatedButton(
-                        onPressed: consented ? () {
-                          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
-                        } : null,
+                        onPressed: consented
+                            ? () {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/system-test-screen',
+                                  (route) => false,
+                                );
+                              }
+                            : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: EchoColors.primary,
-                          disabledBackgroundColor: EchoColors.primary.withOpacity(0.3),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(34)),
+                          disabledBackgroundColor: EchoColors.primary
+                              .withOpacity(0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(34),
+                          ),
                         ),
                         child: Text(
                           'Activate Tier 2 Protection',
-                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -354,11 +466,17 @@ class _Tier2PublicAlertSetupScreenState extends State<Tier2PublicAlertSetupScree
                         onPressed: () => Navigator.maybePop(context),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white24),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(34)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(34),
+                          ),
                         ),
                         child: Text(
                           'Not Now',
-                          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),

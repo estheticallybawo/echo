@@ -78,7 +78,7 @@ Docs/google-services*.json
 >>>>>>> Gemma4Safety/main
 
 firebase.json
-
+/scripts
 
 android/app/google-services.json
 lib/firebase_options.dart

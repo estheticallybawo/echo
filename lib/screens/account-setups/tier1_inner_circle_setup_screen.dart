@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme.dart';
 import '../../services/local_storage_service.dart';
 
@@ -8,14 +7,16 @@ class Tier1InnerCircleSetupScreen extends StatefulWidget {
   const Tier1InnerCircleSetupScreen({super.key});
 
   @override
-  State<Tier1InnerCircleSetupScreen> createState() => _Tier1InnerCircleSetupScreenState();
+  State<Tier1InnerCircleSetupScreen> createState() =>
+      _Tier1InnerCircleSetupScreenState();
 }
 
-class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScreen> {
+class _Tier1InnerCircleSetupScreenState
+    extends State<Tier1InnerCircleSetupScreen> {
   final LocalStorageService _localStorage = LocalStorageService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _contacts = [];
   int _selectedPreviewIndex = 0;
   bool _isSaving = false;
@@ -27,19 +28,19 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
   }
 
   Future<void> _loadContacts() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final contacts = _localStorage.getContacts(user.uid);
-      setState(() {
-        _contacts = contacts;
-      });
-    }
+    final contacts = _localStorage.getContacts(_currentUserId);
+    setState(() {
+      _contacts = contacts;
+    });
   }
+
+  String get _currentUserId =>
+      _localStorage.getCurrentUserUid() ?? 'demo_user_local';
 
   void _showAddContactDialog() {
     _nameController.clear();
     _phoneController.clear();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -49,7 +50,7 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: EchoColors.primaryLight
+            color: EchoColors.primaryLight,
           ),
         ),
         content: Column(
@@ -60,12 +61,17 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               style: GoogleFonts.poppins(color: EchoColors.primaryLight),
               decoration: InputDecoration(
                 hintText: 'Contact name',
-                hintStyle: GoogleFonts.poppins(color: EchoColors.primaryLight.withOpacity(0.5)),
+                hintStyle: GoogleFonts.poppins(
+                  color: EchoColors.primaryLight.withOpacity(0.5),
+                ),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: EchoColors.primaryDark),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: EchoColors.primaryDark, width: 2),
+                  borderSide: BorderSide(
+                    color: EchoColors.primaryDark,
+                    width: 2,
+                  ),
                 ),
               ),
             ),
@@ -76,12 +82,17 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               style: GoogleFonts.poppins(color: EchoColors.primaryLight),
               decoration: InputDecoration(
                 hintText: 'Phone number',
-                hintStyle: GoogleFonts.poppins(color: EchoColors.primaryLight.withOpacity(0.5)),
+                hintStyle: GoogleFonts.poppins(
+                  color: EchoColors.primaryLight.withOpacity(0.5),
+                ),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: EchoColors.primaryDark),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: EchoColors.primaryDark, width: 2),
+                  borderSide: BorderSide(
+                    color: EchoColors.primaryDark,
+                    width: 2,
+                  ),
                 ),
               ),
             ),
@@ -92,7 +103,9 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: GoogleFonts.poppins(color: EchoColors.primaryLight.withOpacity(0.7)),
+              style: GoogleFonts.poppins(
+                color: EchoColors.primaryLight.withOpacity(0.7),
+              ),
             ),
           ),
           TextButton(
@@ -101,42 +114,37 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               final phoneNumber = _phoneController.text.trim();
 
               if (name.isEmpty || phoneNumber.isEmpty) {
-                if (!mounted) return;
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter both a name and phone number')),
-                );
-                return;
-              }
-
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null) {
-                if (!mounted) return;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please sign in before adding contacts')),
+                  const SnackBar(
+                    content: Text('Enter both a name and phone number'),
+                  ),
                 );
                 return;
               }
 
               try {
                 await _localStorage.addContact(
-                  user.uid,
+                  _currentUserId,
                   name: name,
                   phoneNumber: phoneNumber,
                 );
                 await _loadContacts();
-                if (!mounted) return;
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('✓ $name added to inner circle')),
                 );
               } catch (e) {
-                if (!mounted) return;
+                if (!context.mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
-                print('❌ Error adding contact: $e');
+                debugPrint('[Tier1Setup] Error adding contact: $e');
               }
             },
             child: Text(
@@ -150,18 +158,15 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
   }
 
   void _removeContact(int contactId) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _localStorage.removeContact(user.uid, contactId).then((_) {
-        _loadContacts();
-      });
-    }
+    _localStorage.removeContact(_currentUserId, contactId).then((_) {
+      _loadContacts();
+    });
   }
 
   Widget _buildContactItem(Map<String, dynamic> contact, int index) {
     final isSelected = _selectedPreviewIndex == index;
     final name = contact['name'] as String? ?? '';
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -182,7 +187,9 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                     color: isSelected ? EchoColors.primary : Colors.white24,
                     width: isSelected ? 2 : 1,
                   ),
-                  color: isSelected ? EchoColors.primary.withOpacity(0.1) : const Color(0xFF0D1F45),
+                  color: isSelected
+                      ? EchoColors.primary.withOpacity(0.1)
+                      : const Color(0xFF0D1F45),
                 ),
                 child: Center(
                   child: Text(
@@ -206,7 +213,10 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                     decoration: BoxDecoration(
                       color: const Color.fromARGB(255, 196, 117, 15),
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFF081023), width: 1.5),
+                      border: Border.all(
+                        color: const Color(0xFF081023),
+                        width: 1.5,
+                      ),
                     ),
                     child: const Icon(
                       Icons.close,
@@ -253,17 +263,14 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
               child: Icon(
                 Icons.add,
                 size: large ? 32 : 28,
-                color: const Color.fromARGB(255, 148, 90, 2)
+                color: const Color.fromARGB(255, 148, 90, 2),
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Add',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: Colors.white54,
-            ),
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white54),
           ),
         ],
       ),
@@ -287,15 +294,15 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
 
     try {
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       if (mounted) {
         Navigator.pushNamed(context, '/tier2-public-alert-setup');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving contacts: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving contacts: $e')));
       }
     } finally {
       if (mounted) {
@@ -421,11 +428,17 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                   children: [
                                     ...List.generate(_contacts.length, (index) {
                                       return Padding(
-                                        padding: const EdgeInsets.only(right: 16),
-                                        child: _buildContactItem(_contacts[index], index),
+                                        padding: const EdgeInsets.only(
+                                          right: 16,
+                                        ),
+                                        child: _buildContactItem(
+                                          _contacts[index],
+                                          index,
+                                        ),
                                       );
                                     }),
-                                    if (_contacts.length < 10) _buildAddButton(),
+                                    if (_contacts.length < 10)
+                                      _buildAddButton(),
                                   ],
                                 ),
                               ),
@@ -446,10 +459,12 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                               Padding(
                                 padding: const EdgeInsets.all(20),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Emergency Contacts',
@@ -469,7 +484,8 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                       ],
                                     ),
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         Text(
                                           '${_contacts.length}',
@@ -481,7 +497,9 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _contacts.isEmpty ? 'None added' : 'contacts added',
+                                          _contacts.isEmpty
+                                              ? 'None added'
+                                              : 'contacts added',
                                           style: GoogleFonts.poppins(
                                             fontSize: 15,
                                             color: Colors.white70,
@@ -494,7 +512,12 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                               ),
                               Container(
                                 width: double.infinity,
-                                margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                                margin: const EdgeInsets.fromLTRB(
+                                  12,
+                                  0,
+                                  12,
+                                  12,
+                                ),
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF081023),
@@ -510,7 +533,9 @@ class _Tier1InnerCircleSetupScreenState extends State<Tier1InnerCircleSetupScree
                                           height: 16,
                                           decoration: BoxDecoration(
                                             color: EchoColors.primary,
-                                            borderRadius: BorderRadius.circular(2),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme.dart';
 
-/// First-launch dialog for downloading offline AI model
-/// Shown when user first taps Emergency without AI downloaded
+/// First-launch dialog for previewing the APK model download path.
 class AIModelDownloadDialog extends StatelessWidget {
   final VoidCallback onDownload;
   final VoidCallback onSkip;
@@ -51,10 +50,10 @@ class AIModelDownloadDialog extends StatelessWidget {
 
               // Description
               Text(
-                'Download the offline AI assistant for better threat assessment?',
+                'Preview the compatible Gemma model download path for APK testing?',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: EchoColors.textSecondary,
-                    ),
+                  color: EchoColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -68,14 +67,14 @@ class AIModelDownloadDialog extends StatelessWidget {
               const SizedBox(height: 12),
               _buildInfoCard(
                 icon: Icons.schedule_outlined,
-                label: 'Download Time',
-                value: '~3-5 minutes',
+                label: 'Demo Mode',
+                value: 'Simulated',
               ),
               const SizedBox(height: 12),
               _buildInfoCard(
                 icon: Icons.check_circle_outline_rounded,
                 label: 'Benefit',
-                value: 'Better accuracy',
+                value: 'Compatibility check',
               ),
               const SizedBox(height: 32),
 
@@ -103,8 +102,8 @@ class AIModelDownloadDialog extends StatelessWidget {
                 child: Text(
                   'Cancel',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: EchoColors.textTertiary,
-                      ),
+                    color: EchoColors.textTertiary,
+                  ),
                 ),
               ),
             ],

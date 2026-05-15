@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../providers/escalation_provider.dart';
 import '../../providers/gemma_provider.dart';
+import '../../services/demo/demo_emergency_service.dart';
 import '../../services/sound/confirmation_sound_service.dart';
 import '../../services/sound/tts_service.dart';
 
@@ -16,18 +17,22 @@ class EmergencyActiveScreen extends StatefulWidget {
   State<EmergencyActiveScreen> createState() => _EmergencyActiveScreenState();
 }
 
-class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with SingleTickerProviderStateMixin {
+class _EmergencyActiveScreenState extends State<EmergencyActiveScreen>
+    with SingleTickerProviderStateMixin {
   String _displayText = '';
-  final String _fullText = 'User location: Confirmed.\nRecording: Active (audio + metadata).\nProximity alerts: 3 contacts notified.\nPolice dispatch: Queued for operator.\nReal-time analysis: Assessing environment audio for threat patterns...';
+  final String _fullText =
+      'User location: Confirmed.\nRecording: Active (audio + metadata).\nProximity alerts: 3 contacts notified.\nPolice dispatch: Queued for operator.\nReal-time analysis: Assessing environment audio for threat patterns...';
   Timer? _typewriterTimer;
+  Timer? _bridgeSyncTimer;
   double _emotionLevel = 0.45;
   Timer? _fluctuationTimer;
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
-  
+
   List<String> _safetyInstructions = [];
   bool _instructionsLoaded = false;
-  final ConfirmationSoundService _confirmationSoundService = ConfirmationSoundService();
+  final ConfirmationSoundService _confirmationSoundService =
+      ConfirmationSoundService();
   final TTSService _ttsService = TTSService();
 
   @override
@@ -37,13 +42,15 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
-    
+    _pulseAnim = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
     _startTypewriter();
     _startFluctuation();
     _loadSafetyInstructions();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startDemoPipeline());
   }
 
   /// Load safety instructions from Gemma provider
@@ -56,16 +63,25 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
           _safetyInstructions = instructions;
           _instructionsLoaded = true;
         });
-        print('✅ Safety instructions loaded: ${instructions.length} items');
+        debugPrint(
+          '[EmergencyActive] Safety instructions loaded: ${instructions.length} items',
+        );
         if (instructions.isNotEmpty) {
-          unawaited(_ttsService.speak('Safety instructions ready. ${instructions.join('. ')}'));
+          unawaited(
+            _ttsService.speak(
+              'Echo is Activated. ${instructions.join('. ')}',
+            ),
+          );
         }
       }
     } catch (e) {
-      print('⚠️ Failed to load safety instructions: $e');
+      debugPrint('[EmergencyActive] Failed to load safety instructions: $e');
       if (mounted) {
         setState(() {
-          _safetyInstructions = ['Stay calm', 'Share your location with a trusted contact'];
+          _safetyInstructions = [
+            'Stay calm',
+            'Share your location with a trusted contact',
+          ];
           _instructionsLoaded = true;
         });
       }
@@ -73,10 +89,13 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   }
 
   void _startFluctuation() {
-    _fluctuationTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
+    _fluctuationTimer = Timer.periodic(const Duration(milliseconds: 800), (
+      timer,
+    ) {
       if (mounted) {
         setState(() {
-          _emotionLevel = (0.4 + (0.1 * (DateTime.now().millisecond / 1000))).clamp(0.0, 1.0);
+          _emotionLevel = (0.4 + (0.1 * (DateTime.now().millisecond / 1000)))
+              .clamp(0.0, 1.0);
         });
       }
     });
@@ -84,7 +103,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
 
   void _startTypewriter() {
     int i = 0;
-    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+    _typewriterTimer = Timer.periodic(const Duration(milliseconds: 30), (
+      timer,
+    ) {
       if (i < _fullText.length) {
         if (mounted) setState(() => _displayText += _fullText[i]);
         i++;
@@ -97,10 +118,53 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
   @override
   void dispose() {
     _typewriterTimer?.cancel();
+    _bridgeSyncTimer?.cancel();
     _fluctuationTimer?.cancel();
     _pulseCtrl.dispose();
     unawaited(_ttsService.stop());
     super.dispose();
+  }
+
+  Future<void> _startDemoPipeline() async {
+    if (!mounted) return;
+    final escalation = context.read<EscalationProvider>();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final analysis = args is Map
+        ? Map<String, dynamic>.from(args)
+        : <String, dynamic>{};
+    final threat =
+        (analysis['threat'] ??
+                analysis['threatLevel'] ??
+                analysis['distress_level'] ??
+                'Emergency')
+            .toString();
+    final summary =
+        (analysis['summary'] ??
+                analysis['reply'] ??
+                analysis['audio_description'] ??
+                'Echo emergency escalation is active.')
+            .toString();
+
+    await DemoEmergencyService().startIncident(
+      threat: threat,
+      summary: summary,
+    );
+
+    if (!escalation.isActive) {
+      escalation.startEscalation(
+        userId: 'demo-user',
+        threatType: threat,
+        confidence: 0.88,
+        onTier1: () => unawaited(DemoEmergencyService().activateTier(1)),
+        onTier2: () => unawaited(DemoEmergencyService().activateTier(2)),
+        onTier3: () => unawaited(DemoEmergencyService().activateTier(3)),
+      );
+    }
+
+    _bridgeSyncTimer?.cancel();
+    _bridgeSyncTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      unawaited(DemoEmergencyService().syncBridgeState());
+    });
   }
 
   String _formatTime(int seconds) {
@@ -147,42 +211,57 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
                           if (isResolved)
                             _buildResolvedHeader(escalation)
                           else ...[
-
                             _buildTimerCircle(seconds),
                             const SizedBox(height: 32),
-                            
 
                             _buildEmotionCard(),
                             const SizedBox(height: 24),
-                            
+
                             // Safety instructions
                             _buildSafetyInstructionsCard(),
                             const SizedBox(height: 24),
-                            
 
-                            _buildStatusRow(Icons.mic_rounded, 'Audio Recording', 'ACTIVE', EchoColors.switchOn),
-                            _buildStatusRow(Icons.location_on_outlined, 'Location', 'LOCKED', const Color(0xFF2563EB)),
-                            _buildStatusRow(Icons.notifications_active_outlined, 'Alerts Sent', '3 CONTACTS', const Color(0xFF2563EB)),
-                            _buildStatusRow(Icons.phone_in_talk_outlined, 'Police Dispatch', 'PENDING', const Color(0xFFFFA500)),
+                            _buildStatusRow(
+                              Icons.mic_rounded,
+                              'Audio Recording',
+                              'ACTIVE',
+                              EchoColors.switchOn,
+                            ),
+                            _buildStatusRow(
+                              Icons.location_on_outlined,
+                              'Location',
+                              'LOCKED',
+                              const Color(0xFF2563EB),
+                            ),
+                            _buildStatusRow(
+                              Icons.notifications_active_outlined,
+                              'Alerts Sent',
+                              '3 CONTACTS',
+                              const Color(0xFF2563EB),
+                            ),
+                            _buildStatusRow(
+                              Icons.phone_in_talk_outlined,
+                              'Police Dispatch',
+                              'PENDING',
+                              const Color(0xFFFFA500),
+                            ),
                           ],
-                          
+
                           const SizedBox(height: 32),
-                          
 
                           _buildEscalationCard(escalation),
                           const SizedBox(height: 24),
-                          
-                          if (!isResolved) ...[
+                          _buildDemoIncidentCard(),
+                          const SizedBox(height: 24),
 
+                          if (!isResolved) ...[
                             _buildAnalysisCard(),
                             const SizedBox(height: 24),
-                            
 
                             if (escalation.currentTier >= 3)
                               _buildAlertPostedCard(),
-                            
+
                             const SizedBox(height: 40),
-                            
 
                             _buildActionButtons(context, escalation),
                           ] else ...[
@@ -213,7 +292,11 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       ),
       child: Column(
         children: [
-          const Icon(Icons.check_circle_rounded, color: Color(0xFF00C48C), size: 64),
+          const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF00C48C),
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             'RESOLVED',
@@ -247,9 +330,16 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         height: 180,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFFFA500).withOpacity(0.3), width: 8),
+          border: Border.all(
+            color: const Color(0xFFFFA500).withOpacity(0.3),
+            width: 8,
+          ),
           boxShadow: [
-            BoxShadow(color: const Color(0xFFFFA500).withOpacity(0.2), blurRadius: 40, spreadRadius: 5),
+            BoxShadow(
+              color: const Color(0xFFFFA500).withOpacity(0.2),
+              blurRadius: 40,
+              spreadRadius: 5,
+            ),
           ],
         ),
         child: Center(
@@ -262,7 +352,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Colors.orangeAccent,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -315,12 +408,30 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
             children: [
               Row(
                 children: [
-                  const Icon(Icons.show_chart_rounded, color: Color(0xFF2563EB), size: 20),
+                  const Icon(
+                    Icons.show_chart_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Emotion Level', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                  Text(
+                    'Emotion Level',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                 ],
               ),
-              Text('${(_emotionLevel * 100).toInt()}%', style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w700, color: const Color(0xFF2563EB))),
+              Text(
+                '${(_emotionLevel * 100).toInt()}%',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2563EB),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -330,7 +441,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
               value: _emotionLevel,
               minHeight: 12,
               backgroundColor: Colors.white10,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0891B2)),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF0891B2),
+              ),
             ),
           ),
         ],
@@ -338,7 +451,12 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     );
   }
 
-  Widget _buildStatusRow(IconData icon, String label, String value, Color color) {
+  Widget _buildStatusRow(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -351,7 +469,14 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         children: [
           Icon(icon, size: 20, color: color.withOpacity(0.8)),
           const SizedBox(width: 16),
-          Text(label, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white)),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
           const Spacer(),
           Text(
             value,
@@ -384,7 +509,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.5)),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Colors.white.withOpacity(0.5),
+              ),
             ),
           ),
         ),
@@ -410,7 +537,11 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outlined, color: EchoColors.primary, size: 20),
+              const Icon(
+                Icons.lightbulb_outlined,
+                color: EchoColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Safety Instructions',
@@ -477,7 +608,7 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     String t1Status = 'STANDBY';
     String t2Status = 'STANDBY';
     String t3Status = 'STANDBY';
-    
+
     double progress = 0;
     String countdownText = '';
     Color progressColor = const Color(0xFF2563EB);
@@ -488,14 +619,14 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       progress = seconds / 5;
     } else if (currentTier == 1) {
       t1Status = 'ACTIVE';
-      countdownText = '${60 - seconds}s until Tier 2';
-      progress = (seconds - 5) / 55;
+      countdownText = '${15 - seconds}s until Tier 2';
+      progress = (seconds - 5) / 10;
       progressColor = const Color(0xFF00C48C);
     } else if (currentTier == 2) {
       t1Status = 'COMPLETED';
       t2Status = 'ACTIVE';
-      countdownText = '${90 - seconds}s until Tier 3';
-      progress = (seconds - 60) / 30;
+      countdownText = '${25 - seconds}s until Tier 3';
+      progress = (seconds - 15) / 10;
       progressColor = const Color(0xFFFFB020);
     } else {
       t1Status = 'COMPLETED';
@@ -503,7 +634,9 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       t3Status = isResolved ? 'COMPLETED' : 'POSTED';
       countdownText = isResolved ? 'Emergency Resolved' : 'Incident Public';
       progress = 1.0;
-      progressColor = isResolved ? const Color(0xFF00C48C) : const Color(0xFFFF4D4D);
+      progressColor = isResolved
+          ? const Color(0xFF00C48C)
+          : const Color(0xFFFF4D4D);
     }
 
     return Container(
@@ -519,29 +652,70 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         children: [
           Row(
             children: [
-              const Icon(Icons.groups_outlined, color: Colors.white70, size: 20),
+              const Icon(
+                Icons.groups_outlined,
+                color: Colors.white70,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('Escalation Status', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              Text(
+                'Escalation Status',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
-          _tierItem('TIER 1', '3 contacts notified', t1Status, currentTier >= 1, statusColor: t1Status == 'ACTIVE' ? const Color(0xFF00C48C) : null),
+          _tierItem(
+            'TIER 1',
+            '3 contacts notified',
+            t1Status,
+            currentTier >= 1,
+            statusColor: t1Status == 'ACTIVE' ? const Color(0xFF00C48C) : null,
+          ),
           if (currentTier >= 1 && !isResolved) ...[
             const SizedBox(height: 8),
             Row(
               children: [
                 const SizedBox(width: 48),
-                const Icon(Icons.bar_chart_rounded, color: Colors.white30, size: 14),
+                const Icon(
+                  Icons.bar_chart_rounded,
+                  color: Colors.white30,
+                  size: 14,
+                ),
                 const SizedBox(width: 6),
-                Text(currentTier == 2 ? '1 of 3 replied' : 'Waiting for responses', style: GoogleFonts.poppins(fontSize: 11, color: Colors.white30)),
+                Text(
+                  currentTier == 2 ? '1 of 3 replied' : 'Waiting for responses',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.white30,
+                  ),
+                ),
               ],
             ),
           ],
           const SizedBox(height: 12),
-          _tierItem('TIER 2', '5-10 extended contacts', t2Status, currentTier >= 2, statusColor: t2Status == 'ACTIVE' ? const Color(0xFFFFB020) : null),
+          _tierItem(
+            'TIER 2',
+            '5-10 extended contacts',
+            t2Status,
+            currentTier >= 2,
+            statusColor: t2Status == 'ACTIVE' ? const Color(0xFFFFB020) : null,
+          ),
           const SizedBox(height: 12),
-          _tierItem('TIER 3', 'Echo Community Post', t3Status, currentTier >= 3, statusColor: t3Status == 'POSTED' ? const Color(0xFFFF4D4D) : (t3Status == 'COMPLETED' ? const Color(0xFF00C48C) : null)),
-          
+          _tierItem(
+            'TIER 3',
+            'Echo Community Post',
+            t3Status,
+            currentTier >= 3,
+            statusColor: t3Status == 'POSTED'
+                ? const Color(0xFFFF4D4D)
+                : (t3Status == 'COMPLETED' ? const Color(0xFF00C48C) : null),
+          ),
+
           if (!isResolved)
             Padding(
               padding: const EdgeInsets.only(top: 20),
@@ -554,12 +728,21 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
                         value: progress,
                         minHeight: 4,
                         backgroundColor: Colors.white10,
-                        valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progressColor,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(countdownText, style: GoogleFonts.poppins(fontSize: 12, color: progressColor, fontWeight: FontWeight.w500)),
+                  Text(
+                    countdownText,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: progressColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -568,28 +751,58 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     );
   }
 
-  Widget _tierItem(String title, String sub, String status, bool activeOrCompleted, {Color? statusColor}) {
+  Widget _tierItem(
+    String title,
+    String sub,
+    String status,
+    bool activeOrCompleted, {
+    Color? statusColor,
+  }) {
     final isCompleted = status == 'COMPLETED';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: activeOrCompleted ? const Color(0xFF2563EB).withOpacity(0.1) : Colors.white.withOpacity(0.03),
+        color: activeOrCompleted
+            ? const Color(0xFF2563EB).withOpacity(0.1)
+            : Colors.white.withOpacity(0.03),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: activeOrCompleted ? const Color(0xFF2563EB).withOpacity(0.3) : Colors.transparent),
+        border: Border.all(
+          color: activeOrCompleted
+              ? const Color(0xFF2563EB).withOpacity(0.3)
+              : Colors.transparent,
+        ),
       ),
       child: Row(
         children: [
           Icon(
-            isCompleted ? Icons.check_circle : (activeOrCompleted ? Icons.radio_button_checked : Icons.circle_outlined),
-            color: activeOrCompleted ? (isCompleted ? const Color(0xFF00C48C) : const Color(0xFF2563EB)) : Colors.white30,
+            isCompleted
+                ? Icons.check_circle
+                : (activeOrCompleted
+                      ? Icons.radio_button_checked
+                      : Icons.circle_outlined),
+            color: activeOrCompleted
+                ? (isCompleted
+                      ? const Color(0xFF00C48C)
+                      : const Color(0xFF2563EB))
+                : Colors.white30,
             size: 20,
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-              Text(sub, style: GoogleFonts.poppins(fontSize: 12, color: Colors.white54)),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                sub,
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.white54),
+              ),
             ],
           ),
           const Spacer(),
@@ -598,7 +811,13 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: statusColor ?? (isCompleted ? const Color(0xFF00C48C) : (activeOrCompleted ? EchoColors.switchOn : Colors.white30)),
+              color:
+                  statusColor ??
+                  (isCompleted
+                      ? const Color(0xFF00C48C)
+                      : (activeOrCompleted
+                            ? EchoColors.switchOn
+                            : Colors.white30)),
             ),
           ),
         ],
@@ -620,18 +839,122 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         children: [
           Row(
             children: [
-              const Icon(Icons.smart_toy_outlined, color: Color(0xFF0891B2), size: 20),
+              const Icon(
+                Icons.smart_toy_outlined,
+                color: Color(0xFF0891B2),
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('Gemma 4 Analysis', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              Text(
+                'Gemma 4 Analysis',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
             _displayText,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white.withOpacity(0.9), height: 1.6),
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.9),
+              height: 1.6,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDemoIncidentCard() {
+    return StreamBuilder<DemoIncident?>(
+      stream: DemoEmergencyService().incidentStream,
+      initialData: DemoEmergencyService().activeIncident,
+      builder: (context, snapshot) {
+        final incident = snapshot.data;
+        if (incident == null) return const SizedBox.shrink();
+        final recentEvents = incident.events.reversed.take(4).toList();
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E3A8A).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.send_rounded,
+                    color: Color(0xFF29A9EA),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Live Contact Loop',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                incident.locationText,
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                incident.mapsUrl,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: const Color(0xFF29A9EA),
+                ),
+              ),
+              const SizedBox(height: 14),
+              ...recentEvents.map(
+                (event) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        margin: const EdgeInsets.only(top: 6),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: EchoColors.secondaryLight,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${event.label}: ${event.detail}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.82),
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -649,9 +972,20 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF00C48C), size: 20),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF00C48C),
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('Emergency Alert Posted', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              Text(
+                'Emergency Alert Posted',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -666,15 +1000,29 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.notification_important_rounded, color: Colors.orangeAccent, size: 18),
+                    const Icon(
+                      Icons.notification_important_rounded,
+                      color: Colors.orangeAccent,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
-                    Text('EMERGENCY ALERT', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.orangeAccent)),
+                    Text(
+                      'EMERGENCY ALERT',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.orangeAccent,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Posted to SMS and Echo Feed • Emergency services notified • Help needed',
-                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70),
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.white70,
+                  ),
                 ),
               ],
             ),
@@ -684,7 +1032,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, EscalationProvider escalation) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    EscalationProvider escalation,
+  ) {
     return Column(
       children: [
         Row(
@@ -728,7 +1079,14 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     );
   }
 
-  Widget _buildButton(String label, IconData icon, Color bg, Color text, VoidCallback onTap, {bool isFullWidth = false}) {
+  Widget _buildButton(
+    String label,
+    IconData icon,
+    Color bg,
+    Color text,
+    VoidCallback onTap, {
+    bool isFullWidth = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -758,7 +1116,10 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
     );
   }
 
-  Widget _buildResolvedActions(BuildContext context, EscalationProvider escalation) {
+  Widget _buildResolvedActions(
+    BuildContext context,
+    EscalationProvider escalation,
+  ) {
     return Column(
       children: [
         _buildButton(
@@ -794,22 +1155,44 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Are you safe?', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Text('Confirming your safety will resolve this emergency and notify your contacts.', style: GoogleFonts.poppins(color: Colors.white70)),
+        title: Text(
+          'Are you safe?',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Confirming your safety will resolve this emergency and notify your contacts.',
+          style: GoogleFonts.poppins(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Still in danger', style: GoogleFonts.poppins(color: const Color(0xFFFF0000), fontWeight: FontWeight.w600)),
+            child: Text(
+              'Still in danger',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFFFF0000),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); 
+              Navigator.pop(context);
               unawaited(_confirmationSoundService.confirmContactAction());
               unawaited(_ttsService.speak('Emergency resolved.'));
+              unawaited(DemoEmergencyService().markSafe());
               escalation.stopEscalation();
-              Navigator.pop(context, true); 
+              Navigator.pop(context, true);
             },
-            child: Text('I am safe', style: GoogleFonts.poppins(color: const Color(0xFF00C48C), fontWeight: FontWeight.w700)),
+            child: Text(
+              'I am safe',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF00C48C),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -823,21 +1206,47 @@ class _EmergencyActiveScreenState extends State<EmergencyActiveScreen> with Sing
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Cancel Emergency?', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Text('Are you sure? Recording and alerts will stop.', style: GoogleFonts.poppins(color: Colors.white70)),
+        title: Text(
+          'Cancel Emergency?',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Are you sure? Recording and alerts will stop.',
+          style: GoogleFonts.poppins(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Keep Recording', style: GoogleFonts.poppins(color: const Color(0xFF0891B2), fontWeight: FontWeight.w600)),
+            child: Text(
+              'Keep Recording',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF0891B2),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context); // close dialog
               unawaited(_ttsService.speak('Emergency cancelled.'));
+              unawaited(
+                DemoEmergencyService().markSafe(
+                  detail: 'Emergency cancelled in Echo.',
+                ),
+              );
               escalation.stopEscalation();
               Navigator.pop(context, true); // return to home
             },
-            child: Text('Cancel Emergency', style: GoogleFonts.poppins(color: const Color(0xFFFF0000), fontWeight: FontWeight.w700)),
+            child: Text(
+              'Cancel Emergency',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFFFF0000),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),

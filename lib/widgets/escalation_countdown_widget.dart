@@ -118,10 +118,7 @@ class _EscalationCountdownWidgetState extends State<EscalationCountdownWidget>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: tierColor.withOpacity(0.3),
-                  width: 2,
-                ),
+                border: Border.all(color: tierColor.withOpacity(0.3), width: 2),
                 color: tierColor.withOpacity(0.05),
               ),
               child: Column(
@@ -154,8 +151,10 @@ class _EscalationCountdownWidgetState extends State<EscalationCountdownWidget>
                       ),
                       // Pulse indicator
                       ScaleTransition(
-                        scale: Tween<double>(begin: 0.8, end: 1.2)
-                            .animate(_pulseController),
+                        scale: Tween<double>(
+                          begin: 0.8,
+                          end: 1.2,
+                        ).animate(_pulseController),
                         child: Container(
                           width: 12,
                           height: 12,
@@ -252,9 +251,13 @@ class _EscalationCountdownWidgetState extends State<EscalationCountdownWidget>
           height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? _getTierColor(int.parse(tier.split(' ')[1])) : EchoColors.neutral.withOpacity(0.2),
+            color: isActive
+                ? _getTierColor(int.parse(tier.split(' ')[1]))
+                : EchoColors.neutral.withOpacity(0.2),
             border: Border.all(
-              color: isActive ? _getTierColor(int.parse(tier.split(' ')[1])) : EchoColors.textTertiary,
+              color: isActive
+                  ? _getTierColor(int.parse(tier.split(' ')[1]))
+                  : EchoColors.textTertiary,
               width: 2,
             ),
           ),
@@ -295,7 +298,7 @@ class _EscalationCountdownWidgetState extends State<EscalationCountdownWidget>
     final messages = {
       1: 'Inner circle emergency contacts have been notified via WhatsApp',
       2: 'Extended network is being alerted. Help is on the way',
-      3: 'Your location is now public. Maximum visibility for assistance',
+      3: 'Echo Feed case is now public. Exact location stays private',
     };
 
     return Container(
@@ -306,11 +309,7 @@ class _EscalationCountdownWidgetState extends State<EscalationCountdownWidget>
       ),
       child: Text(
         messages[tier] ?? '',
-        style: TextStyle(
-          fontSize: 12,
-          color: _getTierColor(tier),
-          height: 1.5,
-        ),
+        style: TextStyle(fontSize: 12, color: _getTierColor(tier), height: 1.5),
       ),
     );
   }
